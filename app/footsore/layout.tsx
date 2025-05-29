@@ -1,6 +1,6 @@
 'use client';
 
-import SideNav from '@/app/ui/footsore/sidenav';
+import SideNav from '@/app/footsore/ui/sidenav';
 import {DocumentDuplicateIcon, HomeIcon, PowerIcon, UserGroupIcon} from '@heroicons/react/24/outline';
 
 const something = async () => {

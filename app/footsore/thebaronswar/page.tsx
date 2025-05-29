@@ -1,4 +1,4 @@
-import UnitCard from '@/app/ui/footsore/unit-card'
+import UnitCard from '@/app/footsore/ui/unit-card'
 
 const Page = () => {
   return (

@@ -1,8 +1,8 @@
 'use client';
 
-import ProfileSelector from '@/app/ui/footsore/profile-selector';
-import EquipmentSelector from '@/app/ui/footsore/equipment-selector'
-import AbilitiesSelector from '@/app/ui/footsore/abilities-selector'
+import ProfileSelector from '@/app/footsore/ui/profile-selector';
+import EquipmentSelector from '@/app/footsore/ui/equipment-selector'
+import AbilitiesSelector from '@/app/footsore/ui/abilities-selector'
 import {ChangeEvent, FocusEvent, useState} from "react";
 
 const defaultProfileKey = 'Regular'
