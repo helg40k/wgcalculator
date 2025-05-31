@@ -3,7 +3,7 @@ import UnitCard from '@/app/footsore/ui/unit-card'
 const Page = () => {
   return (
     <>
-      <p>The Barons' War</p>
+      <p>{"The Barons' War"}</p>
       <UnitCard/>
     </>
   );
