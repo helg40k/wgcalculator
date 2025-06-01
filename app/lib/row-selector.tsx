@@ -42,7 +42,8 @@ const RowSelector = ({ rows, content, onSelected }:
               'bg-sky-200': row.selected && !selected
             }
           )}>
-            { cloneElement(content, {data: row}) }
+            {/* uncomment me and fix types */}
+            {/*{ cloneElement(content, {data: row}) }*/}
           </div>
         );
       })}

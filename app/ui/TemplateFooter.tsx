@@ -3,7 +3,7 @@
 import React from "react";
 import {Layout} from "antd";
 
-const WgFooter = () => {
+const TemplateFooter = () => {
   return (
     <Layout.Footer style={{ textAlign: 'center' }}>
       <div/>
@@ -11,4 +11,4 @@ const WgFooter = () => {
   );
 };
 
-export default WgFooter;
+export default TemplateFooter;

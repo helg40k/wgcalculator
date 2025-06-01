@@ -1,37 +1,49 @@
 'use client';
 
 import React from 'react';
-import { LaptopOutlined, NotificationOutlined, UserOutlined } from '@ant-design/icons';
-import { Breadcrumb, Layout, Menu, theme, MenuProps } from 'antd';
+import {
+  DesktopOutlined,
+  FileOutlined,
+  PieChartOutlined,
+  TeamOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
+import { theme, MenuProps } from 'antd';
 import Link from "next/link";
-import WgHeader from "@/app/ui/WgHeader";
-import WgFooter from "@/app/ui/WgFooter";
+import TemplatePageLayout from "@/app/ui/TemplatePageLayout";
 
-const { Content, Sider } = Layout;
+type MenuItem = Required<MenuProps>['items'][number];
 
 const items1: MenuProps['items'] = ['1', '2', '3'].map((key) => ({
   key,
   label: `nav ${key}`,
 }));
 
-const items2: MenuProps['items'] = [UserOutlined, LaptopOutlined, NotificationOutlined].map(
-  (icon, index) => {
-    const key = String(index + 1);
+function getItem(
+  label: React.ReactNode,
+  key: React.Key,
+  icon?: React.ReactNode,
+  children?: MenuItem[],
+): MenuItem {
+  return {
+    label,
+    key,
+    icon,
+    children,
+  } as MenuItem;
+}
 
-    return {
-      key: `sub${key}`,
-      icon: React.createElement(icon),
-      label: `subnav ${key}`,
-      children: Array.from({ length: 4 }).map((_, j) => {
-        const subKey = index * 4 + j + 1;
-        return {
-          key: subKey,
-          label: `option${subKey}`,
-        };
-      }),
-    };
-  },
-);
+const items2: MenuItem[] = [
+  getItem('Option 1', '1', <PieChartOutlined />),
+  getItem('Option 2', '2', <DesktopOutlined />),
+  getItem('User', 'sub1', <UserOutlined />, [
+    getItem('Tom', '3'),
+    getItem('Bill', '4'),
+    getItem('Alex', '5'),
+  ]),
+  getItem('Team', 'sub2', <TeamOutlined />, [getItem('Team 1', '6'), getItem('Team 2', '8')]),
+  getItem('Files', '9', <FileOutlined />),
+];
 
 const Home = () => {
   const {
@@ -39,42 +51,15 @@ const Home = () => {
   } = theme.useToken();
 
   return (
-    <Layout>
-      <WgHeader items={items1} />
-      <div style={{ padding: '0 24px' }}>
-        <Breadcrumb
-          style={{ margin: '16px 0' }}
-          items={[{ title: 'Home' }, { title: 'List' }, { title: 'App' }]}
-        />
-        <Layout
-          style={{ padding: '24px 0', background: colorBgContainer, borderRadius: borderRadiusLG }}
-        >
-          <Sider style={{ background: colorBgContainer }} width={200}>
-            <Menu
-              mode="inline"
-              defaultSelectedKeys={['1']}
-              defaultOpenKeys={['sub1']}
-              style={{ height: '100%' }}
-              items={items2}
-            />
-          </Sider>
-          <Content style={{ padding: '0 24px', minHeight: 280 }}>Content</Content>
-        </Layout>
-      </div>
-      <WgFooter />
-    </Layout>
-    // <main className="flex min-h-screen flex-col p-6">
-    //   <div className="flex h-20 shrink-0 items-end rounded-lg bg-blue-500 p-4 md:h-52">
-    //     <WgLogo/>
-    //   </div>
-    //   <Link
-    //     key='Footsore'
-    //     href='/footsore'
-    //     className="flex h-[48px] grow items-center justify-center gap-2 rounded-md bg-gray-50 p-3 text-sm font-medium hover:bg-sky-100 hover:text-blue-600 md:flex-none md:justify-start md:p-2 md:px-3"
-    //   >
-    //     <p className="hidden md:block">Footsore</p>
-    //   </Link>
-    // </main>
+    <TemplatePageLayout headerMenuItems={items1} siderMenuItems={items2}>
+      <Link
+        key='Footsore'
+        href='/footsore'
+        className="flex h-[48px] grow items-center justify-center gap-2 rounded-md bg-gray-50 p-3 text-sm font-medium hover:bg-sky-100 hover:text-blue-600 md:flex-none md:justify-start md:p-2 md:px-3"
+      >
+        <p className="hidden md:block">Footsore</p>
+      </Link>
+    </TemplatePageLayout>
   );
 }
 
