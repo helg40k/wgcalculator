@@ -10,7 +10,7 @@ import {
 } from '@ant-design/icons';
 import { theme, MenuProps } from 'antd';
 import Link from "next/link";
-import TemplatePageLayout from "@/app/ui/TemplatePageLayout";
+import TemplatePageLayout, { MenuInfo } from "@/app/ui/TemplatePageLayout";
 
 type MenuItem = Required<MenuProps>['items'][number];
 
@@ -50,8 +50,12 @@ const Home = () => {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
+  const onClickSiderMenu = (info: MenuInfo) => {
+    console.log(info);
+  }
+
   return (
-    <TemplatePageLayout headerMenuItems={items1} siderMenuItems={items2}>
+    <TemplatePageLayout headerMenuItems={items1} siderMenuItems={items2} onClickSiderMenu={onClickSiderMenu}>
       <Link
         key='Footsore'
         href='/footsore'

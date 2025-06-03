@@ -9,16 +9,26 @@ import TemplateFooter from "@/app/ui/TemplateFooter";
 
 const { Content, Sider, Header } = Layout;
 
+export interface MenuInfo {
+  key: string;
+  keyPath: string[];
+  domEvent: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>;
+}
+
 interface PageLayoutProps {
   children: React.ReactNode;
   headerMenuItems?: MenuProps['items'];
   siderMenuItems?: MenuProps['items'];
+  onClickHeaderMenu?: (info: MenuInfo) => void;
+  onClickSiderMenu?: (info: MenuInfo) => void;
 }
 
 const TemplatePageLayout = ({
                               children,
                               headerMenuItems,
-                              siderMenuItems
+                              siderMenuItems,
+                              onClickHeaderMenu,
+                              onClickSiderMenu
                             }:PageLayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const {
@@ -27,7 +37,7 @@ const TemplatePageLayout = ({
 
   return (
     <Layout>
-      <TemplateHeader items={headerMenuItems} />
+      <TemplateHeader menuItems={headerMenuItems} onClickMenu={onClickHeaderMenu} />
       <div style={{ padding: '0 24px' }}>
         <Breadcrumb
           style={{ margin: '16px 0' }}
@@ -41,6 +51,7 @@ const TemplatePageLayout = ({
               defaultOpenKeys={['sub1']}
               style={{ height: '100%', borderRadius: borderRadiusLG }}
               items={siderMenuItems}
+              onClick={(i) => onClickSiderMenu ? onClickSiderMenu(i) : undefined}
             />
           </Sider>
           <Layout>
