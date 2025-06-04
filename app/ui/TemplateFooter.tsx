@@ -5,7 +5,7 @@ import {Layout} from "antd";
 
 const TemplateFooter = () => {
   return (
-    <Layout.Footer style={{ textAlign: 'center' }}>
+    <Layout.Footer className='justify-items-center' >
       <div/>
     </Layout.Footer>
   );

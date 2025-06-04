@@ -9,6 +9,8 @@ import TemplateFooter from "@/app/ui/TemplateFooter";
 
 const { Content, Sider, Header } = Layout;
 
+type MenuItem = Required<MenuProps>['items'][number];
+
 export interface MenuInfo {
   key: string;
   keyPath: string[];
@@ -22,6 +24,11 @@ interface PageLayoutProps {
   onClickHeaderMenu?: (info: MenuInfo) => void;
   onClickSiderMenu?: (info: MenuInfo) => void;
 }
+
+const avatarMenuItems: MenuItem[] = [{
+  label: 'Test item',
+  key: 'test',
+}];
 
 const TemplatePageLayout = ({
                               children,
@@ -37,8 +44,8 @@ const TemplatePageLayout = ({
 
   return (
     <Layout>
-      <TemplateHeader menuItems={headerMenuItems} onClickMenu={onClickHeaderMenu} />
-      <div style={{ padding: '0 24px' }}>
+      <TemplateHeader menuItems={headerMenuItems} onClickMenu={onClickHeaderMenu} logoutTooltipMessage='Test message' avatarMenuItems={avatarMenuItems} />
+      <div className='py-0 px-6'>
         <Breadcrumb
           style={{ margin: '16px 0' }}
           items={[{ title: 'Home' }, { title: 'List' }, { title: 'App' }]}
@@ -67,10 +74,8 @@ const TemplatePageLayout = ({
                 }}
               />
             </Header>
-            <Content style={{
+            <Content className='p-6 min-h-72' style={{
               margin: '1px 0 0 0',
-              padding: 24,
-              minHeight: 280,
               background: colorBgContainer,
               borderRadius: borderRadiusLG,
             }}>{children}</Content>
