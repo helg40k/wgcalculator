@@ -1,6 +1,8 @@
 'use client';
 
+import '@ant-design/v5-patch-for-react-19';
 import React from 'react';
+import { SessionProvider } from 'next-auth/react';
 import {
   DesktopOutlined,
   FileOutlined,
@@ -55,15 +57,17 @@ const Home = () => {
   }
 
   return (
-    <TemplatePageLayout headerMenuItems={items1} siderMenuItems={items2} onClickSiderMenu={onClickSiderMenu}>
-      <Link
-        key='Footsore'
-        href='/footsore'
-        className="flex h-[48px] grow items-center justify-center gap-2 rounded-md bg-gray-50 p-3 text-sm font-medium hover:bg-sky-100 hover:text-blue-600 md:flex-none md:justify-start md:p-2 md:px-3"
-      >
-        <p className="hidden md:block">Footsore</p>
-      </Link>
-    </TemplatePageLayout>
+    <SessionProvider>
+      <TemplatePageLayout headerMenuItems={items1} siderMenuItems={items2} onClickSiderMenu={onClickSiderMenu}>
+        <Link
+          key='Footsore'
+          href='/footsore'
+          className="flex h-[48px] grow items-center justify-center gap-2 rounded-md bg-gray-50 p-3 text-sm font-medium hover:bg-sky-100 hover:text-blue-600 md:flex-none md:justify-start md:p-2 md:px-3"
+        >
+          <p className="hidden md:block">Footsore</p>
+        </Link>
+      </TemplatePageLayout>
+    </SessionProvider>
   );
 }
 

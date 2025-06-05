@@ -1,6 +1,7 @@
 'use client';
 
 import React, {useMemo, useState} from "react";
+import { signIn } from 'next-auth/react';
 import {Menu, MenuProps, Layout, Avatar, Space, Tooltip, Dropdown, Modal, Button} from "antd";
 import WgLogo from "@/app/ui/wg-logo";
 import { UserOutlined, LoginOutlined, LogoutOutlined, GoogleOutlined } from '@ant-design/icons';
@@ -29,6 +30,7 @@ const TemplateHeader = ({
                           avatarMenuItems: avatarItems,
                         }: TemplateHeaderProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const loginWithGoogle = () => signIn('google', { callbackUrl: '/' }).catch((error: Error) => console.log(error));
 
   const avatarMenuItems = useMemo(() => {
     if (avatarItems) {
@@ -72,7 +74,7 @@ const TemplateHeader = ({
         footer={[]}
       >
         <div className='min-h-20 grid content-center'>
-          <Button type='primary' className='w-full'><GoogleOutlined />Login with Google</Button>
+          <Button onClick={loginWithGoogle} type='primary' className='w-full'><GoogleOutlined />Login with Google</Button>
         </div>
       </Modal>
     </Layout.Header>
