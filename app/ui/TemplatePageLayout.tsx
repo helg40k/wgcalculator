@@ -44,7 +44,12 @@ const TemplatePageLayout = ({
 
   return (
     <Layout>
-      <TemplateHeader menuItems={headerMenuItems} onClickMenu={onClickHeaderMenu} logoutTooltipMessage='Test message' avatarMenuItems={avatarMenuItems} />
+      <TemplateHeader
+        menuItems={headerMenuItems}
+        onClickMenu={onClickHeaderMenu}
+        logoutTooltipMessage='Test message'
+        avatarMenuItems={avatarMenuItems}
+      />
       <div className='py-0 px-6'>
         <Breadcrumb
           style={{ margin: '16px 0' }}

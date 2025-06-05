@@ -4,7 +4,7 @@ import Image from 'next/image';
 const WgLogo = () => {
   return (
     <div
-      className={`${lusitana.className} flex flex-row items-center leading-none text-white m-4`}
+      className={`${lusitana.className} m-4 flex flex-row items-center leading-none text-white`}
     >
       <Image
         src="/azai_white_original.svg"
