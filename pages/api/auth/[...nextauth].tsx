@@ -29,7 +29,18 @@ export default NextAuth( {
 
       console.log('== SUCCESS ==')
       return true;
-    }
+    },
+    async session({ session, trigger, newSession }) {
+      const email = session?.user?.email;
+      if (email) {
+        const adminEmailList = process.env.ADMIN_EMAIL_LIST;
+        if (adminEmailList && adminEmailList.includes(email)) {
+          const user = session.user as any;
+          user.admin = true;
+        }
+      }
+      return session;
+    },
   },
   logger: {
     async error(code, metadata) {

@@ -34,7 +34,7 @@ const TemplateHeader = ({
                           onClickAvatarMenu,
                         }: TemplateHeaderProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { isAuthenticated, userName, iconURL } = useUser();
+  const { isAuthenticated, userName, iconURL, isAdmin } = useUser();
 
   const loginWithGoogle = () =>
     signIn('google', { callbackUrl: '/' }).catch((error: Error) => errorMessage(error.message));

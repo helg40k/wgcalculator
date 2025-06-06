@@ -17,8 +17,11 @@ const useUser = () => {
   const email = useMemo(
     () => isAuthenticated && data?.user?.email ? data.user.email : null,
     [isAuthenticated, data]);
+  const isAdmin = useMemo(
+    () => isAuthenticated && !!((data?.user as any)?.admin),
+    [isAuthenticated, data]);
 
-  return { isAuthenticated, userName, iconURL, email };
+  return { isAuthenticated, userName, iconURL, email, isAdmin };
 }
 
 export default useUser;
