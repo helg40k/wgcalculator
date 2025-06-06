@@ -10,7 +10,7 @@ import {
   TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import { theme, MenuProps } from 'antd';
+import {theme, MenuProps} from 'antd';
 import Link from "next/link";
 import TemplatePageLayout, { MenuInfo } from "@/app/ui/TemplatePageLayout";
 

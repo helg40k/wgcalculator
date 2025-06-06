@@ -8,6 +8,7 @@ import { UserOutlined, LoginOutlined, LogoutOutlined, GoogleOutlined } from '@an
 import useUser from '@/app/lib/hooks/use-user';
 
 import { MenuInfo } from "@/app/ui/TemplatePageLayout";
+import errorMessage from "@/app/ui/errorMessage";
 
 type MenuItem = Required<MenuProps>['items'][number];
 
@@ -36,7 +37,7 @@ const TemplateHeader = ({
   const { isAuthenticated, userName, iconURL } = useUser();
 
   const loginWithGoogle = () =>
-    signIn('google', { callbackUrl: '/' }).catch((error: Error) => console.log(error));
+    signIn('google', { callbackUrl: '/' }).catch((error: Error) => errorMessage(error.message));
 
   const avatarMenuItems = useMemo(() => {
     if (avatarItems) {
