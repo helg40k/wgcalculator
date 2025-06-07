@@ -1,10 +1,12 @@
-import React, {useState} from "react";
+import React, {useState, useEffect, useMemo} from "react";
 import {
   MenuUnfoldOutlined,
   MenuFoldOutlined,
+  HomeOutlined
 } from '@ant-design/icons';
-import TemplateHeader from "@/app/ui/TemplateHeader";
 import {Button, Breadcrumb, Layout, Menu, MenuProps, theme} from "antd";
+import {usePathname} from "next/navigation";
+import TemplateHeader from "@/app/ui/TemplateHeader";
 import TemplateFooter from "@/app/ui/TemplateFooter";
 
 const { Content, Sider, Header } = Layout;
@@ -15,6 +17,20 @@ export interface MenuInfo {
   key: string;
   keyPath: string[];
   domEvent: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>;
+}
+
+export const getItem = (
+  label: React.ReactNode,
+  key: React.Key,
+  icon?: React.ReactNode,
+  children?: MenuItem[],
+): MenuItem => {
+  return {
+    label,
+    key,
+    icon,
+    children,
+  } as MenuItem;
 }
 
 interface PageLayoutProps {
@@ -38,9 +54,21 @@ const TemplatePageLayout = ({
                               onClickSiderMenu
                             }:PageLayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);
+  const pathname = usePathname();
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
+
+  const breadcrumbList = useMemo(() => {
+    const homeItem = { title: <HomeOutlined />, href: '/' };
+    const splitPath = pathname?.split('/') || [];
+    const pathList = splitPath
+      .filter((i) => !!i)
+      .map((i) => {
+        return { title: i }
+      });
+    return [homeItem, ...pathList];
+  }, [pathname]);
 
   return (
     <Layout>
@@ -51,10 +79,9 @@ const TemplatePageLayout = ({
         avatarMenuItems={avatarMenuItems}
       />
       <div className='py-0 px-6'>
-        <Breadcrumb
-          style={{ margin: '16px 0' }}
-          items={[{ title: 'Home' }, { title: 'List' }, { title: 'App' }]}
-        />
+        <div className='my-4'>
+          <Breadcrumb items={breadcrumbList} />
+        </div>
         <Layout>
           <Sider style={{ background: colorBgContainer, borderRadius: borderRadiusLG }} width={200} trigger={null} collapsible collapsed={collapsed}>
             <Menu

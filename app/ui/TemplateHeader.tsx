@@ -76,25 +76,27 @@ const TemplateHeader = ({
           />
         )}
       </Space>
-      {!isAuthenticated && (
-        <Tooltip placement="left" title={logoutTooltipMessage}>
-          <Avatar size={64} icon={<UserOutlined />} onClick={showModal} />
-        </Tooltip>
-      )}
-      {isAuthenticated && (
-        <Dropdown
-          placement="bottomRight"
-          arrow={{ pointAtCenter: true }}
-          menu={{ items: avatarMenuItems, onClick: onMenuClick }}
-          trigger={['click']}
+      <div className='m-2'>
+        {!isAuthenticated && (
+          <Tooltip placement="left" title={logoutTooltipMessage}>
+            <Avatar size={64} icon={<UserOutlined />} onClick={showModal} />
+          </Tooltip>
+        )}
+        {isAuthenticated && (
+          <Dropdown
+            placement="bottomRight"
+            arrow={{ pointAtCenter: true }}
+            menu={{ items: avatarMenuItems, onClick: onMenuClick }}
+            trigger={['click']}
 
-        >
-          <div className='flex flex-col justify-center items-center' >
-            <Avatar size={userName ? 'large' : 64} src={iconURL} icon={<UserOutlined />} />
-            <p className='text-sm text-nowrap text-white'>{userName}</p>
-          </div>
-        </Dropdown>
-      )}
+          >
+            <div className='flex flex-col justify-center items-center' >
+              <Avatar size={userName ? 'large' : 64} src={iconURL} icon={<UserOutlined />} />
+              <p className='text-sm text-nowrap text-white'>{userName}</p>
+            </div>
+          </Dropdown>
+        )}
+      </div>
       <Modal
         title={<div><LoginOutlined className='text-xl' />&nbsp;&nbsp;Login:</div>}
         open={isModalOpen}

@@ -2,6 +2,7 @@
 
 import '@ant-design/v5-patch-for-react-19';
 import React from 'react';
+import { redirect } from 'next/navigation'
 import { SessionProvider } from 'next-auth/react';
 import {
   DesktopOutlined,
@@ -11,8 +12,7 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import {theme, MenuProps} from 'antd';
-import Link from "next/link";
-import TemplatePageLayout, { MenuInfo } from "@/app/ui/TemplatePageLayout";
+import TemplatePageLayout, { MenuInfo, getItem } from "@/app/ui/TemplatePageLayout";
 
 type MenuItem = Required<MenuProps>['items'][number];
 
@@ -21,22 +21,8 @@ const items1: MenuProps['items'] = ['1', '2', '3'].map((key) => ({
   label: `nav ${key}`,
 }));
 
-function getItem(
-  label: React.ReactNode,
-  key: React.Key,
-  icon?: React.ReactNode,
-  children?: MenuItem[],
-): MenuItem {
-  return {
-    label,
-    key,
-    icon,
-    children,
-  } as MenuItem;
-}
-
 const items2: MenuItem[] = [
-  getItem('Option 1', '1', <PieChartOutlined />),
+  getItem('Footsore', 'footsore', <PieChartOutlined />),
   getItem('Option 2', '2', <DesktopOutlined />),
   getItem('User', 'sub1', <UserOutlined />, [
     getItem('Tom', '3'),
@@ -54,18 +40,16 @@ const Home = () => {
 
   const onClickSiderMenu = (info: MenuInfo) => {
     console.log(info);
+    const key = info?.key;
+    if (key === 'footsore') {
+      redirect(`/${key}`)
+    }
   }
 
   return (
     <SessionProvider>
       <TemplatePageLayout headerMenuItems={items1} siderMenuItems={items2} onClickSiderMenu={onClickSiderMenu}>
-        <Link
-          key='Footsore'
-          href='/footsore'
-          className="flex h-[48px] grow items-center justify-center gap-2 rounded-md bg-gray-50 p-3 text-sm font-medium hover:bg-sky-100 hover:text-blue-600 md:flex-none md:justify-start md:p-2 md:px-3"
-        >
-          <p className="hidden md:block">Footsore</p>
-        </Link>
+        Home
       </TemplatePageLayout>
     </SessionProvider>
   );
