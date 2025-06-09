@@ -1,7 +1,8 @@
-import getFirestoreForApp from './getFirestoreForApp';
 import { DocumentData, FieldValue } from "@google-cloud/firestore";
 
-const UPDATED_BY_CONSTANT = 'NEXT_BACKEND';
+import getFirestoreForApp from "./getFirestoreForApp";
+
+const UPDATED_BY_CONSTANT = "NEXT_BACKEND";
 
 /**
  * this method will update document in the firebase database by provided id
@@ -11,16 +12,16 @@ const UPDATED_BY_CONSTANT = 'NEXT_BACKEND';
  * @return {Promise<DocumentData|undefined>} - firebase updating operation object
  */
 const updateDocumentById = async (
-    collectionName: string,
-    data: { _updatedBy: string|null },
-    id: string|number
-): Promise<DocumentData|undefined> => {
+  collectionName: string,
+  data: { _updatedBy: string | null },
+  id: string | number,
+): Promise<DocumentData | undefined> => {
   /* A way to assign a default value to a variable if it is not defined. */
   const baseRefComputed = getFirestoreForApp();
   const payload = {
-    _updatedAt: FieldValue.serverTimestamp(),
     _isUpdated: true,
-    ...data
+    _updatedAt: FieldValue.serverTimestamp(),
+    ...data,
   };
   if (!data._updatedBy) {
     payload._updatedBy = UPDATED_BY_CONSTANT;
@@ -33,15 +34,15 @@ const updateDocumentById = async (
     try {
       count++;
       return await baseRefComputed
-      .collection(collectionName)
-      .doc(id.toString())
-      .update(payload);
+        .collection(collectionName)
+        .doc(id.toString())
+        .update(payload);
     } catch (error) {
       console.error(
-          `Error during updating operation for '${collectionName}' ID: ${id}`,
-          error
+        `Error during updating operation for '${collectionName}' ID: ${id}`,
+        error,
       );
-      if (!(error as Error).message.includes('RST_STREAM')) {
+      if (!(error as Error).message.includes("RST_STREAM")) {
         throw error; // do not retry the operation if it's not RST_STREAM error
       }
     }

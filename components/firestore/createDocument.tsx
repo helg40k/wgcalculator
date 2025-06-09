@@ -1,5 +1,5 @@
-import getFirestoreForApp from './getFirestoreForApp';
-import getDocumentCreationBase from './getDocumentCreationBase';
+import getDocumentCreationBase from "./getDocumentCreationBase";
+import getFirestoreForApp from "./getFirestoreForApp";
 
 /**
  * this method will create document in the firebase database with provided data with id if specified
@@ -11,13 +11,12 @@ import getDocumentCreationBase from './getDocumentCreationBase';
  * @return {Promise<string|number|null>} - new (created) document id or null if something went wrong (firebase database was not initialized)
  */
 const createDocument = async (
-    collectionName: string,
-    dataToSave: object,
-    documentId?: string|number,
-    returnDoc: boolean = false,
-    isDocumentSet: boolean = false
-):Promise<object|string|number|null> => {
-
+  collectionName: string,
+  dataToSave: object,
+  documentId?: string | number,
+  returnDoc: boolean = false,
+  isDocumentSet: boolean = false,
+): Promise<object | string | number | null> => {
   /* A way to assign a default value to a variable if it is not defined. */
   const baseRefComputed = getFirestoreForApp();
   const documentRef = baseRefComputed.collection(collectionName).doc();
@@ -26,15 +25,15 @@ const createDocument = async (
 
   const documentBody = {
     ...getDocumentCreationBase(newDocumentIdComputed),
-    ...dataToSave
+    ...dataToSave,
   };
 
   const finalQueryRef = baseRefComputed
-  .collection(collectionName)
-  .doc(newDocumentIdComputed.toString());
+    .collection(collectionName)
+    .doc(newDocumentIdComputed.toString());
   isDocumentSet
-      ? await finalQueryRef.set(documentBody)
-      : await finalQueryRef.create(documentBody);
+    ? await finalQueryRef.set(documentBody)
+    : await finalQueryRef.create(documentBody);
 
   // returning of the new document id or document body
   return returnDoc ? documentBody : newDocumentIdComputed;

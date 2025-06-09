@@ -1,12 +1,12 @@
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue } from "firebase-admin/firestore";
 
-const getDocumentCreationBase = (_id: string|number) => {
+const getDocumentCreationBase = (_id: string | number) => {
   return {
-    _id,
     _createdAt: FieldValue.serverTimestamp(),
+    _id,
+    _isUpdated: false,
     _updatedAt: FieldValue.serverTimestamp(),
     _updatedBy: null,
-    _isUpdated: false
   };
 };
 

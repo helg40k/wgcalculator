@@ -1,11 +1,11 @@
-import {notification} from "antd";
+import { notification } from "antd";
 
 const errorMessage = (message: string) => {
   notification.error({
-    message: `Error`,
     description: message,
-    showProgress: true,
+    message: `Error`,
     pauseOnHover: true,
+    showProgress: true,
   });
 };
 

@@ -1,6 +1,13 @@
-import {collection, DocumentData, getDocs, WhereFilterOp, query, where} from 'firebase/firestore';
+import {
+  collection,
+  DocumentData,
+  getDocs,
+  query,
+  where,
+  WhereFilterOp,
+} from "firebase/firestore";
 
-import firestore from '@/app/lib/services/firebase/utils/firestore';
+import firestore from "@/app/lib/services/firebase/utils/firestore";
 
 /**
  * Retrieves several (alone?) documents from a Firestore collection based on the provided parameters.
@@ -8,13 +15,17 @@ import firestore from '@/app/lib/services/firebase/utils/firestore';
  * @param filters - The condition(s).
  * @returns The data from the documents
  */
-const getDocuments = async (collectionPath:string, filters: Array<[string, WhereFilterOp, any]>):Promise<DocumentData[]> => {
+const getDocuments = async (
+  collectionPath: string,
+  filters: Array<[string, WhereFilterOp, any]>,
+): Promise<DocumentData[]> => {
   const queryData = query(
     collection(firestore, collectionPath),
-    ...(filters?.map?.((rule) => where(...rule)) || []));
+    ...(filters?.map?.((rule) => where(...rule)) || []),
+  );
 
   const querySnapshot = await getDocs(queryData);
   return querySnapshot.docs.map((doc) => doc?.data());
-}
+};
 
-export default getDocuments
+export default getDocuments;

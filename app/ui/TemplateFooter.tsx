@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
 import React from "react";
-import {Layout} from "antd";
+import { Layout } from "antd";
 
 const TemplateFooter = () => {
   return (
-    <Layout.Footer className='justify-items-center' >
-      <div/>
+    <Layout.Footer className="justify-items-center">
+      <div />
     </Layout.Footer>
   );
 };

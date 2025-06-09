@@ -2,34 +2,11 @@
 // also https://medium.com/@nithishreddy0627/step-by-step-guide-building-a-next-js-63cd5b2bbbf3
 // and https://www.youtube.com/watch?v=k1TL-AzavvY
 
-import NextAuth from 'next-auth';
+import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 
-export default NextAuth( {
-  pages: {
-    signIn: '/',
-    signOut: '/',
-    error: '/',
-  },
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!
-    })
-  ],
-  secret: process.env.NEXTAUTH_SECRET!,
+export default NextAuth({
   callbacks: {
-    async signIn({user, account, profile}) {
-      const email = user?.email;
-      if (!email) {
-        return false;
-      }
-
-      // any logic to authorize just signed in user should be here
-
-      console.log('== SUCCESS ==')
-      return true;
-    },
     async session({ session, trigger, newSession }) {
       const email = session?.user?.email;
       if (email) {
@@ -41,10 +18,33 @@ export default NextAuth( {
       }
       return session;
     },
+    async signIn({ user, account, profile }) {
+      const email = user?.email;
+      if (!email) {
+        return false;
+      }
+
+      // any logic to authorize just signed in user should be here
+
+      console.log("== SUCCESS ==");
+      return true;
+    },
   },
   logger: {
     async error(code, metadata) {
       console.error(`NextAuth error! Code: ${code}`, metadata);
     },
   },
+  pages: {
+    error: "/",
+    signIn: "/",
+    signOut: "/",
+  },
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+  ],
+  secret: process.env.NEXTAUTH_SECRET!,
 });

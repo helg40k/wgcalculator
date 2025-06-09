@@ -1,5 +1,6 @@
-import { lusitana } from '@/app/ui/fonts';
-import Image from 'next/image';
+import Image from "next/image";
+
+import { lusitana } from "@/app/ui/fonts";
 
 const WgLogo = () => {
   return (
@@ -16,6 +17,6 @@ const WgLogo = () => {
       <p className="text-4xl">WG</p>
     </div>
   );
-}
+};
 
-export default WgLogo
+export default WgLogo;

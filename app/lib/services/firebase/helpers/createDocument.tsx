@@ -1,7 +1,8 @@
-import {doc, getDoc, serverTimestamp, setDoc} from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 
-import firestore from '@/app/lib/services/firebase/utils/firestore';
-import getId from './getId';
+import firestore from "@/app/lib/services/firebase/utils/firestore";
+
+import getId from "./getId";
 
 // import { LOG_TYPES } from '__constants__'
 // import { createLog } from 'services/logs'
@@ -13,17 +14,21 @@ import getId from './getId';
  * @param id - The id of the document to create. If not provided, a random id will be generated.
  * @returns The id of the document that was created.
  */
-const createDocument = async (collectionPath:string, documentData:object, id?:string) => {
+const createDocument = async (
+  collectionPath: string,
+  documentData: object,
+  id?: string,
+) => {
   const _id = id || getId(collectionPath);
   const ref = doc(firestore, collectionPath, _id);
   const now = serverTimestamp();
-  const data = {...documentData, _id, _createdAt: now, _updatedAt: now};
+  const data = { ...documentData, _createdAt: now, _id, _updatedAt: now };
 
   await setDoc(ref, data);
   // createLog(LOG_TYPES.CREATE, collectionPath, data);
 
   const docSnapshot = await getDoc(ref);
   return docSnapshot.data();
-}
+};
 
 export default createDocument;

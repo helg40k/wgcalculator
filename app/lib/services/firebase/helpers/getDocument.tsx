@@ -1,6 +1,6 @@
-import {doc, DocumentData, getDoc} from 'firebase/firestore';
+import { doc, DocumentData, getDoc } from "firebase/firestore";
 
-import firestore from '@/app/lib/services/firebase/utils/firestore';
+import firestore from "@/app/lib/services/firebase/utils/firestore";
 
 /**
  * It gets a document from a collection in Firestore
@@ -8,10 +8,13 @@ import firestore from '@/app/lib/services/firebase/utils/firestore';
  * @param id - The id of the document you want to get.
  * @returns The data from the document
  */
-const getDocument = async (collectionPath:string, id:string):Promise<DocumentData|undefined> => {
+const getDocument = async (
+  collectionPath: string,
+  id: string,
+): Promise<DocumentData | undefined> => {
   const ref = doc(firestore, collectionPath, id);
   const docSnapshot = await getDoc(ref);
   return docSnapshot.data();
-}
+};
 
-export default getDocument
+export default getDocument;

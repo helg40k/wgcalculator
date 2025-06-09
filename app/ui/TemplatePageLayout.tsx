@@ -1,17 +1,18 @@
-import React, {useState, useEffect, useMemo} from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  MenuUnfoldOutlined,
+  HomeOutlined,
   MenuFoldOutlined,
-  HomeOutlined
-} from '@ant-design/icons';
-import {Button, Breadcrumb, Layout, Menu, MenuProps, theme} from "antd";
-import {usePathname} from "next/navigation";
-import TemplateHeader from "@/app/ui/TemplateHeader";
+  MenuUnfoldOutlined,
+} from "@ant-design/icons";
+import { Breadcrumb, Button, Layout, Menu, MenuProps, theme } from "antd";
+import { usePathname } from "next/navigation";
+
 import TemplateFooter from "@/app/ui/TemplateFooter";
+import TemplateHeader from "@/app/ui/TemplateHeader";
 
 const { Content, Sider, Header } = Layout;
 
-type MenuItem = Required<MenuProps>['items'][number];
+type MenuItem = Required<MenuProps>["items"][number];
 
 export interface MenuInfo {
   key: string;
@@ -26,33 +27,35 @@ export const getItem = (
   children?: MenuItem[],
 ): MenuItem => {
   return {
-    label,
-    key,
-    icon,
     children,
+    icon,
+    key,
+    label,
   } as MenuItem;
-}
+};
 
 interface PageLayoutProps {
   children: React.ReactNode;
-  headerMenuItems?: MenuProps['items'];
-  siderMenuItems?: MenuProps['items'];
+  headerMenuItems?: MenuProps["items"];
+  siderMenuItems?: MenuProps["items"];
   onClickHeaderMenu?: (info: MenuInfo) => void;
   onClickSiderMenu?: (info: MenuInfo) => void;
 }
 
-const avatarMenuItems: MenuItem[] = [{
-  label: 'Test item',
-  key: 'test',
-}];
+const avatarMenuItems: MenuItem[] = [
+  {
+    key: "test",
+    label: "Test item",
+  },
+];
 
 const TemplatePageLayout = ({
-                              children,
-                              headerMenuItems,
-                              siderMenuItems,
-                              onClickHeaderMenu,
-                              onClickSiderMenu
-                            }:PageLayoutProps) => {
+  children,
+  headerMenuItems,
+  siderMenuItems,
+  onClickHeaderMenu,
+  onClickSiderMenu,
+}: PageLayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const {
@@ -60,12 +63,12 @@ const TemplatePageLayout = ({
   } = theme.useToken();
 
   const breadcrumbList = useMemo(() => {
-    const homeItem = { title: <HomeOutlined />, href: '/' };
-    const splitPath = pathname?.split('/') || [];
+    const homeItem = { href: "/", title: <HomeOutlined /> };
+    const splitPath = pathname?.split("/") || [];
     const pathList = splitPath
       .filter((i) => !!i)
       .map((i) => {
-        return { title: i }
+        return { title: i };
       });
     return [homeItem, ...pathList];
   }, [pathname]);
@@ -75,48 +78,70 @@ const TemplatePageLayout = ({
       <TemplateHeader
         menuItems={headerMenuItems}
         onClickMenu={onClickHeaderMenu}
-        logoutTooltipMessage='Test message'
+        logoutTooltipMessage="Test message"
         avatarMenuItems={avatarMenuItems}
       />
-      <div className='py-0 px-6'>
-        <div className='my-4'>
+      <div className="py-0 px-6">
+        <div className="my-4">
           <Breadcrumb items={breadcrumbList} />
         </div>
         <Layout>
-          <Sider style={{ background: colorBgContainer, borderRadius: borderRadiusLG }} width={200} trigger={null} collapsible collapsed={collapsed}>
+          <Sider
+            style={{
+              background: colorBgContainer,
+              borderRadius: borderRadiusLG,
+            }}
+            width={200}
+            trigger={null}
+            collapsible
+            collapsed={collapsed}
+          >
             <Menu
               mode="inline"
-              defaultSelectedKeys={['1']}
-              defaultOpenKeys={['sub1']}
-              style={{ height: '100%', borderRadius: borderRadiusLG }}
+              defaultSelectedKeys={["1"]}
+              defaultOpenKeys={["sub1"]}
+              style={{ borderRadius: borderRadiusLG, height: "100%" }}
               items={siderMenuItems}
-              onClick={(i) => onClickSiderMenu ? onClickSiderMenu(i) : undefined}
+              onClick={(i) =>
+                onClickSiderMenu ? onClickSiderMenu(i) : undefined
+              }
             />
           </Sider>
           <Layout>
-            <Header style={{ padding: 0, background: colorBgContainer, borderRadius: borderRadiusLG }}>
+            <Header
+              style={{
+                background: colorBgContainer,
+                borderRadius: borderRadiusLG,
+                padding: 0,
+              }}
+            >
               <Button
                 type="text"
                 icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
                 onClick={() => setCollapsed(!collapsed)}
                 style={{
-                  fontSize: '16px',
-                  width: 64,
+                  fontSize: "16px",
                   height: 64,
+                  width: 64,
                 }}
               />
             </Header>
-            <Content className='p-6 min-h-72' style={{
-              margin: '1px 0 0 0',
-              background: colorBgContainer,
-              borderRadius: borderRadiusLG,
-            }}>{children}</Content>
+            <Content
+              className="p-6 min-h-72"
+              style={{
+                background: colorBgContainer,
+                borderRadius: borderRadiusLG,
+                margin: "1px 0 0 0",
+              }}
+            >
+              {children}
+            </Content>
           </Layout>
         </Layout>
       </div>
       <TemplateFooter />
     </Layout>
   );
-}
+};
 
 export default TemplatePageLayout;

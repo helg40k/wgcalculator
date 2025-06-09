@@ -4,21 +4,23 @@ import {
   limit,
   orderBy,
   OrderByDirection,
-  query, startAfter,
+  query,
+  startAfter,
   where,
-  WhereFilterOp
+  WhereFilterOp,
 } from "firebase/firestore";
+
 import firestore from "@/app/lib/services/firebase/utils/firestore";
 
-const baseSortRule:[string, OrderByDirection] = ['_createdAt', 'desc'];
-const baseLimitRule:number = 100;
+const baseSortRule: [string, OrderByDirection] = ["_createdAt", "desc"];
+const baseLimitRule: number = 100;
 
 const collectionQuery = (
-    collectionPath: string,
-    filters: Array<[string, WhereFilterOp, any]> | undefined,
-    sort: [string, OrderByDirection] | undefined,
-    limitCount: number | undefined,
-    pagination: DocumentSnapshot<any, any> | unknown[] | undefined
+  collectionPath: string,
+  filters: Array<[string, WhereFilterOp, any]> | undefined,
+  sort: [string, OrderByDirection] | undefined,
+  limitCount: number | undefined,
+  pagination: DocumentSnapshot<any, any> | unknown[] | undefined,
 ) => {
   const collRef = collection(firestore, collectionPath);
   let q = query(collRef);
@@ -60,6 +62,6 @@ const collectionQuery = (
     q = query(q, startAfter(pagination));
   }
   return q;
-}
+};
 
 export default collectionQuery;

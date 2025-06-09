@@ -1,20 +1,24 @@
-import getFirestoreForApp from './getFirestoreForApp';
 import { Firestore, Query } from "@google-cloud/firestore";
 
-const deleteCollection = async (
-    collectionName: string,
-    batchSize = 15
-) => {
+import getFirestoreForApp from "./getFirestoreForApp";
+
+const deleteCollection = async (collectionName: string, batchSize = 15) => {
   const db = getFirestoreForApp();
   const query = getFirestoreForApp()
-    .collection(collectionName).orderBy('_id').limit(batchSize);
+    .collection(collectionName)
+    .orderBy("_id")
+    .limit(batchSize);
 
   return new Promise((resolve, reject) => {
     deleteQueryBatch(getFirestoreForApp(), query, resolve).catch(reject);
   });
 };
 
-const deleteQueryBatch = async (db:Firestore, query:Query, resolve:Function) => {
+const deleteQueryBatch = async (
+  db: Firestore,
+  query: Query,
+  resolve: Function,
+) => {
   const snapshot = await query.get();
 
   const batchSize = snapshot.size;

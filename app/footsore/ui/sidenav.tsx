@@ -1,11 +1,18 @@
-import Link from 'next/link';
-import NavLinks from '@/app/footsore/ui/nav-links';
-import WgLogo from '@/app/ui/wg-logo';
-import { LinkIcon } from '@heroicons/react/24/outline';
+import { LinkIcon } from "@heroicons/react/24/outline";
+import Link from "next/link";
 
-const SideNav = ({ lastLink, links }: { lastLink: {name: string, action: Function, icon: typeof LinkIcon}, links: {name: string, href: string, icon: typeof LinkIcon}[] } ) => {
+import NavLinks from "@/app/footsore/ui/nav-links";
+import WgLogo from "@/app/ui/wg-logo";
+
+const SideNav = ({
+  lastLink,
+  links,
+}: {
+  lastLink: { name: string; action: Function; icon: typeof LinkIcon };
+  links: { name: string; href: string; icon: typeof LinkIcon }[];
+}) => {
   const LastIcon = lastLink.icon;
-  const func = lastLink.action
+  const func = lastLink.action;
   return (
     <div className="flex h-full flex-col px-3 py-4 md:px-2">
       <Link
@@ -20,9 +27,9 @@ const SideNav = ({ lastLink, links }: { lastLink: {name: string, action: Functio
         <NavLinks links={links} />
         <div className="hidden h-auto w-full grow rounded-md bg-gray-50 md:block"></div>
         <form
-            action={async () => {
-                await func();
-            }}
+          action={async () => {
+            await func();
+          }}
         >
           <button className="flex h-[48px] w-full grow items-center justify-center gap-2 rounded-md bg-gray-50 p-3 text-sm font-medium hover:bg-sky-100 hover:text-blue-600 md:flex-none md:justify-start md:p-2 md:px-3">
             <LastIcon className="w-6" />
@@ -32,6 +39,6 @@ const SideNav = ({ lastLink, links }: { lastLink: {name: string, action: Functio
       </div>
     </div>
   );
-}
+};
 
-export default SideNav
+export default SideNav;

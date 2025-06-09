@@ -2,12 +2,12 @@ import Image from "next/image";
 
 const AbilitiesSelector = ({}) => {
   return (
-    <div className='mt-2'>
+    <div className="mt-2">
       <div className="flex">
         <h3 className="text-md font-medium">Abilities</h3>
       </div>
-      <div className='rounded-xl border-2'>
-        <div className='truncate rounded-xl px-4 py-2 font-medium capitalize bg-gray-50'>
+      <div className="rounded-xl border-2">
+        <div className="truncate rounded-xl px-4 py-2 font-medium capitalize bg-gray-50">
           {/*<div className="flex flex-row text-center">*/}
           {/*  <p className='basis-1/12 text-left'/>*/}
           {/*  <p className='flex basis-1/12 content-center justify-center'>*/}
@@ -31,7 +31,7 @@ const AbilitiesSelector = ({}) => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default AbilitiesSelector
+export default AbilitiesSelector;

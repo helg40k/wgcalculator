@@ -1,12 +1,12 @@
-import UnitCard from '@/app/footsore/ui/unit-card'
+import UnitCard from "@/app/footsore/ui/unit-card";
 
 const Page = () => {
   return (
     <>
       <p>{"The Barons' War"}</p>
-      <UnitCard/>
+      <UnitCard />
     </>
   );
-}
+};
 
-export default Page
+export default Page;
