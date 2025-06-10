@@ -8,7 +8,7 @@ const SideNav = ({
   lastLink,
   links,
 }: {
-  lastLink: { name: string; action: Function; icon: typeof LinkIcon };
+  lastLink: { name: string; action: () => void; icon: typeof LinkIcon };
   links: { name: string; href: string; icon: typeof LinkIcon }[];
 }) => {
   const LastIcon = lastLink.icon;

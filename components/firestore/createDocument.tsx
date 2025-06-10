@@ -31,9 +31,11 @@ const createDocument = async (
   const finalQueryRef = baseRefComputed
     .collection(collectionName)
     .doc(newDocumentIdComputed.toString());
-  isDocumentSet
-    ? await finalQueryRef.set(documentBody)
-    : await finalQueryRef.create(documentBody);
+  if (isDocumentSet) {
+    await finalQueryRef.set(documentBody);
+  } else {
+    await finalQueryRef.create(documentBody);
+  }
 
   // returning of the new document id or document body
   return returnDoc ? documentBody : newDocumentIdComputed;

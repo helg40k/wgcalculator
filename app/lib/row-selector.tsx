@@ -15,7 +15,7 @@ const RowSelector = ({
     selected: boolean;
   }[];
   content: ReactElement;
-  onSelected: Function;
+  onSelected: ({ key: string, selected: boolean }) => void;
 }) => {
   const [selected, setSelected] = useState(rows.find((p) => p.selected)?.key);
   const isSelected = !!selected;

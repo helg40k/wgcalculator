@@ -46,7 +46,7 @@ const ProfileSelector = ({
     abilities: string;
     selected: boolean;
   }[];
-  points: Function;
+  points: (pointNumber: number) => void;
 }) => {
   const handleSelected = (profile: {
     key: string;

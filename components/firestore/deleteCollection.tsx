@@ -2,22 +2,10 @@ import { Firestore, Query } from "@google-cloud/firestore";
 
 import getFirestoreForApp from "./getFirestoreForApp";
 
-const deleteCollection = async (collectionName: string, batchSize = 15) => {
-  const db = getFirestoreForApp();
-  const query = getFirestoreForApp()
-    .collection(collectionName)
-    .orderBy("_id")
-    .limit(batchSize);
-
-  return new Promise((resolve, reject) => {
-    deleteQueryBatch(getFirestoreForApp(), query, resolve).catch(reject);
-  });
-};
-
 const deleteQueryBatch = async (
   db: Firestore,
   query: Query,
-  resolve: Function,
+  resolve: () => void,
 ) => {
   const snapshot = await query.get();
 
@@ -39,6 +27,18 @@ const deleteQueryBatch = async (
   // exploding the stack.
   process.nextTick(() => {
     deleteQueryBatch(db, query, resolve);
+  });
+};
+
+const deleteCollection = async (collectionName: string, batchSize = 15) => {
+  const db = getFirestoreForApp();
+  const query = getFirestoreForApp()
+    .collection(collectionName)
+    .orderBy("_id")
+    .limit(batchSize);
+
+  return new Promise((resolve, reject) => {
+    deleteQueryBatch(getFirestoreForApp(), query, resolve).catch(reject);
   });
 };
 
