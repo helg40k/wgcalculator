@@ -5,14 +5,14 @@ import getFirestoreForApp from "./getFirestoreForApp";
 const deleteQueryBatch = async (
   db: Firestore,
   query: Query,
-  resolve: () => void,
+  resolve: (value: unknown) => void,
 ) => {
   const snapshot = await query.get();
 
   const batchSize = snapshot.size;
   if (batchSize === 0) {
     // When there are no documents left, we are done
-    resolve();
+    resolve(undefined);
     return;
   }
 

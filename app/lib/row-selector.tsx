@@ -12,10 +12,19 @@ const RowSelector = ({
 }: {
   rows: {
     key: string;
+    points: number;
     selected: boolean;
   }[];
   content: ReactElement;
-  onSelected: ({ key: string, selected: boolean }) => void;
+  onSelected: ({
+    key,
+    points,
+    selected,
+  }: {
+    key: string;
+    points: number;
+    selected: boolean;
+  }) => void;
 }) => {
   const [selected, setSelected] = useState(rows.find((p) => p.selected)?.key);
   const isSelected = !!selected;
