@@ -9,7 +9,7 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import { MenuProps, theme } from "antd";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { SessionProvider } from "next-auth/react";
 
 import TemplatePageLayout, {
@@ -42,6 +42,7 @@ const items2: MenuItem[] = [
 ];
 
 const Home = () => {
+  const router = useRouter();
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
@@ -50,7 +51,7 @@ const Home = () => {
     console.log(info);
     const key = info?.key;
     if (key === "footsore") {
-      redirect(`/${key}`);
+      router.push(`/${key}`);
     }
   };
 
