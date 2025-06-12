@@ -9,7 +9,7 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import { MenuProps, theme } from "antd";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { SessionProvider } from "next-auth/react";
 
 import TemplatePageLayout, {
@@ -27,7 +27,11 @@ const items1: MenuProps["items"] = ["1", "2", "3"].map((key) => ({
 }));
 
 const items2: MenuItem[] = [
-  getItem("Footsore", "footsore", <PieChartOutlined />),
+  getItem(
+    <Link href="/footsore">Footsore</Link>,
+    "footsore",
+    <PieChartOutlined />,
+  ),
   getItem("Option 2", "2", <DesktopOutlined />),
   getItem("User", "sub1", <UserOutlined />, [
     getItem("Tom", "3"),
@@ -42,17 +46,12 @@ const items2: MenuItem[] = [
 ];
 
 const Home = () => {
-  const router = useRouter();
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
   const onClickSiderMenu = (info: MenuInfo) => {
     console.log(info);
-    const key = info?.key;
-    if (key === "footsore") {
-      router.push(`/${key}`);
-    }
   };
 
   return (
