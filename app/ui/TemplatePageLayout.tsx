@@ -4,11 +4,22 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
-import { Breadcrumb, Button, Layout, Menu, MenuProps, theme } from "antd";
+import {
+  Breadcrumb,
+  Button,
+  Layout,
+  Menu,
+  MenuProps,
+  notification,
+  theme,
+} from "antd";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import TemplateFooter from "@/app/ui/TemplateFooter";
 import TemplateHeader from "@/app/ui/TemplateHeader";
+
+import packageJson from "../../package.json";
 
 const { Content, Sider, Header } = Layout;
 
@@ -62,6 +73,8 @@ const TemplatePageLayout = ({
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
+  const version = packageJson.version;
+
   const breadcrumbList = useMemo(() => {
     const homeItem = { href: "/", title: <HomeOutlined /> };
     const splitPath = pathname?.split("/") || [];
@@ -73,9 +86,44 @@ const TemplatePageLayout = ({
     return [homeItem, ...pathList];
   }, [pathname]);
 
+  const reloadPage = () => {
+    window.location.reload();
+  };
+
+  useEffect(() => {
+    const checkVersion = () => {
+      fetch("/api/version").then((resp) => {
+        resp.json().then((value) => {
+          const latestVersion = value.version;
+
+          if (version !== latestVersion) {
+            notification.warning({
+              description: (
+                <>
+                  <div>We have updated the Calculator.</div>
+                  <Link href="#" onClick={reloadPage} className="p-0">
+                    Refresh now
+                  </Link>
+                  &nbsp;for a better experience.
+                </>
+              ),
+              duration: 0,
+              message: "Refresh to update the Calculator",
+            });
+          }
+        });
+      });
+    };
+
+    checkVersion();
+    const interval = setInterval(checkVersion, 1000 * 60 * 10); // 10 minutes
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <Layout>
       <TemplateHeader
+        version={version}
         menuItems={headerMenuItems}
         onClickMenu={onClickHeaderMenu}
         logoutTooltipMessage="Test message"

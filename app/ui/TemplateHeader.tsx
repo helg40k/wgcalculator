@@ -15,11 +15,9 @@ import {
   Menu,
   MenuProps,
   Modal,
-  notification,
   Space,
   Tooltip,
 } from "antd";
-import Link from "next/link";
 import { signIn, signOut } from "next-auth/react";
 
 import useUser from "@/app/lib/hooks/use-user";
@@ -30,6 +28,7 @@ import WgLogo from "@/app/ui/wg-logo";
 type MenuItem = Required<MenuProps>["items"][number];
 
 interface TemplateHeaderProps {
+  version?: string;
   menuItems?: MenuProps["items"];
   onClickMenu?: (info: MenuInfo) => void;
   logoutTooltipMessage?: string;
@@ -46,6 +45,7 @@ const requiredAvatarMenuItems: MenuItem[] = [
 ];
 
 const TemplateHeader = ({
+  version = "",
   menuItems,
   onClickMenu,
   logoutTooltipMessage,
@@ -55,25 +55,34 @@ const TemplateHeader = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { isAuthenticated, userName, iconURL, isAdmin } = useUser();
 
-  const reloadPage = () => {
-    window.location.reload();
-  };
-
   const loginWithGoogle = () =>
     signIn("google", { callbackUrl: "/" }).catch((error: Error) =>
       errorMessage(error.message),
     );
 
   const avatarMenuItems = useMemo(() => {
+    let result = requiredAvatarMenuItems;
     if (avatarItems) {
-      return [
+      result = [
         ...avatarItems,
         { type: "divider" },
         ...requiredAvatarMenuItems,
       ] as MenuItem[];
     }
-    return requiredAvatarMenuItems;
-  }, [avatarItems]);
+    if (version) {
+      result = [
+        ...result,
+        { type: "divider" },
+        {
+          disabled: true,
+          key: "version",
+          label: `v${version}`,
+          style: { cursor: "pointer" },
+        },
+      ] as MenuItem[];
+    }
+    return result;
+  }, [avatarItems, version]);
 
   const showModal = () => {
     setIsModalOpen(true);
@@ -89,22 +98,6 @@ const TemplateHeader = ({
     } else if (onClickAvatarMenu) {
       onClickAvatarMenu(info);
     }
-  };
-
-  const checkVersion = () => {
-    notification.warning({
-      description: (
-        <>
-          <div>We have updated the Calculator.</div>
-          <Link href="#" onClick={reloadPage} className="p-0">
-            Refresh now
-          </Link>
-          &nbsp;for a better experience.
-        </>
-      ),
-      duration: 0,
-      message: "Refresh to update the Calculator",
-    });
   };
 
   return (
