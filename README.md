@@ -37,10 +37,12 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/deploym
 
 ## Commands
 
-Update version:
+Update a version:
 
 * `npm version patch`                 # +0.0.1
 * `npm version minor`                 # +0.1.0
 * `npm version major`                 # +1.0.0
 * `npm version prerelease`            # +0.0.1-0
 * `npm version prepatch --preid=beta` # 1.0.0 → 1.0.1-beta.0
+
+NB. Use `--no-git-tag-version` key when the version should not be autocommited!

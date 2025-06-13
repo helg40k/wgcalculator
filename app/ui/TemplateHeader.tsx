@@ -23,7 +23,7 @@ import { signIn, signOut } from "next-auth/react";
 import useUser from "@/app/lib/hooks/use-user";
 import errorMessage from "@/app/ui/errorMessage";
 import { MenuInfo } from "@/app/ui/TemplatePageLayout";
-import WgLogo from "@/app/ui/wg-logo";
+import WgLogo from "@/app/ui/WgLogo";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -77,7 +77,7 @@ const TemplateHeader = ({
           disabled: true,
           key: "version",
           label: `v${version}`,
-          style: { cursor: "pointer" },
+          style: { cursor: "default" },
         },
       ] as MenuItem[];
     }

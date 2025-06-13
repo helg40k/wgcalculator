@@ -115,7 +115,6 @@ const TemplatePageLayout = ({
       });
     };
 
-    checkVersion();
     const interval = setInterval(checkVersion, 1000 * 60 * 10); // 10 minutes
     return () => clearInterval(interval);
   }, []);
