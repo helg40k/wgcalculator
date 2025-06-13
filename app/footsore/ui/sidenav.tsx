@@ -2,7 +2,7 @@ import { LinkIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 
 import NavLinks from "@/app/footsore/ui/nav-links";
-import WgLogo from "@/app/ui/wg-logo";
+import WgLogo from "@/app/ui/Logo";
 
 const SideNav = ({
   lastLink,

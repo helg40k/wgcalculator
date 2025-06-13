@@ -20,10 +20,10 @@ import {
 } from "antd";
 import { signIn, signOut } from "next-auth/react";
 
-import useUser from "@/app/lib/hooks/use-user";
+import useUser from "@/app/lib/hooks/useUser";
 import errorMessage from "@/app/ui/errorMessage";
+import Logo from "@/app/ui/Logo";
 import { MenuInfo } from "@/app/ui/TemplatePageLayout";
-import WgLogo from "@/app/ui/WgLogo";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
@@ -106,7 +106,7 @@ const TemplateHeader = ({
       style={{ padding: 0 }}
     >
       <Space>
-        <WgLogo />
+        <Logo />
         {menuItems && (
           <Menu
             theme="dark"

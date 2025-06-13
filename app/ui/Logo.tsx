@@ -2,7 +2,7 @@ import Image from "next/image";
 
 import { lusitana } from "@/app/ui/fonts";
 
-const WgLogo = () => {
+const Logo = () => {
   return (
     <div
       className={`${lusitana.className} m-4 flex flex-row items-center leading-none text-white`}
@@ -19,4 +19,4 @@ const WgLogo = () => {
   );
 };
 
-export default WgLogo;
+export default Logo;

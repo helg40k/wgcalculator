@@ -28,8 +28,13 @@ const items1: MenuProps["items"] = ["1", "2", "3"].map((key) => ({
 
 const items2: MenuItem[] = [
   getItem(
-    <Link href="/footsore">Footsore</Link>,
-    "footsore",
+    <Link href="/clashofspears">Clash of Spears</Link>,
+    "clashofspears",
+    <PieChartOutlined />,
+  ),
+  getItem(
+    <Link href="/testofhonour">Test of Honour</Link>,
+    "testofhonour",
     <PieChartOutlined />,
   ),
   getItem("Option 2", "2", <DesktopOutlined />),
