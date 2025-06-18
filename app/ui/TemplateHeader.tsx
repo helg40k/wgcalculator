@@ -18,18 +18,20 @@ import {
   Space,
   Tooltip,
 } from "antd";
+import { redirect, usePathname } from "next/navigation";
 import { signIn, signOut } from "next-auth/react";
 
 import useUser from "@/app/lib/hooks/useUser";
 import errorMessage from "@/app/ui/errorMessage";
 import Logo from "@/app/ui/Logo";
-import { MenuInfo } from "@/app/ui/TemplatePageLayout";
+import { getItem, MenuInfo } from "@/app/ui/TemplatePageLayout";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
 interface TemplateHeaderProps {
   version?: string;
   menuItems?: MenuProps["items"];
+  definedMenuKey?: string;
   onClickMenu?: (info: MenuInfo) => void;
   logoutTooltipMessage?: string;
   avatarMenuItems?: MenuItem[];
@@ -47,18 +49,48 @@ const requiredAvatarMenuItems: MenuItem[] = [
 const TemplateHeader = ({
   version = "",
   menuItems,
+  definedMenuKey,
   onClickMenu,
   logoutTooltipMessage,
   avatarMenuItems: avatarItems,
   onClickAvatarMenu,
 }: TemplateHeaderProps) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const headerMenuItems: MenuItem[] = [
+    getItem("Play", "play"),
+    getItem("Config", "config"),
+  ];
+  const pathname = usePathname();
   const { isAuthenticated, userName, iconURL, isAdmin } = useUser();
+  const [menuKey, setMenuKey] = useState<string[]>([
+    (menuItems ? (menuItems[0]?.key as string) : definedMenuKey) || "",
+  ]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const loginWithGoogle = () =>
-    signIn("google", { callbackUrl: "/" }).catch((error: Error) =>
+    signIn("google", { callbackUrl: pathname || "/" }).catch((error: Error) =>
       errorMessage(error.message),
     );
+
+  const onClickHeaderMenu = (info: MenuInfo) => {
+    const key = info?.key;
+    setMenuKey([key]);
+    if (onClickMenu) {
+      onClickMenu(info);
+    } else {
+      switch (key) {
+        case "play": {
+          redirect(pathname?.replace("/admin", "") || "/");
+          break;
+        }
+        case "config": {
+          if (!pathname?.includes("/admin")) {
+            redirect(`${pathname}/admin`);
+          }
+          break;
+        }
+      }
+    }
+  };
 
   const avatarMenuItems = useMemo(() => {
     let result = requiredAvatarMenuItems;
@@ -94,7 +126,9 @@ const TemplateHeader = ({
 
   const onMenuClick = (info: MenuInfo) => {
     if (info?.key === "logout") {
-      signOut({ callbackUrl: "/" });
+      signOut({ callbackUrl: pathname?.replace("/admin", "") || "/" }).catch(
+        (error: Error) => errorMessage(error.message),
+      );
     } else if (onClickAvatarMenu) {
       onClickAvatarMenu(info);
     }
@@ -107,13 +141,13 @@ const TemplateHeader = ({
     >
       <Space>
         <Logo />
-        {menuItems && (
+        {(isAdmin || menuItems) && (
           <Menu
             theme="dark"
             mode="horizontal"
-            defaultSelectedKeys={[menuItems[0]?.key?.toString() || ""]}
-            items={menuItems}
-            onClick={(i) => (onClickMenu ? onClickMenu(i) : undefined)}
+            selectedKeys={menuKey}
+            items={menuItems || (isAdmin ? headerMenuItems : undefined)}
+            onClick={onClickHeaderMenu}
           />
         )}
       </Space>

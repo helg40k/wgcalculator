@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useSession } from "next-auth/react";
 
 const useUser = () => {
-  const { data, status, update } = useSession();
+  const { data, status } = useSession();
 
   const isAuthenticated = useMemo(() => "authenticated" === status, [status]);
   const userName = useMemo(

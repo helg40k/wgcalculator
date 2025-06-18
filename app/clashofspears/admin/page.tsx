@@ -4,8 +4,8 @@ import React from "react";
 import { SessionProvider } from "next-auth/react";
 
 import {
-  onClickSiderMenu,
-  siderMenuItems,
+  adminSiderMenuItems,
+  onClickAdminSiderMenu,
 } from "@/app/clashofspears/ui/shared";
 import TemplatePageLayout from "@/app/ui/TemplatePageLayout";
 
@@ -13,11 +13,11 @@ const Page = () => {
   return (
     <SessionProvider>
       <TemplatePageLayout
-        definedHeaderMenuKey="play"
-        siderMenuItems={siderMenuItems}
-        onClickSiderMenu={onClickSiderMenu}
+        definedHeaderMenuKey="config"
+        siderMenuItems={adminSiderMenuItems}
+        onClickSiderMenu={onClickAdminSiderMenu}
       >
-        <p>Hello Clash of Spears</p>
+        <p>Hello Clash of Spears Admin</p>
       </TemplatePageLayout>
     </SessionProvider>
   );

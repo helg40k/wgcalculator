@@ -26,6 +26,7 @@ const Page = () => {
   return (
     <SessionProvider>
       <TemplatePageLayout
+        definedHeaderMenuKey="play"
         siderMenuItems={items}
         onClickSiderMenu={onClickSiderMenu}
       >

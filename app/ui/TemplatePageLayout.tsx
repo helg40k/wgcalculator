@@ -48,6 +48,7 @@ export const getItem = (
 interface PageLayoutProps {
   children: React.ReactNode;
   headerMenuItems?: MenuProps["items"];
+  definedHeaderMenuKey?: string;
   siderMenuItems?: MenuProps["items"];
   onClickHeaderMenu?: (info: MenuInfo) => void;
   onClickSiderMenu?: (info: MenuInfo) => void;
@@ -63,6 +64,7 @@ const avatarMenuItems: MenuItem[] = [
 const TemplatePageLayout = ({
   children,
   headerMenuItems,
+  definedHeaderMenuKey,
   siderMenuItems,
   onClickHeaderMenu,
   onClickSiderMenu,
@@ -78,11 +80,18 @@ const TemplatePageLayout = ({
   const breadcrumbList = useMemo(() => {
     const homeItem = { href: "/", title: <HomeOutlined /> };
     const splitPath = pathname?.split("/") || [];
-    const pathList = splitPath
-      .filter((i) => !!i)
-      .map((i) => {
+    const filteredSplitPath = splitPath.filter((i) => !!i);
+    const pathList = filteredSplitPath.map((i, index) => {
+      if (index === filteredSplitPath.length - 1) {
         return { title: i };
-      });
+      }
+      const paths = pathname?.split(`/${i}`) || [];
+      if (paths[0]) {
+        return { href: `/${paths[0]}`, title: i };
+      } else {
+        return { href: `/${i}`, title: i };
+      }
+    });
     return [homeItem, ...pathList];
   }, [pathname]);
 
@@ -124,6 +133,7 @@ const TemplatePageLayout = ({
       <TemplateHeader
         version={version}
         menuItems={headerMenuItems}
+        definedMenuKey={definedHeaderMenuKey}
         onClickMenu={onClickHeaderMenu}
         logoutTooltipMessage="Test message"
         avatarMenuItems={avatarMenuItems}
