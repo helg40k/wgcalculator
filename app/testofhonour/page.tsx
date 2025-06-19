@@ -1,33 +1,19 @@
 "use client";
 
 import React from "react";
-import { PieChartOutlined } from "@ant-design/icons";
-import { MenuProps } from "antd";
-import { redirect } from "next/navigation";
 import { SessionProvider } from "next-auth/react";
 
-import TemplatePageLayout, {
-  getItem,
-  MenuInfo,
-} from "@/app/ui/TemplatePageLayout";
-
-type MenuItem = Required<MenuProps>["items"][number];
-
-const items: MenuItem[] = [getItem("Home", "home", <PieChartOutlined />)];
+import TemplatePageLayout, { MenuInfo } from "@/app/ui/TemplatePageLayout";
 
 const Page = () => {
   const onClickSiderMenu = (info: MenuInfo) => {
-    const key = info?.key;
-    if (key === "home") {
-      redirect("/");
-    }
+    console.log(info);
   };
 
   return (
     <SessionProvider>
       <TemplatePageLayout
         definedHeaderMenuKey="play"
-        siderMenuItems={items}
         onClickSiderMenu={onClickSiderMenu}
       >
         <p>Hello Test of Honour</p>

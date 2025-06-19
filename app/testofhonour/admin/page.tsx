@@ -3,19 +3,18 @@
 import React from "react";
 import { SessionProvider } from "next-auth/react";
 
-import {
-  adminSiderMenuItems,
-  onClickAdminSiderMenu,
-} from "@/app/clashofspears/ui/shared";
-import TemplatePageLayout from "@/app/ui/TemplatePageLayout";
+import TemplatePageLayout, { MenuInfo } from "@/app/ui/TemplatePageLayout";
 
 const Page = () => {
+  const onClickSiderMenu = (info: MenuInfo) => {
+    console.log(info);
+  };
+
   return (
     <SessionProvider>
       <TemplatePageLayout
         definedHeaderMenuKey="config"
-        siderMenuItems={adminSiderMenuItems}
-        onClickSiderMenu={onClickAdminSiderMenu}
+        onClickSiderMenu={onClickSiderMenu}
       >
         <p>Hello Test of Honour Admin</p>
       </TemplatePageLayout>

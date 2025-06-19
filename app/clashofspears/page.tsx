@@ -3,18 +3,17 @@
 import React from "react";
 import { SessionProvider } from "next-auth/react";
 
-import {
-  onClickSiderMenu,
-  siderMenuItems,
-} from "@/app/clashofspears/ui/shared";
-import TemplatePageLayout from "@/app/ui/TemplatePageLayout";
+import TemplatePageLayout, { MenuInfo } from "@/app/ui/TemplatePageLayout";
 
 const Page = () => {
+  const onClickSiderMenu = (info: MenuInfo) => {
+    console.log(info);
+  };
+
   return (
     <SessionProvider>
       <TemplatePageLayout
         definedHeaderMenuKey="play"
-        siderMenuItems={siderMenuItems}
         onClickSiderMenu={onClickSiderMenu}
       >
         <p>Hello Clash of Spears</p>

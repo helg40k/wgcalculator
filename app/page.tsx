@@ -12,10 +12,8 @@ import { MenuProps, theme } from "antd";
 import Link from "next/link";
 import { SessionProvider } from "next-auth/react";
 
-import TemplatePageLayout, {
-  getItem,
-  MenuInfo,
-} from "@/app/ui/TemplatePageLayout";
+import { getItem } from "@/app/clashofspears/ui/shared";
+import TemplatePageLayout, { MenuInfo } from "@/app/ui/TemplatePageLayout";
 
 import "@ant-design/v5-patch-for-react-19";
 

@@ -3,19 +3,28 @@
 import React from "react";
 import { SessionProvider } from "next-auth/react";
 
-import {
-  adminSiderMenuItems,
-  onClickAdminSiderMenu,
-} from "@/app/clashofspears/ui/shared";
-import TemplatePageLayout from "@/app/ui/TemplatePageLayout";
+import { getItem, MenuItem } from "@/app/clashofspears/ui/shared";
+import TemplatePageLayout, { MenuInfo } from "@/app/ui/TemplatePageLayout";
+
+const adminSiderMenuItems: MenuItem[] = [
+  getItem("Sources", "sources"),
+  getItem("Profiles", "profiles"),
+  getItem("Armors", "armors"),
+  getItem("Weapons", "weapons"),
+  getItem("Traits", "traits"),
+];
 
 const Page = () => {
+  const onClickSiderMenu = (info: MenuInfo) => {
+    console.log(info);
+  };
+
   return (
     <SessionProvider>
       <TemplatePageLayout
         definedHeaderMenuKey="config"
         siderMenuItems={adminSiderMenuItems}
-        onClickSiderMenu={onClickAdminSiderMenu}
+        onClickSiderMenu={onClickSiderMenu}
       >
         <p>Hello Clash of Spears Admin</p>
       </TemplatePageLayout>
