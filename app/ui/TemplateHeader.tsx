@@ -21,10 +21,10 @@ import {
 import { redirect, usePathname } from "next/navigation";
 import { signIn, signOut } from "next-auth/react";
 
-import { getItem } from "@/app/clashofspears/ui/shared";
 import useUser from "@/app/lib/hooks/useUser";
 import errorMessage from "@/app/ui/errorMessage";
 import Logo from "@/app/ui/Logo";
+import { getItem } from "@/app/ui/shared";
 import { MenuInfo } from "@/app/ui/TemplatePageLayout";
 
 type MenuItem = Required<MenuProps>["items"][number];

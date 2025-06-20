@@ -12,7 +12,7 @@ import { MenuProps, theme } from "antd";
 import Link from "next/link";
 import { SessionProvider } from "next-auth/react";
 
-import { getItem } from "@/app/clashofspears/ui/shared";
+import { getItem } from "@/app/ui/shared";
 import TemplatePageLayout, { MenuInfo } from "@/app/ui/TemplatePageLayout";
 
 import "@ant-design/v5-patch-for-react-19";

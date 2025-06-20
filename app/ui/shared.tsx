@@ -16,3 +16,11 @@ export const getItem = (
     label,
   } as MenuItem;
 };
+
+export interface MenuItemConst {
+  index: number;
+  label?: React.ReactNode;
+  key: string;
+  icon?: React.ReactNode;
+  children?: MenuItem[];
+}

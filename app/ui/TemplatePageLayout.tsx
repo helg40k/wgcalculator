@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  HomeFilled,
   HomeOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -16,7 +17,7 @@ import {
 import Link from "next/link";
 import { redirect, usePathname } from "next/navigation";
 
-import { getItem, MenuItem } from "@/app/clashofspears/ui/shared";
+import { getItem, MenuItem } from "@/app/ui/shared";
 import TemplateFooter from "@/app/ui/TemplateFooter";
 import TemplateHeader from "@/app/ui/TemplateHeader";
 
@@ -69,8 +70,8 @@ const TemplatePageLayout = ({
   const breadcrumbList = useMemo(() => {
     const homeItem =
       pathname === "/"
-        ? { title: <HomeOutlined /> }
-        : { href: "/", title: <HomeOutlined /> };
+        ? { title: <HomeFilled /> }
+        : { href: "/", title: <HomeFilled /> };
     const splitPath = pathname?.split("/") || [];
     const filteredSplitPath = splitPath.filter((i) => !!i);
     const pathList = filteredSplitPath.map((i, index) => {
