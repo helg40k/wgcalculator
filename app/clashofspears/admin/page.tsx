@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   faAddressCard,
   faBolt,
@@ -12,6 +12,8 @@ import { FontAwesomeIcon as Icon } from "@fortawesome/react-fontawesome";
 import { Tabs } from "antd";
 import { SessionProvider } from "next-auth/react";
 
+import { CollectionRegistry, Source } from "@/app/lib/definitions";
+import useEntities from "@/app/lib/hooks/useEntities";
 import { getMenuItems, MenuItemConst } from "@/app/ui/shared";
 import TemplatePageLayout, { MenuInfo } from "@/app/ui/TemplatePageLayout";
 
@@ -66,12 +68,19 @@ const Page = () => {
   const [activeTabContent, setActiveTabContent] = useState<string>(
     MENU_ITEMS.START.key,
   );
+  const { loadEntities, loading, saveEntity } = useEntities();
 
   const adminSiderMenuItems = useMemo(() => getMenuItems(MENU_ITEMS) || [], []);
 
   const onClickSiderMenu = (info: MenuInfo) => {
     setActiveTabContent(info.key);
   };
+
+  useEffect(() => {
+    loadEntities<Source>(CollectionRegistry.Source).then((value) =>
+      console.log(value),
+    );
+  }, []);
 
   const tabsContent = useMemo(() => {
     return [

@@ -1,5 +1,10 @@
 import firebase from "firebase/compat/app";
 
+export const CollectionRegistry = {
+  GameSystem: "systems",
+  Source: "sources",
+} as const;
+
 export type SourceType =
   | "RULEBOOK"
   | "SUPPLEMENT"
