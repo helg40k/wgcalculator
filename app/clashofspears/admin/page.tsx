@@ -12,7 +12,7 @@ import { FontAwesomeIcon as Icon } from "@fortawesome/react-fontawesome";
 import { Tabs } from "antd";
 import { SessionProvider } from "next-auth/react";
 
-import { getItem, MenuItemConst } from "@/app/ui/shared";
+import { getMenuItems, MenuItemConst } from "@/app/ui/shared";
 import TemplatePageLayout, { MenuInfo } from "@/app/ui/TemplatePageLayout";
 
 type MenuKey =
@@ -67,12 +67,7 @@ const Page = () => {
     MENU_ITEMS.START.key,
   );
 
-  const adminSiderMenuItems = useMemo(() => {
-    return Object.values(MENU_ITEMS)
-      .filter((item) => item.label)
-      .sort((item) => item.index)
-      .map((item) => getItem(item.label, item.key, item.icon));
-  }, []);
+  const adminSiderMenuItems = useMemo(() => getMenuItems(MENU_ITEMS) || [], []);
 
   const onClickSiderMenu = (info: MenuInfo) => {
     setActiveTabContent(info.key);

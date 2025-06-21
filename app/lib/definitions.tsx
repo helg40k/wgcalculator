@@ -35,6 +35,7 @@ export interface GameSystem extends Entity {
 export interface Source extends Entity {
   _type: "sources";
   name: string;
+  authors?: string;
   year: number;
   version: string;
   type: SourceType;

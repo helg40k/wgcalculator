@@ -24,7 +24,7 @@ import { signIn, signOut } from "next-auth/react";
 import useUser from "@/app/lib/hooks/useUser";
 import errorMessage from "@/app/ui/errorMessage";
 import Logo from "@/app/ui/Logo";
-import { getItem } from "@/app/ui/shared";
+import { getMenuItems, MenuItemConst } from "@/app/ui/shared";
 import { MenuInfo } from "@/app/ui/TemplatePageLayout";
 
 type MenuItem = Required<MenuProps>["items"][number];
@@ -38,6 +38,23 @@ interface TemplateHeaderProps {
   avatarMenuItems?: MenuItem[];
   onClickAvatarMenu?: (info: MenuInfo) => void;
 }
+
+type MenuKey = "PLAY" | "CONFIG";
+
+/* eslint-disable sort-keys-fix/sort-keys-fix */
+const HEADER_MENU_ITEMS: Record<MenuKey, MenuItemConst> = {
+  PLAY: {
+    index: 1,
+    key: "play",
+    label: "Play",
+  },
+  CONFIG: {
+    index: 2,
+    key: "config",
+    label: "Config",
+  },
+};
+/* eslint-enable sort-keys-fix/sort-keys-fix */
 
 const requiredAvatarMenuItems: MenuItem[] = [
   {
@@ -56,10 +73,6 @@ const TemplateHeader = ({
   avatarMenuItems: avatarItems,
   onClickAvatarMenu,
 }: TemplateHeaderProps) => {
-  const headerMenuItems: MenuItem[] = [
-    getItem("Play", "play"),
-    getItem("Config", "config"),
-  ];
   const pathname = usePathname();
   const { isAuthenticated, userName, iconURL, isAdmin } = useUser();
   const [menuKey, setMenuKey] = useState<string[]>([
@@ -72,6 +85,11 @@ const TemplateHeader = ({
       errorMessage(error.message),
     );
 
+  const headerMenuItems = useMemo(
+    () => getMenuItems(HEADER_MENU_ITEMS) || [],
+    [],
+  );
+
   const onClickHeaderMenu = (info: MenuInfo) => {
     const key = info?.key;
     setMenuKey([key]);
@@ -79,11 +97,11 @@ const TemplateHeader = ({
       onClickMenu(info);
     } else {
       switch (key) {
-        case "play": {
+        case HEADER_MENU_ITEMS.PLAY.key: {
           redirect(pathname?.replace("/admin", "") || "/");
           break;
         }
-        case "config": {
+        case HEADER_MENU_ITEMS.CONFIG.key: {
           if (!pathname?.includes("/admin")) {
             redirect(`${pathname}/admin`);
           }
