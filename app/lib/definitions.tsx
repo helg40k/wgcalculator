@@ -19,11 +19,9 @@ export interface Entity {
   _createdBy: string;
   _updatedBy: string;
   _isUpdated: boolean;
-  _type: string;
 }
 
 export interface GameSystem extends Entity {
-  _type: "systems";
   name: string;
   owner: string;
   links?: string[];
@@ -38,7 +36,6 @@ export interface GameSystem extends Entity {
 }
 
 export interface Source extends Entity {
-  _type: "sources";
   name: string;
   authors?: string;
   year: number;

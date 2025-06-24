@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   faAddressCard,
   faBolt,
@@ -12,8 +12,12 @@ import { FontAwesomeIcon as Icon } from "@fortawesome/react-fontawesome";
 import { Tabs } from "antd";
 import { SessionProvider } from "next-auth/react";
 
-import { CollectionRegistry, Source } from "@/app/lib/definitions";
-import useEntities from "@/app/lib/hooks/useEntities";
+import CosAdminArmors from "@/app/clashofspears/admin/ui/CosAdminArmors";
+import CosAdminProfiles from "@/app/clashofspears/admin/ui/CosAdminProfiles";
+import CosAdminSources from "@/app/clashofspears/admin/ui/CosAdminSources";
+import CosAdminStart from "@/app/clashofspears/admin/ui/CosAdminStart";
+import CosAdminTraits from "@/app/clashofspears/admin/ui/CosAdminTraits";
+import CosAdminWeapons from "@/app/clashofspears/admin/ui/CosAdminWeapons";
 import { getMenuItems, MenuItemConst } from "@/app/ui/shared";
 import TemplatePageLayout, { MenuInfo } from "@/app/ui/TemplatePageLayout";
 
@@ -68,7 +72,6 @@ const Page = () => {
   const [activeTabContent, setActiveTabContent] = useState<string>(
     MENU_ITEMS.START.key,
   );
-  const { loadEntities, loading, saveEntity } = useEntities();
 
   const adminSiderMenuItems = useMemo(() => getMenuItems(MENU_ITEMS) || [], []);
 
@@ -76,41 +79,35 @@ const Page = () => {
     setActiveTabContent(info.key);
   };
 
-  useEffect(() => {
-    loadEntities<Source>(CollectionRegistry.Source).then((value) =>
-      console.log(value),
-    );
-  }, []);
-
   const tabsContent = useMemo(() => {
     return [
       {
-        children: "Clash of Spears Admin - START",
+        children: <CosAdminStart />,
         key: MENU_ITEMS.START.key,
         label: "",
       },
       {
-        children: "Clash of Spears Admin - SOURCES",
+        children: <CosAdminSources />,
         key: MENU_ITEMS.SOURCES.key,
         label: MENU_ITEMS.SOURCES.label,
       },
       {
-        children: "Clash of Spears Admin - PROFILES",
+        children: <CosAdminProfiles />,
         key: MENU_ITEMS.PROFILES.key,
         label: MENU_ITEMS.PROFILES.label,
       },
       {
-        children: "Clash of Spears Admin - ARMORS",
+        children: <CosAdminArmors />,
         key: MENU_ITEMS.ARMORS.key,
         label: MENU_ITEMS.ARMORS.label,
       },
       {
-        children: "Clash of Spears Admin - WEAPONS",
+        children: <CosAdminWeapons />,
         key: MENU_ITEMS.WEAPONS.key,
         label: MENU_ITEMS.WEAPONS.label,
       },
       {
-        children: "Clash of Spears Admin - TRAITS",
+        children: <CosAdminTraits />,
         key: MENU_ITEMS.TRAITS.key,
         label: MENU_ITEMS.TRAITS.label,
       },
@@ -124,7 +121,6 @@ const Page = () => {
         siderMenuItems={adminSiderMenuItems}
         onClickSiderMenu={onClickSiderMenu}
       >
-        <p>Hello Clash of Spears Admin</p>
         <Tabs
           tabPosition="top"
           animated={false}
