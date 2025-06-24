@@ -114,12 +114,19 @@ const Page = () => {
     ];
   }, []);
 
+  const contentHeader = useMemo(() => {
+    return Object.values(MENU_ITEMS)
+      .filter((item: MenuItemConst) => item.key === activeTabContent)
+      .map((item: MenuItemConst) => item.label);
+  }, [activeTabContent]);
+
   return (
     <SessionProvider>
       <TemplatePageLayout
         definedHeaderMenuKey="config"
         siderMenuItems={adminSiderMenuItems}
         onClickSiderMenu={onClickSiderMenu}
+        contentHeader={contentHeader}
       >
         <Tabs
           tabPosition="top"
