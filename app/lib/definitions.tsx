@@ -6,11 +6,11 @@ export const CollectionRegistry = {
 } as const;
 
 export type SourceType =
-  | "RULEBOOK"
-  | "SUPPLEMENT"
-  | "EXPANSION"
-  | "FAQ_ERRATA"
-  | "PLAYTEST";
+  | "rulebook"
+  | "supplement"
+  | "expansion"
+  | "FAQ/errata"
+  | "playtest";
 
 export interface Entity {
   _id: string;
@@ -42,6 +42,6 @@ export interface Source extends Entity {
   version: string;
   type: SourceType;
   image?: string;
-  url?: string;
+  urls?: string[];
   description?: string;
 }
