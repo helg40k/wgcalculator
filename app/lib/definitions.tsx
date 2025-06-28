@@ -19,10 +19,10 @@ export interface Entity {
   _createdBy: string;
   _updatedBy: string;
   _isUpdated: boolean;
+  name: string;
 }
 
 export interface GameSystem extends Entity {
-  name: string;
   owner: string;
   links?: string[];
   downloads?: string[];
@@ -36,7 +36,6 @@ export interface GameSystem extends Entity {
 }
 
 export interface Source extends Entity {
-  name: string;
   authors?: string;
   year: number;
   version: string;

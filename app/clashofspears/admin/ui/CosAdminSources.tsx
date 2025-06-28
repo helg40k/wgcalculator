@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 
-import SourceEdit from "@/app/clashofspears/admin/ui/edit/SourceEdit";
-import SourceView from "@/app/clashofspears/admin/ui/view/SourceView";
 import { CollectionRegistry, Source } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
 import MultiLineView from "@/app/ui/MultiLineView";
+import SourceEdit from "@/app/ui/shared/SourceEdit";
+import SourceView from "@/app/ui/shared/SourceView";
 
 const CosAdminSources = () => {
   const { loadEntities, loading, saveEntity } = useEntities();

@@ -4,9 +4,14 @@ import Link from "next/link";
 
 import { Source } from "@/app/lib/definitions";
 
-const SourceView = ({ entity }: { entity: Source }) => {
+const SourceEdit = ({ entity }: { entity: Source }) => {
   const {
-    token: { colorTextPlaceholder, colorTextSecondary, colorTextTertiary },
+    token: {
+      colorTextPlaceholder,
+      colorTextSecondary,
+      colorTextTertiary,
+      borderRadiusLG,
+    },
   } = theme.useToken();
 
   const getLinkLabel = (url: string) => {
@@ -23,12 +28,12 @@ const SourceView = ({ entity }: { entity: Source }) => {
   };
 
   return (
-    <Row>
+    <Row
+      className="border-1 border-gray-300"
+      style={{ borderRadius: borderRadiusLG }}
+    >
       <Flex justify="left" className="w-full">
-        <BookOpenIcon
-          className="w-36"
-          style={{ color: colorTextPlaceholder }}
-        />
+        <LinkIcon className="w-36" style={{ color: colorTextPlaceholder }} />
         <Flex vertical style={{ padding: "0 8px 0 8px" }} className="w-full">
           <div className="mb-3">
             <Typography.Title level={3} style={{ margin: 0 }}>
@@ -80,4 +85,4 @@ const SourceView = ({ entity }: { entity: Source }) => {
   );
 };
 
-export default SourceView;
+export default SourceEdit;

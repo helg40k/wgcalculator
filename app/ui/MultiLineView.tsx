@@ -1,4 +1,10 @@
+import { useState } from "react";
+import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { Badge, Button, Modal, theme, Tooltip } from "antd";
+
 import { Entity } from "@/app/lib/definitions";
+
+const hoverButtonStyle = { height: "26px", margin: "4px", padding: "4px" };
 
 interface MultiLineViewProps<T extends Entity = Entity> {
   entities: T[];
@@ -11,10 +17,91 @@ const MultiLineView = <T extends Entity>({
   edit: EditComponent,
   view: ViewComponent,
 }: MultiLineViewProps<T>) => {
+  const [edit, setEdit] = useState<string | null>(null);
+  const [hovered, setHovered] = useState(false);
+  const {
+    token: { colorBgContainer, colorBgTextHover, borderRadiusLG },
+  } = theme.useToken();
+
+  const onClickEdit = (id: string) => {
+    console.log("edit", id);
+    setEdit(id);
+  };
+
+  const onClickDelete = (id: string, name: string) => {
+    Modal.confirm({
+      content: (
+        <>
+          The item <b>&#39;{name}&#39;</b> will be deleted.
+          <br />
+          Are you sure?
+        </>
+      ),
+      okText: "Delete",
+      title: "Delete item",
+    });
+  };
+
   return (
     <>
       {entities?.map((entity) => (
-        <ViewComponent key={entity._id} entity={entity} />
+        <div
+          key={`multi-line-key-${entity._id}`}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          style={{
+            backgroundColor:
+              hovered && edit !== entity._id
+                ? colorBgTextHover
+                : colorBgContainer,
+            borderRadius: borderRadiusLG,
+          }}
+        >
+          {(edit !== entity._id || !EditComponent) && (
+            <>
+              {hovered && (
+                <Badge.Ribbon
+                  className="border-1 border-gray-300"
+                  text={
+                    <>
+                      <Tooltip
+                        title="Edit item"
+                        color="geekblue"
+                        mouseEnterDelay={1}
+                      >
+                        <Button
+                          style={hoverButtonStyle}
+                          onClick={() => onClickEdit(entity._id)}
+                        >
+                          <PencilSquareIcon className="w-4 text-black hover:text-blue-900" />
+                        </Button>
+                      </Tooltip>
+                      <Tooltip
+                        title="Delete item"
+                        color="volcano"
+                        mouseEnterDelay={1}
+                      >
+                        <Button
+                          style={hoverButtonStyle}
+                          onClick={() => onClickDelete(entity._id, entity.name)}
+                        >
+                          <TrashIcon className="w-4 text-black hover:text-red-900" />
+                        </Button>
+                      </Tooltip>
+                    </>
+                  }
+                  color="white"
+                >
+                  <ViewComponent key={entity._id} entity={entity} />
+                </Badge.Ribbon>
+              )}
+              {!hovered && <ViewComponent key={entity._id} entity={entity} />}
+            </>
+          )}
+          {edit === entity._id && EditComponent && (
+            <EditComponent key={entity._id} entity={entity} />
+          )}
+        </div>
       ))}
     </>
   );

@@ -38,3 +38,18 @@ export const getMenuItems = (
       getItem(item.label, item.key, item.icon, getMenuItems(item.children)),
     );
 };
+
+export const getLinkLabel = (url: string) => {
+  if (!url) {
+    return "unknown";
+  }
+  try {
+    const link = new URL(url);
+    return link.hostname;
+  } catch (e) {
+    /* eslint-disable no-console */
+    console.warn(`Cannot parse URL: ${url}`, e);
+    /* eslint-enable no-console */
+    return url;
+  }
+};
