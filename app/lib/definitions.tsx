@@ -5,12 +5,14 @@ export const CollectionRegistry = {
   Source: "sources",
 } as const;
 
-export type SourceType =
-  | "rulebook"
-  | "supplement"
-  | "expansion"
-  | "FAQ/errata"
-  | "playtest";
+export const sourceTypes = [
+  "rulebook",
+  "supplement",
+  "expansion",
+  "FAQ/errata",
+  "playtest",
+] as const;
+export type SourceType = (typeof sourceTypes)[number];
 
 export interface Entity {
   _id: string;

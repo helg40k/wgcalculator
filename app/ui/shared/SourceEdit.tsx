@@ -1,52 +1,59 @@
+import { useEffect } from "react";
 import { BookOpenIcon, LinkIcon } from "@heroicons/react/24/outline";
-import { Flex, Row, theme, Typography } from "antd";
+import { Flex, Form, Input, InputNumber, Select, theme } from "antd";
 import Link from "next/link";
 
-import { Source } from "@/app/lib/definitions";
+import { Source, sourceTypes } from "@/app/lib/definitions";
+import { getLinkLabel } from "@/app/ui/shared";
+
+const { TextArea } = Input;
 
 const SourceEdit = ({ entity }: { entity: Source }) => {
+  const [form] = Form.useForm();
   const {
-    token: {
-      colorTextPlaceholder,
-      colorTextSecondary,
-      colorTextTertiary,
-      borderRadiusLG,
-    },
+    token: { colorTextPlaceholder, borderRadiusLG },
   } = theme.useToken();
 
-  const getLinkLabel = (url: string) => {
-    if (!url) {
-      return "unknown";
+  useEffect(() => {
+    if (form) {
+      form.setFieldsValue(entity);
     }
-    try {
-      const link = new URL(url);
-      return link.hostname;
-    } catch (e) {
-      console.warn(`Cannot parse URL: ${url}`, e);
-      return url;
-    }
+  }, [form, entity]);
+
+  const onFinish = (values: any) => {
+    console.log("form finishing");
   };
 
   return (
-    <Row
+    <Form
+      form={form}
+      name={`sourceEdit-${entity._id}`}
       className="border-1 border-gray-300"
       style={{ borderRadius: borderRadiusLG }}
+      onFinish={onFinish}
     >
-      <Flex justify="left" className="w-full">
-        <LinkIcon className="w-36" style={{ color: colorTextPlaceholder }} />
+      <Flex justify="left" className="w-full items-start">
+        <BookOpenIcon
+          className="w-36"
+          style={{ color: colorTextPlaceholder }}
+        />
         <Flex vertical style={{ padding: "0 8px 0 8px" }} className="w-full">
-          <div className="mb-3">
-            <Typography.Title level={3} style={{ margin: 0 }}>
-              {entity.name}
-            </Typography.Title>
-            {entity.authors && (
-              <div
-                className="text-xs ml-3"
-                style={{ color: colorTextTertiary }}
-              >
-                by {entity.authors}
-              </div>
-            )}
+          <div>
+            <Form.Item
+              name="name"
+              className="w-11/12"
+              style={{ margin: "8px 0" }}
+              rules={[{ required: true }]}
+            >
+              <Input placeholder="Name" />
+            </Form.Item>
+            <Form.Item
+              name="authors"
+              className="w-11/12"
+              style={{ margin: "8px 0" }}
+            >
+              <Input placeholder="Authors" prefix="by" />
+            </Form.Item>
           </div>
           <Flex justify="flex-start">
             <div>
@@ -55,9 +62,34 @@ const SourceEdit = ({ entity }: { entity: Source }) => {
                 className="font-mono"
                 style={{ margin: "0 0 4px 0" }}
               >
-                <div className="font-semibold">{entity.type}</div>
-                <div className="ml-3">v{entity.version}</div>
-                <div className="ml-3">{entity.year}</div>
+                <Form.Item
+                  name="type"
+                  className="w-30"
+                  style={{ margin: "0" }}
+                  rules={[{ required: true }]}
+                >
+                  <Select
+                    placeholder="Source type"
+                    options={sourceTypes.map((t) => {
+                      return { label: t, value: t };
+                    })}
+                  />
+                </Form.Item>
+                <Form.Item
+                  name="version"
+                  className="ml-3 w-24"
+                  style={{ margin: "0 8px" }}
+                >
+                  <Input placeholder="Version" />
+                </Form.Item>
+                <Form.Item
+                  name="year"
+                  className="ml-3 w-24"
+                  style={{ margin: "0" }}
+                  rules={[{ required: true }]}
+                >
+                  <InputNumber placeholder="Year" min={1990} />
+                </Form.Item>
               </Flex>
               {entity.urls?.length &&
                 entity.urls.map((url, i) => (
@@ -73,15 +105,17 @@ const SourceEdit = ({ entity }: { entity: Source }) => {
                   </Link>
                 ))}
             </div>
-            {entity.description && (
-              <div className="ml-10" style={{ color: colorTextSecondary }}>
-                {entity.description}
-              </div>
-            )}
+            <Form.Item
+              name="description"
+              className="w-full"
+              style={{ margin: "0 0 8px 2px" }}
+            >
+              <TextArea placeholder="Description" rows={4} />
+            </Form.Item>
           </Flex>
         </Flex>
       </Flex>
-    </Row>
+    </Form>
   );
 };
 

@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import {
+  CheckIcon,
+  PencilSquareIcon,
+  TrashIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 import { Badge, Button, Modal, theme, Tooltip } from "antd";
 
 import { Entity } from "@/app/lib/definitions";
@@ -42,6 +47,16 @@ const MultiLineView = <T extends Entity>({
     });
   };
 
+  const onClickSave = (id: string) => {
+    console.log("save", id);
+    setEdit(null);
+  };
+
+  const onClickCancel = (id: string) => {
+    console.log("cancel", id);
+    setEdit(null);
+  };
+
   return (
     <>
       {entities?.map((entity) => (
@@ -66,7 +81,7 @@ const MultiLineView = <T extends Entity>({
                     <>
                       <Tooltip
                         title="Edit item"
-                        color="geekblue"
+                        color="darkBlue"
                         mouseEnterDelay={1}
                       >
                         <Button
@@ -78,7 +93,7 @@ const MultiLineView = <T extends Entity>({
                       </Tooltip>
                       <Tooltip
                         title="Delete item"
-                        color="volcano"
+                        color="darkRed"
                         mouseEnterDelay={1}
                       >
                         <Button
@@ -99,7 +114,32 @@ const MultiLineView = <T extends Entity>({
             </>
           )}
           {edit === entity._id && EditComponent && (
-            <EditComponent key={entity._id} entity={entity} />
+            <Badge.Ribbon
+              className="border-1 border-gray-400"
+              text={
+                <>
+                  <Tooltip title="Save" color="darkBlue" mouseEnterDelay={1}>
+                    <Button
+                      style={hoverButtonStyle}
+                      onClick={() => onClickSave(entity._id)}
+                    >
+                      <CheckIcon className="w-4 text-black hover:text-blue-900" />
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="Cancel" color="darkRed" mouseEnterDelay={1}>
+                    <Button
+                      style={hoverButtonStyle}
+                      onClick={() => onClickCancel(entity._id)}
+                    >
+                      <XMarkIcon className="w-4 text-black hover:text-red-900" />
+                    </Button>
+                  </Tooltip>
+                </>
+              }
+              color="lightGrey"
+            >
+              <EditComponent key={entity._id} entity={entity} />
+            </Badge.Ribbon>
           )}
         </div>
       ))}
