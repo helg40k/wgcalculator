@@ -1,10 +1,9 @@
-import { useEffect } from "react";
-import { BookOpenIcon, LinkIcon } from "@heroicons/react/24/outline";
+import { useEffect, useMemo } from "react";
+import { BookOpenIcon } from "@heroicons/react/24/outline";
 import { Flex, Form, Input, InputNumber, Select, theme } from "antd";
-import Link from "next/link";
 
 import { Source, sourceTypes } from "@/app/lib/definitions";
-import { getLinkLabel } from "@/app/ui/shared";
+import LinksEdit from "@/app/ui/shared/LinksEdit";
 
 const { TextArea } = Input;
 
@@ -20,6 +19,10 @@ const SourceEdit = ({ entity }: { entity: Source }) => {
     }
   }, [form, entity]);
 
+  const formName = useMemo(() => {
+    return `sourceEdit-${entity._id}`;
+  }, [entity]);
+
   const onFinish = (values: any) => {
     console.log("form finishing");
   };
@@ -27,7 +30,7 @@ const SourceEdit = ({ entity }: { entity: Source }) => {
   return (
     <Form
       form={form}
-      name={`sourceEdit-${entity._id}`}
+      name={formName}
       className="border-1 border-gray-300"
       style={{ borderRadius: borderRadiusLG }}
       onFinish={onFinish}
@@ -60,7 +63,7 @@ const SourceEdit = ({ entity }: { entity: Source }) => {
               <Flex
                 justify="flex-start"
                 className="font-mono"
-                style={{ margin: "0 0 4px 0" }}
+                style={{ margin: "0 0 8px 0" }}
               >
                 <Form.Item
                   name="type"
@@ -91,19 +94,11 @@ const SourceEdit = ({ entity }: { entity: Source }) => {
                   <InputNumber placeholder="Year" min={1990} />
                 </Form.Item>
               </Flex>
-              {entity.urls?.length &&
-                entity.urls.map((url, i) => (
-                  <Link
-                    key={`url${i}`}
-                    href={url}
-                    className="flex items-center"
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    <LinkIcon className="h-3" />
-                    <div className="ml-1">{getLinkLabel(url)}</div>
-                  </Link>
-                ))}
+              <LinksEdit
+                formName={formName}
+                urls={entity.urls}
+                className="mr-1.5"
+              />
             </div>
             <Form.Item
               name="description"

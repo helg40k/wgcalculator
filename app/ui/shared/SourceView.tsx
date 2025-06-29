@@ -1,9 +1,8 @@
-import { BookOpenIcon, LinkIcon } from "@heroicons/react/24/outline";
+import { BookOpenIcon } from "@heroicons/react/24/outline";
 import { Flex, Row, theme, Typography } from "antd";
-import Link from "next/link";
 
 import { Source } from "@/app/lib/definitions";
-import { getLinkLabel } from "@/app/ui/shared";
+import LinksView from "@/app/ui/shared/LinksView";
 
 const SourceView = ({ entity }: { entity: Source }) => {
   const {
@@ -47,19 +46,7 @@ const SourceView = ({ entity }: { entity: Source }) => {
                 <div className="ml-3">v{entity.version}</div>
                 <div className="ml-3">{entity.year}</div>
               </Flex>
-              {entity.urls?.length &&
-                entity.urls.map((url, i) => (
-                  <Link
-                    key={`url${i}`}
-                    href={url}
-                    className="flex items-center"
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    <LinkIcon className="h-3" />
-                    <div className="ml-1">{getLinkLabel(url)}</div>
-                  </Link>
-                ))}
+              <LinksView urls={entity.urls} />
             </div>
             {entity.description && (
               <div className="ml-10" style={{ color: colorTextSecondary }}>
