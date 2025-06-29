@@ -8,12 +8,16 @@ import {
 import { Badge, Button, Modal, theme, Tooltip } from "antd";
 
 import { Entity } from "@/app/lib/definitions";
+import { equalDeep, mergeDeep } from "@/app/ui/shared";
 
 const hoverButtonStyle = { height: "26px", margin: "4px", padding: "4px" };
 
 interface MultiLineViewProps<T extends Entity = Entity> {
   entities: T[];
-  edit?: React.ComponentType<{ entity: T }>;
+  edit?: React.ComponentType<{
+    entity: T;
+    setValues: (values: any[]) => void;
+  }>;
   view: React.ComponentType<{ entity: T }>;
 }
 
@@ -22,14 +26,21 @@ const MultiLineView = <T extends Entity>({
   edit: EditComponent,
   view: ViewComponent,
 }: MultiLineViewProps<T>) => {
+  const [values, setValues] = useState({});
   const [edit, setEdit] = useState<string | null>(null);
   const [hovered, setHovered] = useState(false);
   const {
     token: { colorBgContainer, colorBgTextHover, borderRadiusLG },
   } = theme.useToken();
 
+  const getEntitiesToSave = (id: string) => {
+    const filteredEntities = entities.filter((ent) => id === ent._id);
+    const oldEntity = filteredEntities[0] || {};
+    const newEntity = mergeDeep({}, oldEntity, values);
+    return [oldEntity, newEntity];
+  };
+
   const onClickEdit = (id: string) => {
-    console.log("edit", id);
     setEdit(id);
   };
 
@@ -47,14 +58,51 @@ const MultiLineView = <T extends Entity>({
     });
   };
 
-  const onClickSave = (id: string) => {
+  const onClickSave = () => {
+    const id = edit;
     console.log("save", id);
-    setEdit(null);
+    if (id) {
+      const [oldEntity, newEntity] = getEntitiesToSave(id);
+
+      if (equalDeep(oldEntity, newEntity, false)) {
+        setEdit(null);
+      } else {
+        // TODO save
+        setEdit(null);
+      }
+    } else {
+      setEdit(null);
+      throw new Error("Unable to save item: the ID is lost!");
+    }
   };
 
-  const onClickCancel = (id: string) => {
-    console.log("cancel", id);
-    setEdit(null);
+  const onClickCancel = () => {
+    const id = edit;
+    if (id) {
+      const [oldEntity, newEntity] = getEntitiesToSave(id);
+
+      if (equalDeep(oldEntity, newEntity, false)) {
+        setEdit(null);
+      } else {
+        Modal.confirm({
+          content: (
+            <>
+              The item was changed!
+              <br />
+              Would you like to ignore changes?
+            </>
+          ),
+          okText: "Ignore",
+          onOk: () => setEdit(null),
+          title: "Ignore changes",
+        });
+      }
+    } else {
+      /* eslint-disable no-console */
+      console.warn("The current item ID is lost!");
+      /* eslint-enable no-console */
+      setEdit(null);
+    }
   };
 
   return (
@@ -119,18 +167,12 @@ const MultiLineView = <T extends Entity>({
               text={
                 <>
                   <Tooltip title="Save" color="darkBlue" mouseEnterDelay={1}>
-                    <Button
-                      style={hoverButtonStyle}
-                      onClick={() => onClickSave(entity._id)}
-                    >
+                    <Button style={hoverButtonStyle} onClick={onClickSave}>
                       <CheckIcon className="w-4 text-black hover:text-blue-900" />
                     </Button>
                   </Tooltip>
                   <Tooltip title="Cancel" color="darkRed" mouseEnterDelay={1}>
-                    <Button
-                      style={hoverButtonStyle}
-                      onClick={() => onClickCancel(entity._id)}
-                    >
+                    <Button style={hoverButtonStyle} onClick={onClickCancel}>
                       <XMarkIcon className="w-4 text-black hover:text-red-900" />
                     </Button>
                   </Tooltip>
@@ -138,7 +180,11 @@ const MultiLineView = <T extends Entity>({
               }
               color="lightGrey"
             >
-              <EditComponent key={entity._id} entity={entity} />
+              <EditComponent
+                key={entity._id}
+                entity={entity}
+                setValues={setValues}
+              />
             </Badge.Ribbon>
           )}
         </div>

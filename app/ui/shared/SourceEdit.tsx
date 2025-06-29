@@ -7,7 +7,12 @@ import LinksEdit from "@/app/ui/shared/LinksEdit";
 
 const { TextArea } = Input;
 
-const SourceEdit = ({ entity }: { entity: Source }) => {
+interface SourceEditProps {
+  entity: Source;
+  setValues: (values: any[]) => void;
+}
+
+const SourceEdit = ({ entity, setValues }: SourceEditProps) => {
   const [form] = Form.useForm();
   const {
     token: { colorTextPlaceholder, borderRadiusLG },
@@ -23,8 +28,8 @@ const SourceEdit = ({ entity }: { entity: Source }) => {
     return `sourceEdit-${entity._id}`;
   }, [entity]);
 
-  const onFinish = (values: any) => {
-    console.log("form finishing");
+  const onChange = () => {
+    setValues(form.getFieldsValue());
   };
 
   return (
@@ -33,7 +38,7 @@ const SourceEdit = ({ entity }: { entity: Source }) => {
       name={formName}
       className="border-1 border-gray-300"
       style={{ borderRadius: borderRadiusLG }}
-      onFinish={onFinish}
+      onChange={onChange}
     >
       <Flex justify="left" className="w-full items-start">
         <BookOpenIcon
