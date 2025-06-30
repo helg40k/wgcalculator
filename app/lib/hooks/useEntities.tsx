@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { notification } from "antd";
 
 import { Entity } from "@/app/lib/definitions";
+import createDocument from "@/app/lib/services/firebase/helpers/createDocument";
+import deleteDocument from "@/app/lib/services/firebase/helpers/deleteDocument";
 import getCollectionData from "@/app/lib/services/firebase/helpers/getCollectionData";
+import updateDocument from "@/app/lib/services/firebase/helpers/updateDocument";
 
 import "@ant-design/v5-patch-for-react-19";
 
@@ -26,10 +29,25 @@ const useEntities = () => {
     }
   }, [error]);
 
-  const saveEntity = async () => {
+  const deleteEntity = async (
+    dbRef: string | null | undefined,
+    id: string | null | undefined,
+  ): Promise<void> => {
+    if (!dbRef || !id) {
+      setError(
+        new Error(
+          !dbRef
+            ? "Document site to delete is unknown!"
+            : "Deleted document ID is empty!",
+        ),
+      );
+      return;
+    }
+    const type = dbRef as string;
+
     try {
       setLoading(true);
-      // body
+      await deleteDocument(type, id);
     } catch (err: any) {
       console.error(err);
       setError(err);
@@ -58,7 +76,41 @@ const useEntities = () => {
     return [];
   };
 
-  return { loadEntities, loading, saveEntity };
+  const saveEntity = async <T extends Entity>(
+    dbRef: string | null | undefined,
+    entity: T,
+  ): Promise<T | null> => {
+    if (!dbRef || !entity) {
+      setError(
+        new Error(
+          !dbRef
+            ? "Document save destination is unknown!"
+            : "Saved document is empty!",
+        ),
+      );
+      return null;
+    }
+    const type = dbRef as string;
+
+    try {
+      setLoading(true);
+      const id = entity._id;
+
+      if (id) {
+        return (await updateDocument(type, id, entity)) as T;
+      } else {
+        return (await createDocument(type, entity)) as T;
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+    return null;
+  };
+
+  return { deleteEntity, loadEntities, loading, saveEntity };
 };
 
 export default useEntities;

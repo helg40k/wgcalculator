@@ -19,16 +19,18 @@ interface MultiLineViewProps<T extends Entity = Entity> {
     setValues: (values: any[]) => void;
   }>;
   view: React.ComponentType<{ entity: T }>;
+  onSave?: (entity: T) => Promise<void>;
 }
 
 const MultiLineView = <T extends Entity>({
   entities,
   edit: EditComponent,
   view: ViewComponent,
+  onSave,
 }: MultiLineViewProps<T>) => {
   const [values, setValues] = useState({});
   const [edit, setEdit] = useState<string | null>(null);
-  const [hovered, setHovered] = useState(false);
+  const [hovered, setHovered] = useState<string | null>(null);
   const {
     token: { colorBgContainer, colorBgTextHover, borderRadiusLG },
   } = theme.useToken();
@@ -60,15 +62,16 @@ const MultiLineView = <T extends Entity>({
 
   const onClickSave = () => {
     const id = edit;
-    console.log("save", id);
     if (id) {
       const [oldEntity, newEntity] = getEntitiesToSave(id);
 
       if (equalDeep(oldEntity, newEntity, false)) {
         setEdit(null);
+      } else if (onSave) {
+        onSave(newEntity).then(() => setEdit(null));
       } else {
-        // TODO save
         setEdit(null);
+        throw new Error("Unable to save item: the save function is undefined!");
       }
     } else {
       setEdit(null);
@@ -110,11 +113,11 @@ const MultiLineView = <T extends Entity>({
       {entities?.map((entity) => (
         <div
           key={`multi-line-key-${entity._id}`}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
+          onMouseEnter={() => setHovered(entity._id)}
+          onMouseLeave={() => setHovered(null)}
           style={{
             backgroundColor:
-              hovered && edit !== entity._id
+              hovered === entity._id && edit !== entity._id
                 ? colorBgTextHover
                 : colorBgContainer,
             borderRadius: borderRadiusLG,
@@ -122,7 +125,7 @@ const MultiLineView = <T extends Entity>({
         >
           {(edit !== entity._id || !EditComponent) && (
             <>
-              {hovered && (
+              {hovered === entity._id && (
                 <Badge.Ribbon
                   className="border-1 border-gray-300"
                   text={
@@ -158,7 +161,9 @@ const MultiLineView = <T extends Entity>({
                   <ViewComponent key={entity._id} entity={entity} />
                 </Badge.Ribbon>
               )}
-              {!hovered && <ViewComponent key={entity._id} entity={entity} />}
+              {hovered !== entity._id && (
+                <ViewComponent key={entity._id} entity={entity} />
+              )}
             </>
           )}
           {edit === entity._id && EditComponent && (
