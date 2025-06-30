@@ -22,7 +22,13 @@ const createDocument = async (
   const _id = id || getId(collectionPath);
   const ref = doc(firestore, collectionPath, _id);
   const now = serverTimestamp();
-  const data = { ...documentData, _createdAt: now, _id, _updatedAt: now };
+  const data = {
+    ...documentData,
+    _createdAt: now,
+    _id,
+    _isUpdated: false,
+    _updatedAt: now,
+  };
 
   await setDoc(ref, data);
   // createLog(LOG_TYPES.CREATE, collectionPath, data);

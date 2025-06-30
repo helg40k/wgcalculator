@@ -24,9 +24,9 @@ const updateDocument = async (
 ): Promise<DocumentData | undefined> => {
   const ref = doc(firestore, collectionPath, id);
   const payload = {
+    ...data,
     _isUpdated: true,
     _updatedAt: serverTimestamp(),
-    ...data,
   };
   await updateDoc(ref, payload);
   // createLog(LOG_TYPES.UPDATE, collectionPath, { ...data, _id })
