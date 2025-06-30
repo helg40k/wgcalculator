@@ -5,7 +5,7 @@ import { getLinkLabel } from "@/app/ui/shared";
 
 const LinksView = ({ urls }: { urls: string[] | undefined }) => {
   return (
-    urls?.length &&
+    !!urls?.length &&
     urls.map((url, i) => (
       <Link
         key={`url${i}`}

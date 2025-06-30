@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { notification } from "antd";
 
 import { Entity } from "@/app/lib/definitions";
+import useUser from "@/app/lib/hooks/useUser";
 import createDocument from "@/app/lib/services/firebase/helpers/createDocument";
 import deleteDocument from "@/app/lib/services/firebase/helpers/deleteDocument";
 import getCollectionData from "@/app/lib/services/firebase/helpers/getCollectionData";
@@ -20,6 +21,8 @@ const useEntities = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error>();
 
+  const { email } = useUser();
+
   useEffect(() => {
     if (error) {
       notification.error({
@@ -29,10 +32,17 @@ const useEntities = () => {
     }
   }, [error]);
 
+  const checkEmail = () => {
+    if (!email) {
+      throw new Error("Unauthorized modifying!");
+    }
+  };
+
   const deleteEntity = async (
     dbRef: string | null | undefined,
     id: string | null | undefined,
   ): Promise<void> => {
+    checkEmail();
     if (!dbRef || !id) {
       setError(
         new Error(
@@ -80,6 +90,7 @@ const useEntities = () => {
     dbRef: string | null | undefined,
     entity: T,
   ): Promise<T | null> => {
+    checkEmail();
     if (!dbRef || !entity) {
       setError(
         new Error(
@@ -96,9 +107,11 @@ const useEntities = () => {
       setLoading(true);
       const id = entity._id;
 
+      entity._updatedBy = email as string;
       if (id) {
         return (await updateDocument(type, id, entity)) as T;
       } else {
+        entity._createdBy = email as string;
         return (await createDocument(type, entity)) as T;
       }
     } catch (err: any) {

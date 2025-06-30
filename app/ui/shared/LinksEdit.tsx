@@ -1,4 +1,4 @@
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { LinkIcon } from "@heroicons/react/24/outline";
 import { Button, Input } from "antd";
 
@@ -6,10 +6,15 @@ interface LinksEditProps {
   formName: string;
   urls: string[] | undefined;
   className?: string | undefined;
+  setUrls: (urls: string[]) => void;
 }
 
-const LinksEdit = ({ formName, urls, className }: LinksEditProps) => {
-  const [values, setValues] = useState<string[]>(urls ?? []);
+const LinksEdit = ({ formName, urls, className, setUrls }: LinksEditProps) => {
+  const [values, setValues] = useState<string[]>(urls?.length ? urls : [""]);
+
+  useEffect(() => {
+    setUrls(values);
+  }, [setUrls, values]);
 
   const onChange = (event: ChangeEvent<HTMLInputElement>, index: number) => {
     const updated = [...values];

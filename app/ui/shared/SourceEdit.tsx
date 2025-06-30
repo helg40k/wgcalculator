@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BookOpenIcon } from "@heroicons/react/24/outline";
 import { Flex, Form, Input, InputNumber, Select, theme } from "antd";
 
@@ -13,6 +13,7 @@ interface SourceEditProps {
 }
 
 const SourceEdit = ({ entity, setValues }: SourceEditProps) => {
+  const [urls, setUrls] = useState<string[]>(entity.urls || []);
   const [form] = Form.useForm();
   const {
     token: { colorTextPlaceholder, borderRadiusLG },
@@ -28,9 +29,18 @@ const SourceEdit = ({ entity, setValues }: SourceEditProps) => {
     return `sourceEdit-${entity._id}`;
   }, [entity]);
 
-  const onChange = () => {
-    setValues(form.getFieldsValue());
-  };
+  const onChange = useCallback(() => {
+    const filteredUrls = urls
+      .map((url: string) => url.trim())
+      .filter((url: string) => url);
+    const fieldValues = form.getFieldsValue();
+    fieldValues["urls"] = filteredUrls;
+    setValues(fieldValues);
+  }, [form, setValues, urls]);
+
+  useEffect(() => {
+    onChange();
+  }, [onChange]);
 
   return (
     <Form
@@ -102,6 +112,7 @@ const SourceEdit = ({ entity, setValues }: SourceEditProps) => {
               <LinksEdit
                 formName={formName}
                 urls={entity.urls}
+                setUrls={setUrls}
                 className="mr-1.5"
               />
             </div>
