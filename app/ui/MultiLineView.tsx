@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import {
   CheckIcon,
   PencilSquareIcon,
@@ -16,7 +16,8 @@ interface MultiLineViewProps<T extends Entity = Entity> {
   entities: T[];
   edit?: React.ComponentType<{
     entity: T;
-    setValues: (values: any[]) => void;
+    setValues: Dispatch<SetStateAction<any>>;
+    setValid: Dispatch<SetStateAction<boolean>>;
   }>;
   view: React.ComponentType<{ entity: T }>;
   onSave?: (entity: T) => Promise<void>;
@@ -30,6 +31,7 @@ const MultiLineView = <T extends Entity>({
 }: MultiLineViewProps<T>) => {
   const [values, setValues] = useState({});
   const [edit, setEdit] = useState<string | null>(null);
+  const [isValid, setIsValid] = useState<boolean>(true);
   const [hovered, setHovered] = useState<string | null>(null);
   const {
     token: { colorBgContainer, colorBgTextHover, borderRadiusLG },
@@ -82,23 +84,27 @@ const MultiLineView = <T extends Entity>({
   const onClickCancel = () => {
     const id = edit;
     if (id) {
-      const [oldEntity, newEntity] = getEntitiesToSave(id);
+      if (isValid) {
+        const [oldEntity, newEntity] = getEntitiesToSave(id);
 
-      if (equalDeep(oldEntity, newEntity, false)) {
-        setEdit(null);
+        if (equalDeep(oldEntity, newEntity, false)) {
+          setEdit(null);
+        } else {
+          Modal.confirm({
+            content: (
+              <>
+                The item was changed!
+                <br />
+                Would you like to ignore changes?
+              </>
+            ),
+            okText: "Ignore",
+            onOk: () => setEdit(null),
+            title: "Ignore changes",
+          });
+        }
       } else {
-        Modal.confirm({
-          content: (
-            <>
-              The item was changed!
-              <br />
-              Would you like to ignore changes?
-            </>
-          ),
-          okText: "Ignore",
-          onOk: () => setEdit(null),
-          title: "Ignore changes",
-        });
+        setEdit(null);
       }
     } else {
       /* eslint-disable no-console */
@@ -172,7 +178,11 @@ const MultiLineView = <T extends Entity>({
               text={
                 <>
                   <Tooltip title="Save" color="darkBlue" mouseEnterDelay={1}>
-                    <Button style={hoverButtonStyle} onClick={onClickSave}>
+                    <Button
+                      style={hoverButtonStyle}
+                      onClick={onClickSave}
+                      disabled={!isValid}
+                    >
                       <CheckIcon className="w-4 text-black hover:text-blue-900" />
                     </Button>
                   </Tooltip>
@@ -189,6 +199,7 @@ const MultiLineView = <T extends Entity>({
                 key={entity._id}
                 entity={entity}
                 setValues={setValues}
+                setValid={setIsValid}
               />
             </Badge.Ribbon>
           )}

@@ -56,6 +56,19 @@ export const getLinkLabel = (url: string) => {
   }
 };
 
+export const isUrlValid = (url: string | null | undefined): boolean => {
+  if (!url) {
+    return true;
+  }
+  try {
+    new URL(url);
+    return true;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (err) {
+    return false;
+  }
+};
+
 export const isTimestamp = (obj: any): obj is Timestamp => {
   if (obj instanceof Timestamp) {
     return true;

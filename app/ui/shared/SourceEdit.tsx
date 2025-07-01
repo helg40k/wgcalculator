@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { BookOpenIcon } from "@heroicons/react/24/outline";
 import { Flex, Form, Input, InputNumber, Select, theme } from "antd";
 
@@ -9,11 +16,13 @@ const { TextArea } = Input;
 
 interface SourceEditProps {
   entity: Source;
-  setValues: (values: any[]) => void;
+  setValues: Dispatch<SetStateAction<any>>;
+  setValid: Dispatch<SetStateAction<boolean>>;
 }
 
-const SourceEdit = ({ entity, setValues }: SourceEditProps) => {
+const SourceEdit = ({ entity, setValues, setValid }: SourceEditProps) => {
   const [urls, setUrls] = useState<string[]>(entity.urls || []);
+  const [areUrlsValid, setAreUrlsValid] = useState<boolean>(true);
   const [form] = Form.useForm();
   const {
     token: { colorTextPlaceholder, borderRadiusLG },
@@ -33,10 +42,18 @@ const SourceEdit = ({ entity, setValues }: SourceEditProps) => {
     const filteredUrls = urls
       .map((url: string) => url.trim())
       .filter((url: string) => url);
+
+    form
+      .validateFields()
+      .then(() => setValid(areUrlsValid))
+      .catch((errObj) =>
+        setValid(!errObj?.errorFields?.length && areUrlsValid),
+      );
+
     const fieldValues = form.getFieldsValue();
     fieldValues["urls"] = filteredUrls;
     setValues(fieldValues);
-  }, [form, setValues, urls]);
+  }, [form, setValues, setValid, urls, areUrlsValid]);
 
   useEffect(() => {
     onChange();
@@ -56,20 +73,15 @@ const SourceEdit = ({ entity, setValues }: SourceEditProps) => {
           style={{ color: colorTextPlaceholder }}
         />
         <Flex vertical style={{ padding: "0 8px 0 8px" }} className="w-full">
-          <div>
+          <div className="pr-19">
             <Form.Item
               name="name"
-              className="w-11/12"
               style={{ margin: "8px 0" }}
-              rules={[{ required: true }]}
+              rules={[{ message: "Name is required", required: true }]}
             >
               <Input placeholder="Name" />
             </Form.Item>
-            <Form.Item
-              name="authors"
-              className="w-11/12"
-              style={{ margin: "8px 0" }}
-            >
+            <Form.Item name="authors" style={{ margin: "8px 0" }}>
               <Input placeholder="Authors" prefix="by" />
             </Form.Item>
           </div>
@@ -84,7 +96,7 @@ const SourceEdit = ({ entity, setValues }: SourceEditProps) => {
                   name="type"
                   className="w-30"
                   style={{ margin: "0" }}
-                  rules={[{ required: true }]}
+                  rules={[{ message: "Type is required", required: true }]}
                 >
                   <Select
                     placeholder="Source type"
@@ -104,7 +116,7 @@ const SourceEdit = ({ entity, setValues }: SourceEditProps) => {
                   name="year"
                   className="ml-3 w-24"
                   style={{ margin: "0" }}
-                  rules={[{ required: true }]}
+                  rules={[{ message: "Year is required", required: true }]}
                 >
                   <InputNumber placeholder="Year" min={1990} />
                 </Form.Item>
@@ -113,6 +125,7 @@ const SourceEdit = ({ entity, setValues }: SourceEditProps) => {
                 formName={formName}
                 urls={entity.urls}
                 setUrls={setUrls}
+                setValid={setAreUrlsValid}
                 className="mr-1.5"
               />
             </div>
