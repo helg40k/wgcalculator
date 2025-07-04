@@ -81,7 +81,7 @@ const MultiLineView = <T extends Entity>({
     }
   };
 
-  // TODO think about systemId!
+  // TODO change confirm to error!
   const onClickCancel = () => {
     const id = edit;
     if (id) {
@@ -90,6 +90,30 @@ const MultiLineView = <T extends Entity>({
 
         if (equalDeep(oldEntity, newEntity, false)) {
           setEdit(null);
+        } else if (oldEntity["systemId"] !== newEntity["systemId"]) {
+          Modal.confirm({
+            cancelText: "Ignore",
+            content: (
+              <>
+                Invalid data in &#34;systemId&#34; was found!
+                <br />
+                Would you like to save corrected data?
+              </>
+            ),
+            okText: "Save",
+            onCancel: () => setEdit(null),
+            onOk: () => {
+              if (onSave) {
+                onSave(newEntity).then(() => setEdit(null));
+              } else {
+                setEdit(null);
+                throw new Error(
+                  "Unable to save item: the save function is undefined!",
+                );
+              }
+            },
+            title: "Invalid data found",
+          });
         } else {
           Modal.confirm({
             content: (
