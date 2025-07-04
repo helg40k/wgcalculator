@@ -25,6 +25,7 @@ export interface Entity {
 }
 
 export interface GameSystem extends Entity {
+  key: string;
   owner: string;
   links?: string[];
   downloads?: string[];
@@ -38,6 +39,7 @@ export interface GameSystem extends Entity {
 }
 
 export interface Source extends Entity {
+  systemId: string;
   authors?: string;
   year: number;
   version: string;

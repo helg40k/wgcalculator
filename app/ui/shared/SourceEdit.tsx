@@ -2,6 +2,7 @@ import {
   Dispatch,
   SetStateAction,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useState,
@@ -9,6 +10,7 @@ import {
 import { BookOpenIcon } from "@heroicons/react/24/outline";
 import { Flex, Form, Input, InputNumber, Select, theme } from "antd";
 
+import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { Source, sourceTypes } from "@/app/lib/definitions";
 import LinksEdit from "@/app/ui/shared/LinksEdit";
 
@@ -21,6 +23,7 @@ interface SourceEditProps {
 }
 
 const SourceEdit = ({ entity, setValues, setValid }: SourceEditProps) => {
+  const gameSystem = useContext(GameSystemContext);
   const [urls, setUrls] = useState<string[]>(entity.urls || []);
   const [areUrlsValid, setAreUrlsValid] = useState<boolean>(true);
   const [form] = Form.useForm();
@@ -30,9 +33,9 @@ const SourceEdit = ({ entity, setValues, setValid }: SourceEditProps) => {
 
   useEffect(() => {
     if (form) {
-      form.setFieldsValue(entity);
+      form.setFieldsValue({ ...entity, systemId: gameSystem?._id || "err" });
     }
-  }, [form, entity]);
+  }, [form, entity, gameSystem?._id]);
 
   const formName = useMemo(() => {
     return `sourceEdit-${entity._id}`;
@@ -67,6 +70,9 @@ const SourceEdit = ({ entity, setValues, setValid }: SourceEditProps) => {
       style={{ borderRadius: borderRadiusLG }}
       onChange={onChange}
     >
+      <Form.Item name="systemId" hidden>
+        <Input />
+      </Form.Item>
       <Flex justify="left" className="w-full items-start">
         <BookOpenIcon
           className="w-36"

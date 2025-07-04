@@ -18,6 +18,7 @@ import {
 import Link from "next/link";
 import { redirect, usePathname } from "next/navigation";
 
+import { GameSystemProvider } from "@/app/lib/contexts/GameSystemContext";
 import { getItem, MenuItem } from "@/app/ui/shared";
 import TemplateFooter from "@/app/ui/TemplateFooter";
 import TemplateHeader from "@/app/ui/TemplateHeader";
@@ -157,66 +158,68 @@ const TemplatePageLayout = ({
         avatarMenuItems={avatarMenuItems}
       />
       <div className="py-0 px-6">
-        <div className="my-4">
-          <Breadcrumb items={breadcrumbList} />
-        </div>
-        <Layout>
-          <Sider
-            style={{
-              background: colorBgContainer,
-              borderRadius: borderRadiusLG,
-            }}
-            width={200}
-            trigger={null}
-            collapsible
-            collapsed={collapsed}
-          >
-            <Menu
-              mode="inline"
-              defaultSelectedKeys={["1"]}
-              defaultOpenKeys={["sub1"]}
-              style={{ borderRadius: borderRadiusLG, height: "100%" }}
-              items={resultSiderMenuItems}
-              onClick={onClickResultSiderMenu}
-            />
-          </Sider>
+        <GameSystemProvider>
+          <div className="my-4">
+            <Breadcrumb items={breadcrumbList} />
+          </div>
           <Layout>
-            <Header
+            <Sider
               style={{
                 background: colorBgContainer,
                 borderRadius: borderRadiusLG,
-                padding: 0,
               }}
+              width={200}
+              trigger={null}
+              collapsible
+              collapsed={collapsed}
             >
-              <Row>
-                <Button
-                  type="text"
-                  icon={
-                    collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />
-                  }
-                  onClick={() => setCollapsed(!collapsed)}
-                  style={{
-                    fontSize: "16px",
-                    height: 64,
-                    width: 64,
-                  }}
-                />
-                <div className="ml-4 font-black">{contentHeader}</div>
-              </Row>
-            </Header>
-            <Content
-              className="p-6"
-              style={{
-                background: colorBgContainer,
-                borderRadius: borderRadiusLG,
-                margin: "1px 0 0 0",
-                minHeight: "300px",
-              }}
-            >
-              {children}
-            </Content>
+              <Menu
+                mode="inline"
+                defaultSelectedKeys={["1"]}
+                defaultOpenKeys={["sub1"]}
+                style={{ borderRadius: borderRadiusLG, height: "100%" }}
+                items={resultSiderMenuItems}
+                onClick={onClickResultSiderMenu}
+              />
+            </Sider>
+            <Layout>
+              <Header
+                style={{
+                  background: colorBgContainer,
+                  borderRadius: borderRadiusLG,
+                  padding: 0,
+                }}
+              >
+                <Row>
+                  <Button
+                    type="text"
+                    icon={
+                      collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />
+                    }
+                    onClick={() => setCollapsed(!collapsed)}
+                    style={{
+                      fontSize: "16px",
+                      height: 64,
+                      width: 64,
+                    }}
+                  />
+                  <div className="ml-4 font-black">{contentHeader}</div>
+                </Row>
+              </Header>
+              <Content
+                className="p-6"
+                style={{
+                  background: colorBgContainer,
+                  borderRadius: borderRadiusLG,
+                  margin: "1px 0 0 0",
+                  minHeight: "300px",
+                }}
+              >
+                {children}
+              </Content>
+            </Layout>
           </Layout>
-        </Layout>
+        </GameSystemProvider>
       </div>
       <TemplateFooter />
     </Layout>
