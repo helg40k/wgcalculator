@@ -7,12 +7,14 @@ import {
   faChartPie,
   faSeedling,
   faShieldHalved,
+  faSpellCheck,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon as Icon } from "@fortawesome/react-fontawesome";
 import { Tabs } from "antd";
 import { SessionProvider } from "next-auth/react";
 
 import CosAdminArmors from "@/app/clashofspears/admin/ui/CosAdminArmors";
+import CosAdminKeywords from "@/app/clashofspears/admin/ui/CosAdminKeywords";
 import CosAdminProfiles from "@/app/clashofspears/admin/ui/CosAdminProfiles";
 import CosAdminSources from "@/app/clashofspears/admin/ui/CosAdminSources";
 import CosAdminStart from "@/app/clashofspears/admin/ui/CosAdminStart";
@@ -24,6 +26,7 @@ import TemplatePageLayout, { MenuInfo } from "@/app/ui/TemplatePageLayout";
 type MenuKey =
   | "START"
   | "SOURCES"
+  | "KEYWORDS"
   | "PROFILES"
   | "ARMORS"
   | "WEAPONS"
@@ -41,27 +44,33 @@ const MENU_ITEMS: Record<MenuKey, MenuItemConst> = {
     key: "sources",
     label: "Sources",
   },
+  KEYWORDS: {
+    icon: <Icon icon={faSpellCheck} />,
+    index: 2,
+    key: "keywords",
+    label: "Keywords",
+  },
   PROFILES: {
     icon: <Icon icon={faAddressCard} />,
-    index: 2,
+    index: 3,
     key: "profiles",
     label: "Profiles",
   },
   ARMORS: {
     icon: <Icon icon={faShieldHalved} />,
-    index: 3,
+    index: 4,
     key: "armors",
     label: "Armors",
   },
   WEAPONS: {
     icon: <Icon icon={faBolt} />,
-    index: 4,
+    index: 5,
     key: "weapons",
     label: "Weapons",
   },
   TRAITS: {
     icon: <Icon icon={faSeedling} />,
-    index: 5,
+    index: 6,
     key: "traits",
     label: "Traits",
   },
@@ -90,6 +99,11 @@ const Page = () => {
         children: <CosAdminSources />,
         key: MENU_ITEMS.SOURCES.key,
         label: MENU_ITEMS.SOURCES.label,
+      },
+      {
+        children: <CosAdminKeywords />,
+        key: MENU_ITEMS.KEYWORDS.key,
+        label: MENU_ITEMS.KEYWORDS.label,
       },
       {
         children: <CosAdminProfiles />,
