@@ -1,7 +1,9 @@
-import { FieldValue } from "firebase-admin/firestore";
+import { serverTimestamp } from "firebase/firestore";
+
+export const NEW_ENTITY_TEMP_ID = "new";
 
 const getDocumentCreationBase = (_id: string | number) => {
-  const now = FieldValue.serverTimestamp();
+  const now = serverTimestamp();
   return {
     _createdAt: now,
     _id,

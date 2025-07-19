@@ -33,7 +33,10 @@ const SourceEdit = ({ entity, setValues, setValid }: SourceEditProps) => {
 
   useEffect(() => {
     if (form) {
-      form.setFieldsValue({ ...entity, systemId: gameSystem?._id || "err" });
+      form.setFieldsValue({
+        ...entity,
+        systemId: gameSystem?._id || entity.systemId,
+      });
     }
   }, [form, entity, gameSystem?._id]);
 

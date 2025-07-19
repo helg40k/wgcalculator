@@ -5,15 +5,22 @@ import {
   TrashIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { Badge, Button, Modal, theme, Tooltip } from "antd";
+import { Badge, Button, message, Modal, theme, Tooltip } from "antd";
 
 import { Entity } from "@/app/lib/definitions";
-import { equalDeep, mergeDeep } from "@/app/ui/shared";
+import { NEW_ENTITY_TEMP_ID } from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
+import { equalDeep, getNewEntity, mergeDeep } from "@/app/ui/shared";
 
 const hoverButtonStyle = { height: "26px", margin: "4px", padding: "4px" };
 
+const enum AddPosition {
+  UP,
+  DOWN,
+}
+
 interface MultiLineViewProps<T extends Entity = Entity> {
   entities: T[];
+  setEntities: Dispatch<SetStateAction<T[]>>;
   edit?: React.ComponentType<{
     entity: T;
     setValues: Dispatch<SetStateAction<any>>;
@@ -21,13 +28,16 @@ interface MultiLineViewProps<T extends Entity = Entity> {
   }>;
   view: React.ComponentType<{ entity: T }>;
   onSave?: (entity: T) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
 }
 
 const MultiLineView = <T extends Entity>({
   entities,
+  setEntities,
   edit: EditComponent,
   view: ViewComponent,
   onSave,
+  onDelete,
 }: MultiLineViewProps<T>) => {
   const [values, setValues] = useState({});
   const [edit, setEdit] = useState<string | null>(null);
@@ -49,17 +59,30 @@ const MultiLineView = <T extends Entity>({
   };
 
   const onClickDelete = (id: string, name: string) => {
-    Modal.confirm({
-      content: (
-        <>
-          The item <b>&#39;{name}&#39;</b> will be deleted.
-          <br />
-          Are you sure?
-        </>
-      ),
-      okText: "Delete",
-      title: "Delete item",
-    });
+    if (id) {
+      Modal.confirm({
+        content: (
+          <>
+            The item <b>&#39;{name}&#39;</b> will be deleted.
+            <br />
+            Are you sure?
+          </>
+        ),
+        okText: "Delete",
+        onOk: () => {
+          if (onDelete) {
+            onDelete(id);
+          } else {
+            throw new Error(
+              "Unable to save item: the save function is undefined!",
+            );
+          }
+        },
+        title: "Delete item",
+      });
+    } else {
+      throw new Error("Unable to delete item: the ID is lost!");
+    }
   };
 
   const onClickSave = () => {
@@ -67,7 +90,7 @@ const MultiLineView = <T extends Entity>({
     if (id) {
       const [oldEntity, newEntity] = getEntitiesToSave(id);
 
-      if (equalDeep(oldEntity, newEntity, false)) {
+      if (NEW_ENTITY_TEMP_ID !== id && equalDeep(oldEntity, newEntity, false)) {
         setEdit(null);
       } else if (onSave) {
         onSave(newEntity).then(() => setEdit(null));
@@ -81,7 +104,6 @@ const MultiLineView = <T extends Entity>({
     }
   };
 
-  // TODO change confirm to error!
   const onClickCancel = () => {
     const id = edit;
     if (id) {
@@ -139,8 +161,23 @@ const MultiLineView = <T extends Entity>({
     }
   };
 
+  const onClickAdd = (position: AddPosition) => {
+    const newEntity = getNewEntity<T>();
+    if (AddPosition.UP === position) {
+      setEntities((prev) => [newEntity, ...prev]);
+    } else {
+      setEntities((prev) => [...prev, newEntity]);
+    }
+    onClickEdit(newEntity._id);
+  };
+
   return (
     <>
+      <div className="mb-3">
+        <Button disabled={!!edit} onClick={() => onClickAdd(AddPosition.UP)}>
+          Add new
+        </Button>
+      </div>
       {entities?.map((entity) => (
         <div
           key={`multi-line-key-${entity._id}`}
@@ -148,13 +185,13 @@ const MultiLineView = <T extends Entity>({
           onMouseLeave={() => setHovered(null)}
           style={{
             backgroundColor:
-              hovered === entity._id && edit !== entity._id
+              hovered === entity._id && !edit
                 ? colorBgTextHover
                 : colorBgContainer,
             borderRadius: borderRadiusLG,
           }}
         >
-          {(edit !== entity._id || !EditComponent) && (
+          {(!edit || !EditComponent) && (
             <>
               {hovered === entity._id && (
                 <Badge.Ribbon
@@ -197,6 +234,9 @@ const MultiLineView = <T extends Entity>({
               )}
             </>
           )}
+          {edit && edit !== entity._id && (
+            <ViewComponent key={entity._id} entity={entity} />
+          )}
           {edit === entity._id && EditComponent && (
             <Badge.Ribbon
               className="border-1 border-gray-400"
@@ -230,6 +270,11 @@ const MultiLineView = <T extends Entity>({
           )}
         </div>
       ))}
+      <div className="mt-3">
+        <Button disabled={!!edit} onClick={() => onClickAdd(AddPosition.DOWN)}>
+          Add new
+        </Button>
+      </div>
     </>
   );
 };

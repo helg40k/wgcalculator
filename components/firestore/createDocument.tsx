@@ -24,8 +24,8 @@ const createDocument = async (
   const newDocumentIdComputed = documentId || documentRef.id;
 
   const documentBody = {
-    ...getDocumentCreationBase(newDocumentIdComputed),
     ...dataToSave,
+    ...getDocumentCreationBase(newDocumentIdComputed),
   };
 
   const finalQueryRef = baseRefComputed

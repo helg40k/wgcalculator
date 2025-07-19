@@ -6,6 +6,7 @@ import useUser from "@/app/lib/hooks/useUser";
 import createDocument from "@/app/lib/services/firebase/helpers/createDocument";
 import deleteDocument from "@/app/lib/services/firebase/helpers/deleteDocument";
 import getCollectionData from "@/app/lib/services/firebase/helpers/getCollectionData";
+import { NEW_ENTITY_TEMP_ID } from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
 import updateDocument from "@/app/lib/services/firebase/helpers/updateDocument";
 
 import "@ant-design/v5-patch-for-react-19";
@@ -35,6 +36,16 @@ const useEntities = () => {
   const checkEmail = () => {
     if (!email) {
       throw new Error("Unauthorized modifying!");
+    }
+  };
+
+  const prepareToSave = (entity: any) => {
+    if (entity) {
+      Object.keys(entity)
+        .filter((key) => entity[key] === undefined)
+        .forEach((key) => {
+          entity[key] = null;
+        });
     }
   };
 
@@ -108,7 +119,8 @@ const useEntities = () => {
       const id = entity._id;
 
       entity._updatedBy = email as string;
-      if (id) {
+      prepareToSave(entity);
+      if (id && NEW_ENTITY_TEMP_ID !== id) {
         return (await updateDocument(type, id, entity)) as T;
       } else {
         entity._createdBy = email as string;

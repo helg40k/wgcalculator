@@ -3,6 +3,11 @@ import { MenuProps } from "antd";
 import { Timestamp } from "firebase/firestore";
 import { mergeWith } from "lodash";
 
+import { Entity } from "@/app/lib/definitions";
+import getDocumentCreationBase, {
+  NEW_ENTITY_TEMP_ID,
+} from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
+
 export type MenuItem = Required<MenuProps>["items"][number];
 
 export const getItem = (
@@ -204,4 +209,8 @@ export const equalDeep = (
     b = nullToUndefined(b);
   }
   return a === b;
+};
+
+export const getNewEntity = <T extends Entity>(): T => {
+  return getDocumentCreationBase(NEW_ENTITY_TEMP_ID) as T;
 };

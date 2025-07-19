@@ -1,7 +1,8 @@
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 import firestore from "@/app/lib/services/firebase/utils/firestore";
 
+import getDocumentCreationBase from "./getDocumentCreationBase";
 import getId from "./getId";
 
 // import { LOG_TYPES } from '__constants__'
@@ -21,13 +22,9 @@ const createDocument = async (
 ) => {
   const _id = id || getId(collectionPath);
   const ref = doc(firestore, collectionPath, _id);
-  const now = serverTimestamp();
   const data = {
     ...documentData,
-    _createdAt: now,
-    _id,
-    _isUpdated: false,
-    _updatedAt: now,
+    ...getDocumentCreationBase(_id),
   };
 
   await setDoc(ref, data);
