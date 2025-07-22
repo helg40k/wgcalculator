@@ -19,12 +19,15 @@ const enum AddPosition {
 }
 
 interface MultiLineViewProps<T extends Entity = Entity> {
+  singleName: string;
+  pluralNames: string;
   entities: T[];
   setEntities: Dispatch<SetStateAction<T[]>>;
   edit?: React.ComponentType<{
     entity: T;
     setValues: Dispatch<SetStateAction<any>>;
     setValid: Dispatch<SetStateAction<boolean>>;
+    setIsNew: Dispatch<SetStateAction<boolean>>;
   }>;
   view: React.ComponentType<{ entity: T }>;
   onSave?: (entity: T) => Promise<void>;
@@ -32,6 +35,8 @@ interface MultiLineViewProps<T extends Entity = Entity> {
 }
 
 const MultiLineView = <T extends Entity>({
+  singleName = "item",
+  pluralNames = "items",
   entities,
   setEntities,
   edit: EditComponent,
@@ -42,6 +47,7 @@ const MultiLineView = <T extends Entity>({
   const [values, setValues] = useState({});
   const [edit, setEdit] = useState<string | null>(null);
   const [isValid, setIsValid] = useState<boolean>(true);
+  const [isNew, setIsNew] = useState<boolean>(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const {
     token: { colorBgContainer, colorBgTextHover, borderRadiusLG },
@@ -50,8 +56,28 @@ const MultiLineView = <T extends Entity>({
   const getEntitiesToSave = (id: string) => {
     const filteredEntities = entities.filter((ent) => id === ent._id);
     const oldEntity = filteredEntities[0] || {};
-    const newEntity = mergeDeep({}, oldEntity, values);
+    const newEntity = mergeDeep({}, oldEntity, values) as T;
     return [oldEntity, newEntity];
+  };
+
+  const deleteItem = (id: string, negativeCallback: () => void) => {
+    if (onDelete) {
+      onDelete(id);
+      message.success(`The ${singleName} has been deleted`);
+      setEntities((prev) => [...prev.filter((item) => item._id !== id)]);
+    } else {
+      negativeCallback();
+    }
+  };
+
+  const saveItem = (entityToSave: T) => {
+    if (onSave) {
+      onSave(entityToSave).then(() => setEdit(null));
+    } else {
+      throw new Error(
+        `Unable to save ${singleName}: the save function is undefined!`,
+      );
+    }
   };
 
   const onClickEdit = (id: string) => {
@@ -60,28 +86,34 @@ const MultiLineView = <T extends Entity>({
 
   const onClickDelete = (id: string, name: string) => {
     if (id) {
-      Modal.confirm({
-        content: (
-          <>
-            The item <b>&#39;{name}&#39;</b> will be deleted.
-            <br />
-            Are you sure?
-          </>
-        ),
-        okText: "Delete",
-        onOk: () => {
-          if (onDelete) {
-            onDelete(id);
-          } else {
-            throw new Error(
-              "Unable to save item: the save function is undefined!",
-            );
-          }
-        },
-        title: "Delete item",
-      });
+      if (NEW_ENTITY_TEMP_ID === id) {
+        deleteItem(id, () => {
+          setEntities((prev) => [
+            ...prev.filter((item) => item._id !== NEW_ENTITY_TEMP_ID),
+          ]);
+        });
+      } else {
+        Modal.confirm({
+          content: (
+            <>
+              The item <b>&#39;{name}&#39;</b> will be deleted.
+              <br />
+              Are you sure?
+            </>
+          ),
+          okText: "Delete",
+          onOk: () => {
+            deleteItem(id, () => {
+              throw new Error(
+                `Unable to save ${singleName}: the save function is undefined!`,
+              );
+            });
+          },
+          title: `Delete ${singleName}`,
+        });
+      }
     } else {
-      throw new Error("Unable to delete item: the ID is lost!");
+      throw new Error(`Unable to delete ${singleName}: the ID is lost!`);
     }
   };
 
@@ -92,27 +124,36 @@ const MultiLineView = <T extends Entity>({
 
       if (NEW_ENTITY_TEMP_ID !== id && equalDeep(oldEntity, newEntity, false)) {
         setEdit(null);
-      } else if (onSave) {
-        onSave(newEntity).then(() => setEdit(null));
       } else {
-        setEdit(null);
-        throw new Error("Unable to save item: the save function is undefined!");
+        saveItem(newEntity);
       }
     } else {
       setEdit(null);
-      throw new Error("Unable to save item: the ID is lost!");
+      throw new Error(`Unable to save ${singleName}: the ID is lost!`);
     }
   };
 
   const onClickCancel = () => {
     const id = edit;
     if (id) {
+      // adding a new item
+      if (NEW_ENTITY_TEMP_ID === id) {
+        setEntities((prev) => [
+          ...prev.filter((item) => item._id !== NEW_ENTITY_TEMP_ID),
+        ]);
+        setEdit(null);
+        return;
+      }
+
+      // editing an old item
       if (isValid) {
         const [oldEntity, newEntity] = getEntitiesToSave(id);
 
         if (equalDeep(oldEntity, newEntity, false)) {
           setEdit(null);
-        } else if (oldEntity["systemId"] !== newEntity["systemId"]) {
+        } else if (
+          (oldEntity as any)["systemId"] !== (newEntity as any)["systemId"]
+        ) {
           Modal.confirm({
             cancelText: "Ignore",
             content: (
@@ -124,16 +165,7 @@ const MultiLineView = <T extends Entity>({
             ),
             okText: "Save",
             onCancel: () => setEdit(null),
-            onOk: () => {
-              if (onSave) {
-                onSave(newEntity).then(() => setEdit(null));
-              } else {
-                setEdit(null);
-                throw new Error(
-                  "Unable to save item: the save function is undefined!",
-                );
-              }
-            },
+            onOk: () => saveItem(newEntity),
             title: "Invalid data found",
           });
         } else {
@@ -154,8 +186,9 @@ const MultiLineView = <T extends Entity>({
         setEdit(null);
       }
     } else {
+      setEntities((prev) => [...prev.filter((item) => !!item._id)]);
       /* eslint-disable no-console */
-      console.warn("The current item ID is lost!");
+      console.warn(`The current ${singleName} ID is lost!`);
       /* eslint-enable no-console */
       setEdit(null);
     }
@@ -168,6 +201,7 @@ const MultiLineView = <T extends Entity>({
     } else {
       setEntities((prev) => [...prev, newEntity]);
     }
+    setIsNew(true);
     onClickEdit(newEntity._id);
   };
 
@@ -199,7 +233,7 @@ const MultiLineView = <T extends Entity>({
                   text={
                     <>
                       <Tooltip
-                        title="Edit item"
+                        title={`Edit ${singleName}`}
                         color="darkBlue"
                         mouseEnterDelay={1}
                       >
@@ -211,7 +245,7 @@ const MultiLineView = <T extends Entity>({
                         </Button>
                       </Tooltip>
                       <Tooltip
-                        title="Delete item"
+                        title={`Delete ${singleName}`}
                         color="darkRed"
                         mouseEnterDelay={1}
                       >
@@ -246,7 +280,7 @@ const MultiLineView = <T extends Entity>({
                     <Button
                       style={hoverButtonStyle}
                       onClick={onClickSave}
-                      disabled={!isValid}
+                      disabled={!isValid || isNew}
                     >
                       <CheckIcon className="w-4 text-black hover:text-blue-900" />
                     </Button>
@@ -265,6 +299,7 @@ const MultiLineView = <T extends Entity>({
                 entity={entity}
                 setValues={setValues}
                 setValid={setIsValid}
+                setIsNew={setIsNew}
               />
             </Badge.Ribbon>
           )}

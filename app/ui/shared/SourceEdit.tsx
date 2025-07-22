@@ -12,6 +12,7 @@ import { Flex, Form, Input, InputNumber, Select, theme } from "antd";
 
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { Source, sourceTypes } from "@/app/lib/definitions";
+import { NEW_ENTITY_TEMP_ID } from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
 import LinksEdit from "@/app/ui/shared/LinksEdit";
 
 const { TextArea } = Input;
@@ -20,9 +21,15 @@ interface SourceEditProps {
   entity: Source;
   setValues: Dispatch<SetStateAction<any>>;
   setValid: Dispatch<SetStateAction<boolean>>;
+  setIsNew: Dispatch<SetStateAction<boolean>>;
 }
 
-const SourceEdit = ({ entity, setValues, setValid }: SourceEditProps) => {
+const SourceEdit = ({
+  entity,
+  setValues,
+  setValid,
+  setIsNew,
+}: SourceEditProps) => {
   const gameSystem = useContext(GameSystemContext);
   const [urls, setUrls] = useState<string[]>(entity.urls || []);
   const [areUrlsValid, setAreUrlsValid] = useState<boolean>(true);
@@ -45,6 +52,8 @@ const SourceEdit = ({ entity, setValues, setValid }: SourceEditProps) => {
   }, [entity]);
 
   const onChange = useCallback(() => {
+    setIsNew((prev) => (prev ? false : prev));
+
     const filteredUrls = urls
       .map((url: string) => url.trim())
       .filter((url: string) => url);
@@ -59,11 +68,13 @@ const SourceEdit = ({ entity, setValues, setValid }: SourceEditProps) => {
     const fieldValues = form.getFieldsValue();
     fieldValues["urls"] = filteredUrls;
     setValues(fieldValues);
-  }, [form, setValues, setValid, urls, areUrlsValid]);
+  }, [form, setValues, setValid, setIsNew, urls, areUrlsValid]);
 
   useEffect(() => {
-    onChange();
-  }, [onChange]);
+    if (NEW_ENTITY_TEMP_ID !== entity._id) {
+      onChange();
+    }
+  }, [onChange, entity._id]);
 
   return (
     <Form

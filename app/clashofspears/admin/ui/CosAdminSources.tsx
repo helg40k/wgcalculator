@@ -42,13 +42,13 @@ const CosAdminSources = () => {
 
   const onDelete = async (id: string): Promise<void> => {
     await deleteEntity(collectionName, id);
-    message.success("The source has been deleted");
-    setSources((prev) => [...prev.filter((item) => item._id !== id)]);
   };
 
   return (
     <Spin spinning={loading} size="large">
       <MultiLineView
+        singleName={"source"}
+        pluralNames={"sources"}
         entities={sources}
         setEntities={setSources}
         view={SourceView}
