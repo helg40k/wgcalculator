@@ -33,6 +33,7 @@ const CosAdminSources = () => {
       <MultiLineView
         singleName={"source"}
         pluralNames={"sources"}
+        singleToolbarUntil={5}
         entities={sources}
         setEntities={setSources}
         view={SourceView}

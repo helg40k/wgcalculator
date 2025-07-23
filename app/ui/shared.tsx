@@ -8,6 +8,11 @@ import getDocumentCreationBase, {
   NEW_ENTITY_TEMP_ID,
 } from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
 
+export const enum ToolbarPosition {
+  UP,
+  DOWN,
+}
+
 export type MenuItem = Required<MenuProps>["items"][number];
 
 export const getItem = (

@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useMemo, useState } from "react";
 import {
   CheckIcon,
   PencilSquareIcon,
@@ -6,21 +6,24 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { Badge, Button, message, Modal, theme, Tooltip } from "antd";
+import clsx from "clsx";
 
 import { Playable } from "@/app/lib/definitions";
 import { NEW_ENTITY_TEMP_ID } from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
-import { equalDeep, getNewEntity, mergeDeep } from "@/app/ui/shared";
+import {
+  equalDeep,
+  getNewEntity,
+  mergeDeep,
+  ToolbarPosition,
+} from "@/app/ui/shared";
 
 const hoverButtonStyle = { height: "26px", margin: "4px", padding: "4px" };
-
-const enum AddPosition {
-  UP,
-  DOWN,
-}
 
 interface MultiLineViewProps<T extends Playable = Playable> {
   singleName: string;
   pluralNames: string;
+  toolbarPosition?: ToolbarPosition;
+  singleToolbarUntil?: number;
   entities: T[];
   setEntities: Dispatch<SetStateAction<T[]>>;
   edit?: React.ComponentType<{
@@ -37,6 +40,8 @@ interface MultiLineViewProps<T extends Playable = Playable> {
 const MultiLineView = <T extends Playable>({
   singleName = "item",
   pluralNames = "items",
+  toolbarPosition = ToolbarPosition.UP,
+  singleToolbarUntil = 20,
   entities,
   setEntities,
   edit: EditComponent,
@@ -50,8 +55,19 @@ const MultiLineView = <T extends Playable>({
   const [isNew, setIsNew] = useState<boolean>(false);
   const [hovered, setHovered] = useState<string | null>(null);
   const {
-    token: { colorBgContainer, colorBgTextHover, borderRadiusLG },
+    token: {
+      colorTextSecondary,
+      colorBgContainer,
+      colorBgTextHover,
+      borderRadiusLG,
+    },
   } = theme.useToken();
+
+  const itemsCountTotal = useMemo(() => {
+    return entities && 1 === entities.length
+      ? `1 ${singleName}`
+      : `${entities.length} ${pluralNames}`;
+  }, [entities]);
 
   const getEntitiesToSave = (id: string) => {
     const filteredEntities = entities.filter((ent) => id === ent._id);
@@ -216,9 +232,9 @@ const MultiLineView = <T extends Playable>({
     }
   };
 
-  const onClickAdd = (position: AddPosition) => {
+  const onClickAdd = (position: ToolbarPosition) => {
     const newEntity = getNewEntity<T>();
-    if (AddPosition.UP === position) {
+    if (ToolbarPosition.UP === position) {
       setEntities((prev) => [newEntity, ...prev]);
     } else {
       setEntities((prev) => [...prev, newEntity]);
@@ -227,13 +243,34 @@ const MultiLineView = <T extends Playable>({
     onClickEdit(newEntity._id);
   };
 
+  const toolbar = (position: ToolbarPosition) => {
+    return (
+      <div
+        className={clsx(
+          { "mb-3": position === ToolbarPosition.UP },
+          { "mt-3": position === ToolbarPosition.DOWN },
+        )}
+      >
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Button disabled={!!edit} onClick={() => onClickAdd(position)}>
+              Add new
+            </Button>
+            <span style={{ color: colorTextSecondary }}>
+              {itemsCountTotal} found
+            </span>
+          </div>
+          <span className="hidden">right block here!</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
-      <div className="mb-3">
-        <Button disabled={!!edit} onClick={() => onClickAdd(AddPosition.UP)}>
-          Add new
-        </Button>
-      </div>
+      {(toolbarPosition === ToolbarPosition.UP ||
+        singleToolbarUntil <= entities.length) &&
+        toolbar(ToolbarPosition.UP)}
       {entities?.map((entity) => (
         <div
           key={`multi-line-key-${entity._id}`}
@@ -327,11 +364,9 @@ const MultiLineView = <T extends Playable>({
           )}
         </div>
       ))}
-      <div className="mt-3">
-        <Button disabled={!!edit} onClick={() => onClickAdd(AddPosition.DOWN)}>
-          Add new
-        </Button>
-      </div>
+      {(toolbarPosition === ToolbarPosition.DOWN ||
+        singleToolbarUntil <= entities.length) &&
+        toolbar(ToolbarPosition.DOWN)}
     </>
   );
 };
