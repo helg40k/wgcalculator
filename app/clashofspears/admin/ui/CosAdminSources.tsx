@@ -20,6 +20,11 @@ const CosAdminSources = () => {
 
   const onSave = async (source: Source): Promise<void> => {
     const isNew = NEW_ENTITY_TEMP_ID === source._id || !source._id;
+
+    if (!source.version) {
+      source.version = "1.0";
+    }
+
     const savedSource = await saveEntity(collectionName, source);
     if (savedSource) {
       message.success("The source has been saved");

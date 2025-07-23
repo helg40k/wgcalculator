@@ -80,19 +80,21 @@ const MultiLineView = <T extends Entity>({
     }
   };
 
+  const cleanNewItem = (id: string) => {
+    if (NEW_ENTITY_TEMP_ID === id || !id) {
+      setEntities((prev) => [
+        ...prev.filter((item) => !!item._id && item._id !== NEW_ENTITY_TEMP_ID),
+      ]);
+    }
+  };
+
   const onClickEdit = (id: string) => {
     setEdit(id);
   };
 
   const onClickDelete = (id: string, name: string) => {
     if (id) {
-      if (NEW_ENTITY_TEMP_ID === id) {
-        deleteItem(id, () => {
-          setEntities((prev) => [
-            ...prev.filter((item) => item._id !== NEW_ENTITY_TEMP_ID),
-          ]);
-        });
-      } else {
+      if (NEW_ENTITY_TEMP_ID !== id) {
         Modal.confirm({
           content: (
             <>
@@ -111,6 +113,8 @@ const MultiLineView = <T extends Entity>({
           },
           title: `Delete ${singleName}`,
         });
+      } else {
+        cleanNewItem(id);
       }
     } else {
       throw new Error(`Unable to delete ${singleName}: the ID is lost!`);
@@ -136,22 +140,13 @@ const MultiLineView = <T extends Entity>({
   const onClickCancel = () => {
     const id = edit;
     if (id) {
-      // adding a new item
-      if (NEW_ENTITY_TEMP_ID === id) {
-        setEntities((prev) => [
-          ...prev.filter((item) => item._id !== NEW_ENTITY_TEMP_ID),
-        ]);
-        setEdit(null);
-        return;
-      }
-
-      // editing an old item
-      if (isValid) {
+      if (isValid && !isNew) {
         const [oldEntity, newEntity] = getEntitiesToSave(id);
 
         if (equalDeep(oldEntity, newEntity, false)) {
           setEdit(null);
         } else if (
+          NEW_ENTITY_TEMP_ID !== id &&
           (oldEntity as any)["systemId"] !== (newEntity as any)["systemId"]
         ) {
           Modal.confirm({
@@ -172,17 +167,21 @@ const MultiLineView = <T extends Entity>({
           Modal.confirm({
             content: (
               <>
-                The item was changed!
+                The {singleName} was changed!
                 <br />
                 Would you like to ignore changes?
               </>
             ),
             okText: "Ignore",
-            onOk: () => setEdit(null),
+            onOk: () => {
+              cleanNewItem(id);
+              setEdit(null);
+            },
             title: "Ignore changes",
           });
         }
       } else {
+        cleanNewItem(id);
         setEdit(null);
       }
     } else {
