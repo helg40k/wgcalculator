@@ -7,7 +7,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { Badge, Button, message, Modal, theme, Tooltip } from "antd";
 
-import { Entity } from "@/app/lib/definitions";
+import { Playable } from "@/app/lib/definitions";
 import { NEW_ENTITY_TEMP_ID } from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
 import { equalDeep, getNewEntity, mergeDeep } from "@/app/ui/shared";
 
@@ -18,7 +18,7 @@ const enum AddPosition {
   DOWN,
 }
 
-interface MultiLineViewProps<T extends Entity = Entity> {
+interface MultiLineViewProps<T extends Playable = Playable> {
   singleName: string;
   pluralNames: string;
   entities: T[];
@@ -34,7 +34,7 @@ interface MultiLineViewProps<T extends Entity = Entity> {
   onDelete?: (id: string) => Promise<void>;
 }
 
-const MultiLineView = <T extends Entity>({
+const MultiLineView = <T extends Playable>({
   singleName = "item",
   pluralNames = "items",
   entities,
@@ -170,7 +170,7 @@ const MultiLineView = <T extends Entity>({
           setEdit(null);
         } else if (
           NEW_ENTITY_TEMP_ID !== id &&
-          (oldEntity as any)["systemId"] !== (newEntity as any)["systemId"]
+          oldEntity.systemId !== newEntity.systemId
         ) {
           Modal.confirm({
             cancelText: "Ignore",

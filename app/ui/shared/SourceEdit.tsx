@@ -14,6 +14,7 @@ import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { Source, sourceTypes } from "@/app/lib/definitions";
 import { NEW_ENTITY_TEMP_ID } from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
 import LinksEdit from "@/app/ui/shared/LinksEdit";
+import ReferenceCounter from "@/app/ui/shared/ReferenceCounter";
 
 const { TextArea } = Input;
 
@@ -88,10 +89,13 @@ const SourceEdit = ({
         <Input />
       </Form.Item>
       <Flex justify="left" className="w-full items-start">
-        <BookOpenIcon
-          className="w-36"
-          style={{ color: colorTextPlaceholder }}
-        />
+        <Flex vertical>
+          <BookOpenIcon
+            className="w-30"
+            style={{ color: colorTextPlaceholder }}
+          />
+          <ReferenceCounter references={entity.references} />
+        </Flex>
         <Flex vertical style={{ padding: "0 8px 0 8px" }} className="w-full">
           <div className="pr-19">
             <Form.Item
