@@ -30,7 +30,7 @@ interface MultiLineViewProps<T extends Entity = Entity> {
     setIsNew: Dispatch<SetStateAction<boolean>>;
   }>;
   view: React.ComponentType<{ entity: T }>;
-  onSave?: (entity: T) => Promise<void>;
+  onSave?: (entity: T) => Promise<T | null>;
   onDelete?: (id: string) => Promise<void>;
 }
 
@@ -62,17 +62,40 @@ const MultiLineView = <T extends Entity>({
 
   const deleteItem = (id: string, negativeCallback: () => void) => {
     if (onDelete) {
-      onDelete(id);
-      message.success(`The ${singleName} has been deleted`);
-      setEntities((prev) => [...prev.filter((item) => item._id !== id)]);
+      onDelete(id).then(() => {
+        message.success(`The ${singleName} has been deleted`);
+        setEntities((prev) => [...prev.filter((item) => item._id !== id)]);
+      });
     } else {
       negativeCallback();
     }
   };
 
   const saveItem = (entityToSave: T) => {
+    const id = entityToSave._id;
     if (onSave) {
-      onSave(entityToSave).then(() => setEdit(null));
+      onSave(entityToSave).then((saved) => {
+        if (saved) {
+          message.success(`The ${singleName} has been saved`);
+          const isNewItem = NEW_ENTITY_TEMP_ID === id || !id;
+          const index = entities.findIndex((item) =>
+            isNewItem
+              ? NEW_ENTITY_TEMP_ID === item._id || !item._id
+              : item._id === saved._id,
+          );
+          if (index >= 0) {
+            const updated = [...entities];
+            updated[index] = saved;
+            setEntities(updated);
+          } else {
+            setEntities((prev) => [...prev, saved]);
+          }
+        } else {
+          message.error(`The ${singleName} has not been saved!`);
+        }
+
+        setEdit(null);
+      });
     } else {
       throw new Error(
         `Unable to save ${singleName}: the save function is undefined!`,
