@@ -72,6 +72,8 @@ const SortItems = <T,>({
       placeholder={placeholder}
       style={style}
       value={sortSelection.map((s) => String(s.field))}
+      allowClear={false}
+      removeIcon={null}
       onChange={(values, option) => {
         // Ignore onChange to prevent default deselect behavior
         // All logic handled in onSelect
@@ -80,7 +82,8 @@ const SortItems = <T,>({
         handleSortToggle(value as keyof T);
       }}
       onDeselect={(value: string) => {
-        // Prevent default deselect, handle via toggle instead
+        // This should never be called now since removeIcon is null
+        // But keep it just in case
         handleSortToggle(value as keyof T);
       }}
       options={sortableFields.map((field) => ({

@@ -129,6 +129,7 @@ const SourceEdit = ({
                 >
                   <Select
                     placeholder="Source type"
+                    onChange={onChange}
                     options={sourceTypes.map((t) => {
                       return { label: t, value: t };
                     })}
@@ -147,7 +148,11 @@ const SourceEdit = ({
                   style={{ margin: "0" }}
                   rules={[{ message: "Year is required", required: true }]}
                 >
-                  <InputNumber placeholder="Year" min={1990} />
+                  <InputNumber
+                    placeholder="Year"
+                    min={1990}
+                    onChange={onChange}
+                  />
                 </Form.Item>
               </Flex>
               <LinksEdit

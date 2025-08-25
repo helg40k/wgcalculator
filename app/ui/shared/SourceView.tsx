@@ -53,7 +53,12 @@ const SourceView = ({ entity }: { entity: Source }) => {
               <LinksView urls={entity.urls} />
             </div>
             {entity.description && (
-              <div className="ml-10" style={{ color: colorTextSecondary }}>
+              <div
+                className="ml-10 whitespace-pre-wrap"
+                style={{
+                  color: colorTextSecondary,
+                }}
+              >
                 {entity.description}
               </div>
             )}
