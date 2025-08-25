@@ -8,7 +8,7 @@ import {
 import { Badge, Button, message, Modal, theme, Tooltip } from "antd";
 import clsx from "clsx";
 
-import { Playable } from "@/app/lib/definitions";
+import { EntityStatus, Playable } from "@/app/lib/definitions";
 import { NEW_ENTITY_TEMP_ID } from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
 import {
   equalDeep,
@@ -230,6 +230,41 @@ const MultiLineView = <T extends Playable>({
     }
   };
 
+  const onChangeStatus = async (id: string, newStatus: EntityStatus) => {
+    if (!id || !newStatus || !onSave) {
+      return;
+    }
+
+    // Find the entity to update
+    const entityToUpdate = entities.find((ent) => ent._id === id);
+    if (!entityToUpdate || entityToUpdate.status === newStatus) {
+      return;
+    }
+
+    // Create updated entity with new status
+    const updatedEntity = { ...entityToUpdate, status: newStatus };
+
+    try {
+      // Save the entity with new status
+      const saved = await onSave(updatedEntity);
+      if (saved) {
+        message.success(`${singleName} status updated to "${newStatus}"`);
+
+        // Update the entity in the local collection
+        const index = entities.findIndex((item) => item._id === saved._id);
+        if (index >= 0) {
+          const updated = [...entities];
+          updated[index] = saved;
+          setEntities(updated);
+        }
+      } else {
+        message.error(`Failed to update ${singleName} status!`);
+      }
+    } catch (error) {
+      message.error(`Error updating ${singleName} status!`);
+    }
+  };
+
   const onClickCancel = () => {
     const id = edit;
     if (id) {
@@ -385,20 +420,35 @@ const MultiLineView = <T extends Playable>({
                   }
                   color="white"
                 >
-                  <LineStatus status={entity.status} show={true}>
+                  <LineStatus
+                    entityId={entity._id}
+                    status={entity.status}
+                    show={true}
+                    onChange={onChangeStatus}
+                  >
                     <ViewComponent key={entity._id} entity={entity} />
                   </LineStatus>
                 </Badge.Ribbon>
               )}
               {hovered !== entity._id && (
-                <LineStatus status={entity.status} show={false}>
+                <LineStatus
+                  entityId={entity._id}
+                  status={entity.status}
+                  show={false}
+                  onChange={onChangeStatus}
+                >
                   <ViewComponent key={entity._id} entity={entity} />
                 </LineStatus>
               )}
             </>
           )}
           {edit && edit !== entity._id && (
-            <LineStatus status={entity.status} show={false}>
+            <LineStatus
+              entityId={entity._id}
+              status={entity.status}
+              show={false}
+              onChange={onChangeStatus}
+            >
               <ViewComponent key={entity._id} entity={entity} />
             </LineStatus>
           )}
@@ -425,7 +475,11 @@ const MultiLineView = <T extends Playable>({
               }
               color="lightGrey"
             >
-              <LineStatus status={entity.status}>
+              <LineStatus
+                entityId={entity._id}
+                status={entity.status}
+                onChange={onChangeStatus}
+              >
                 <EditComponent
                   key={entity._id}
                   entity={entity}
