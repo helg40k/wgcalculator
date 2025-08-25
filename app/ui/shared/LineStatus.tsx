@@ -12,6 +12,7 @@ interface LineStatusProps {
   children: React.ReactNode;
   entityId: string;
   status: EntityStatus;
+  editable: boolean;
   onChange?: (id: string, newStatus: EntityStatus) => Promise<void>;
   show?: boolean;
 }
@@ -20,6 +21,7 @@ const LineStatus: React.FC<LineStatusProps> = ({
   children,
   entityId,
   status,
+  editable,
   onChange,
   show,
 }) => {
@@ -63,6 +65,15 @@ const LineStatus: React.FC<LineStatusProps> = ({
     setOpen(false);
   };
 
+  const statusView = (
+    <span
+      className={clsx("font-mono text-xs", { "cursor-pointer": editable })}
+      style={style}
+    >
+      {status}
+    </span>
+  );
+
   return (
     <>
       <Badge.Ribbon
@@ -72,17 +83,20 @@ const LineStatus: React.FC<LineStatusProps> = ({
           { "border-gray-400": !isActive },
         )}
         text={
-          <Dropdown
-            menu={{ items: menuItems, onClick: handleMenuClick }}
-            open={open}
-            onOpenChange={setOpen}
-            trigger={["click"]}
-            placement="bottomLeft"
-          >
-            <span className="font-mono text-xs cursor-pointer" style={style}>
-              {status}
-            </span>
-          </Dropdown>
+          <>
+            {editable && (
+              <Dropdown
+                menu={{ items: menuItems, onClick: handleMenuClick }}
+                open={open}
+                onOpenChange={setOpen}
+                trigger={["click"]}
+                placement="bottomLeft"
+              >
+                {statusView}
+              </Dropdown>
+            )}
+            {!editable && statusView}
+          </>
         }
         color={bgColor}
         placement="start"

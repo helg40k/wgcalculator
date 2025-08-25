@@ -66,6 +66,7 @@ const MultiLineView = <T extends Playable>({
   const [hovered, setHovered] = useState<string | null>(null);
   const [filterText, setFilterText] = useState<string>("");
   const [sortSelection, setSortSelection] = useState<SortSelection<T>[]>([]);
+  const [editingStatus, setEditingStatus] = useState<EntityStatus | null>(null);
   const {
     token: {
       colorTextSecondary,
@@ -126,8 +127,28 @@ const MultiLineView = <T extends Playable>({
   const getEntitiesToSave = (id: string) => {
     const filteredEntities = entities.filter((ent) => id === ent._id);
     const oldEntity = filteredEntities[0] || {};
-    const newEntity = mergeDeep({}, oldEntity, values) as T;
+    let newEntity = mergeDeep({}, oldEntity, values) as T;
+
+    // Include editing status if it was changed during editing
+    if (edit === id && editingStatus !== null) {
+      newEntity = { ...newEntity, status: editingStatus } as T;
+    }
+
     return [oldEntity, newEntity];
+  };
+
+  // Get current status for display (either editing status or entity status)
+  const getCurrentStatus = (entity: T): EntityStatus => {
+    if (edit === entity._id && editingStatus !== null) {
+      return editingStatus;
+    }
+    return entity.status;
+  };
+
+  const resetEditingState = () => {
+    setEdit(null);
+    setEditingStatus(null);
+    setValues({});
   };
 
   const deleteItem = (id: string, negativeCallback: () => void) => {
@@ -164,7 +185,7 @@ const MultiLineView = <T extends Playable>({
           message.error(`The ${singleName} has not been saved!`);
         }
 
-        setEdit(null);
+        resetEditingState();
       });
     } else {
       throw new Error(
@@ -220,37 +241,47 @@ const MultiLineView = <T extends Playable>({
       const [oldEntity, newEntity] = getEntitiesToSave(id);
 
       if (NEW_ENTITY_TEMP_ID !== id && equalDeep(oldEntity, newEntity, false)) {
-        setEdit(null);
+        resetEditingState();
       } else {
         saveItem(newEntity);
       }
     } else {
-      setEdit(null);
+      resetEditingState();
       throw new Error(`Unable to save ${singleName}: the ID is lost!`);
     }
   };
 
   const onChangeStatus = async (id: string, newStatus: EntityStatus) => {
-    if (!id || !newStatus || !onSave) {
+    if (!id || !newStatus) {
       return;
     }
 
-    // Find the entity to update
-    const entityToUpdate = entities.find((ent) => ent._id === id);
-    if (!entityToUpdate || entityToUpdate.status === newStatus) {
+    // Find the entity
+    const entity = entities.find((ent) => ent._id === id);
+    if (!entity) {
       return;
     }
 
-    // Create updated entity with new status
-    const updatedEntity = { ...entityToUpdate, status: newStatus };
+    // If entity is currently being edited, just update local editing status
+    if (edit === id) {
+      if (entity.status !== newStatus) {
+        setEditingStatus(newStatus);
+        message.info(`Status will be saved when you save the ${singleName}`);
+      }
+      return;
+    }
+
+    // If not being edited, save status immediately
+    if (!onSave || entity.status === newStatus) {
+      return;
+    }
+
+    const updatedEntity = { ...entity, status: newStatus };
 
     try {
-      // Save the entity with new status
       const saved = await onSave(updatedEntity);
       if (saved) {
         message.success(`${singleName} status updated to "${newStatus}"`);
-
-        // Update the entity in the local collection
         const index = entities.findIndex((item) => item._id === saved._id);
         if (index >= 0) {
           const updated = [...entities];
@@ -272,7 +303,7 @@ const MultiLineView = <T extends Playable>({
         const [oldEntity, newEntity] = getEntitiesToSave(id);
 
         if (equalDeep(oldEntity, newEntity, false)) {
-          setEdit(null);
+          resetEditingState();
         } else if (
           NEW_ENTITY_TEMP_ID !== id &&
           oldEntity.systemId !== newEntity.systemId
@@ -303,21 +334,21 @@ const MultiLineView = <T extends Playable>({
             okText: "Ignore",
             onOk: () => {
               cleanNewItem(id);
-              setEdit(null);
+              resetEditingState();
             },
             title: "Ignore changes",
           });
         }
       } else {
         cleanNewItem(id);
-        setEdit(null);
+        resetEditingState();
       }
     } else {
       setEntities((prev) => [...prev.filter((item) => !!item._id)]);
       /* eslint-disable no-console */
       console.warn(`The current ${singleName} ID is lost!`);
       /* eslint-enable no-console */
-      setEdit(null);
+      resetEditingState();
     }
   };
 
@@ -422,7 +453,8 @@ const MultiLineView = <T extends Playable>({
                 >
                   <LineStatus
                     entityId={entity._id}
-                    status={entity.status}
+                    status={getCurrentStatus(entity)}
+                    editable={true}
                     show={true}
                     onChange={onChangeStatus}
                   >
@@ -433,7 +465,8 @@ const MultiLineView = <T extends Playable>({
               {hovered !== entity._id && (
                 <LineStatus
                   entityId={entity._id}
-                  status={entity.status}
+                  status={getCurrentStatus(entity)}
+                  editable={true}
                   show={false}
                   onChange={onChangeStatus}
                 >
@@ -445,7 +478,8 @@ const MultiLineView = <T extends Playable>({
           {edit && edit !== entity._id && (
             <LineStatus
               entityId={entity._id}
-              status={entity.status}
+              status={getCurrentStatus(entity)}
+              editable={false}
               show={false}
               onChange={onChangeStatus}
             >
@@ -477,7 +511,8 @@ const MultiLineView = <T extends Playable>({
             >
               <LineStatus
                 entityId={entity._id}
-                status={entity.status}
+                status={getCurrentStatus(entity)}
+                editable={NEW_ENTITY_TEMP_ID !== entity._id}
                 onChange={onChangeStatus}
               >
                 <EditComponent
