@@ -5,16 +5,7 @@ import {
   TrashIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import {
-  Badge,
-  Button,
-  Input,
-  message,
-  Modal,
-  Select,
-  theme,
-  Tooltip,
-} from "antd";
+import { Badge, Button, message, Modal, theme, Tooltip } from "antd";
 import clsx from "clsx";
 
 import { Playable } from "@/app/lib/definitions";
@@ -25,18 +16,13 @@ import {
   mergeDeep,
   ToolbarPosition,
 } from "@/app/ui/shared";
+import FilterItems from "@/app/ui/shared/FilterItems";
+import SortItems, {
+  SortableField,
+  SortSelection,
+} from "@/app/ui/shared/SortItems";
 
 const hoverButtonStyle = { height: "26px", margin: "4px", padding: "4px" };
-
-interface SortableField<T> {
-  key: keyof T;
-  label: string;
-}
-
-interface SortSelection<T> {
-  field: keyof T;
-  direction: "asc" | "desc";
-}
 
 interface MultiLineViewProps<T extends Playable = Playable> {
   singleName: string;
@@ -310,39 +296,6 @@ const MultiLineView = <T extends Playable>({
     onClickEdit(newEntity._id);
   };
 
-  // Handle sort field toggle: none -> asc -> desc -> none
-  const handleSortToggle = (fieldKey: keyof T) => {
-    setSortSelection((prev) => {
-      const existingIndex = prev.findIndex((s) => s.field === fieldKey);
-
-      if (existingIndex === -1) {
-        // Field not selected, add as asc
-        return [...prev, { direction: "asc", field: fieldKey }];
-      } else {
-        const existing = prev[existingIndex];
-        if (existing.direction === "asc") {
-          // Change to desc
-          const updated = [...prev];
-          updated[existingIndex] = { direction: "desc", field: fieldKey };
-          return updated;
-        } else {
-          // Remove field (desc -> none)
-          return prev.filter((s) => s.field !== fieldKey);
-        }
-      }
-    });
-  };
-
-  // Get display label for sort field
-  const getSortFieldDisplay = (fieldKey: keyof T): string => {
-    const sortItem = sortSelection.find((s) => s.field === fieldKey);
-    const fieldConfig = sortableFields.find((f) => f.key === fieldKey);
-    const baseLabel = fieldConfig?.label || String(fieldKey);
-
-    if (!sortItem) return baseLabel;
-    return `${baseLabel} ${sortItem.direction === "asc" ? "↑" : "↓"}`;
-  };
-
   const toolbar = (position: ToolbarPosition) => {
     return (
       <div
@@ -361,38 +314,17 @@ const MultiLineView = <T extends Playable>({
             </span>
           </div>
           <div className="flex items-center gap-2">
-            {filterableFields.length > 0 && (
-              <Input
-                placeholder={`Filter ${pluralNames}...`}
-                value={filterText}
-                onChange={(e) => setFilterText(e.target.value)}
-                style={{ width: 200 }}
-                allowClear
-              />
-            )}
-            {sortableFields.length > 0 && (
-              <Select
-                mode="multiple"
-                placeholder="Sort by..."
-                style={{ minWidth: 150 }}
-                value={sortSelection.map((s) => String(s.field))}
-                onChange={(vals: string[], option) => {
-                  // Ignore onChange to prevent default deselect behavior
-                  // All logic handled in onSelect
-                }}
-                onSelect={(value: string) => {
-                  handleSortToggle(value as keyof T);
-                }}
-                onDeselect={(value: string) => {
-                  // Prevent default deselect, handle via toggle instead
-                  handleSortToggle(value as keyof T);
-                }}
-                options={sortableFields.map((field) => ({
-                  label: getSortFieldDisplay(field.key),
-                  value: String(field.key),
-                }))}
-              />
-            )}
+            <SortItems
+              sortableFields={sortableFields}
+              sortSelection={sortSelection}
+              setSortSelection={setSortSelection}
+            />
+            <FilterItems
+              filterableFields={filterableFields}
+              filterText={filterText}
+              setFilterText={setFilterText}
+              placeholder={`Filter ${pluralNames}...`}
+            />
           </div>
         </div>
       </div>
