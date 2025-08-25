@@ -19,9 +19,9 @@ const updateDocumentById = async (
   /* A way to assign a default value to a variable if it is not defined. */
   const baseRefComputed = getFirestoreForApp();
   const payload = {
+    ...data,
     _isUpdated: true,
     _updatedAt: FieldValue.serverTimestamp(),
-    ...data,
   };
   if (!data._updatedBy) {
     payload._updatedBy = UPDATED_BY_CONSTANT;

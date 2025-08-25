@@ -28,7 +28,7 @@ interface MultiLineViewProps<T extends Playable = Playable> {
   setEntities: Dispatch<SetStateAction<T[]>>;
   edit?: React.ComponentType<{
     entity: T;
-    setValues: Dispatch<SetStateAction<any>>;
+    setValues: Dispatch<SetStateAction<Partial<T>>>;
     setValid: Dispatch<SetStateAction<boolean>>;
     setIsNew: Dispatch<SetStateAction<boolean>>;
   }>;
@@ -49,7 +49,7 @@ const MultiLineView = <T extends Playable>({
   onSave,
   onDelete,
 }: MultiLineViewProps<T>) => {
-  const [values, setValues] = useState({});
+  const [values, setValues] = useState<Partial<T>>({});
   const [edit, setEdit] = useState<string | null>(null);
   const [isValid, setIsValid] = useState<boolean>(true);
   const [isNew, setIsNew] = useState<boolean>(false);

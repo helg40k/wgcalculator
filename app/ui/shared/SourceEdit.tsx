@@ -52,7 +52,8 @@ const SourceEdit = ({
     return `sourceEdit-${entity._id}`;
   }, [entity]);
 
-  const onChange = useCallback(() => {
+  // Unified function to combine form fields and URLs
+  const updateAllValues = useCallback(() => {
     setIsNew((prev) => (prev ? false : prev));
 
     const filteredUrls = urls
@@ -71,11 +72,15 @@ const SourceEdit = ({
     setValues(fieldValues);
   }, [form, setValues, setValid, setIsNew, urls, areUrlsValid]);
 
+  // Call updateAllValues when form fields change
+  const onChange = useCallback(() => {
+    updateAllValues();
+  }, [updateAllValues]);
+
+  // Call updateAllValues when URLs change
   useEffect(() => {
-    if (NEW_ENTITY_TEMP_ID !== entity._id) {
-      onChange();
-    }
-  }, [onChange, entity._id]);
+    updateAllValues();
+  }, [updateAllValues]);
 
   return (
     <Form
