@@ -17,6 +17,7 @@ import {
   ToolbarPosition,
 } from "@/app/ui/shared";
 import FilterItems from "@/app/ui/shared/FilterItems";
+import LineStatus from "@/app/ui/shared/LineStatus";
 import SortItems, {
   SortableField,
   SortSelection,
@@ -384,16 +385,22 @@ const MultiLineView = <T extends Playable>({
                   }
                   color="white"
                 >
-                  <ViewComponent key={entity._id} entity={entity} />
+                  <LineStatus status={entity.status} show={true}>
+                    <ViewComponent key={entity._id} entity={entity} />
+                  </LineStatus>
                 </Badge.Ribbon>
               )}
               {hovered !== entity._id && (
-                <ViewComponent key={entity._id} entity={entity} />
+                <LineStatus status={entity.status} show={false}>
+                  <ViewComponent key={entity._id} entity={entity} />
+                </LineStatus>
               )}
             </>
           )}
           {edit && edit !== entity._id && (
-            <ViewComponent key={entity._id} entity={entity} />
+            <LineStatus status={entity.status} show={false}>
+              <ViewComponent key={entity._id} entity={entity} />
+            </LineStatus>
           )}
           {edit === entity._id && EditComponent && (
             <Badge.Ribbon
@@ -418,13 +425,15 @@ const MultiLineView = <T extends Playable>({
               }
               color="lightGrey"
             >
-              <EditComponent
-                key={entity._id}
-                entity={entity}
-                setValues={setValues}
-                setValid={setIsValid}
-                setIsNew={setIsNew}
-              />
+              <LineStatus status={entity.status}>
+                <EditComponent
+                  key={entity._id}
+                  entity={entity}
+                  setValues={setValues}
+                  setValid={setIsValid}
+                  setIsNew={setIsNew}
+                />
+              </LineStatus>
             </Badge.Ribbon>
           )}
         </div>

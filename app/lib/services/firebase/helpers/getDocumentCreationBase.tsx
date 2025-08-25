@@ -1,5 +1,7 @@
 import { serverTimestamp } from "firebase/firestore";
 
+import { EntityStatusRegistry } from "@/app/lib/definitions";
+
 export const NEW_ENTITY_TEMP_ID = "new";
 
 const getDocumentCreationBase = (_id: string | number) => {
@@ -9,6 +11,7 @@ const getDocumentCreationBase = (_id: string | number) => {
     _id,
     _isUpdated: false,
     _updatedAt: now,
+    status: EntityStatusRegistry.ACTIVE,
   };
 };
 

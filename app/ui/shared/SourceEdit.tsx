@@ -12,7 +12,6 @@ import { Flex, Form, Input, InputNumber, Select, theme } from "antd";
 
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { Source, sourceTypes } from "@/app/lib/definitions";
-import { NEW_ENTITY_TEMP_ID } from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
 import LinksEdit from "@/app/ui/shared/LinksEdit";
 import ReferenceCounter from "@/app/ui/shared/ReferenceCounter";
 
@@ -95,6 +94,7 @@ const SourceEdit = ({
       </Form.Item>
       <Flex justify="left" className="w-full items-start">
         <Flex vertical>
+          <div className="h-5"></div>
           <BookOpenIcon
             className="w-30"
             style={{ color: colorTextPlaceholder }}

@@ -7,6 +7,15 @@ export const CollectionRegistry = {
 type CollectionName =
   (typeof CollectionRegistry)[keyof typeof CollectionRegistry];
 
+export const EntityStatusRegistry = {
+  ACTIVE: "active",
+  DISABLED: "disabled",
+} as const;
+export const entityStatuses = Object.values(EntityStatusRegistry) as Array<
+  (typeof EntityStatusRegistry)[keyof typeof EntityStatusRegistry]
+>;
+export type EntityStatus = (typeof entityStatuses)[number];
+
 export const sourceTypes = [
   "rulebook",
   "supplement",
@@ -28,6 +37,7 @@ export interface Entity {
   _updatedBy: string;
   _isUpdated: boolean;
   name: string;
+  status: EntityStatus;
 }
 
 export interface GameSystem extends Entity {
