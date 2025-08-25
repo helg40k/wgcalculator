@@ -5,7 +5,16 @@ import {
   TrashIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { Badge, Button, message, Modal, theme, Tooltip } from "antd";
+import {
+  Badge,
+  Button,
+  Input,
+  message,
+  Modal,
+  Select,
+  theme,
+  Tooltip,
+} from "antd";
 import clsx from "clsx";
 
 import { Playable } from "@/app/lib/definitions";
@@ -18,6 +27,16 @@ import {
 } from "@/app/ui/shared";
 
 const hoverButtonStyle = { height: "26px", margin: "4px", padding: "4px" };
+
+interface SortableField<T> {
+  key: keyof T;
+  label: string;
+}
+
+interface SortSelection<T> {
+  field: keyof T;
+  direction: "asc" | "desc";
+}
 
 interface MultiLineViewProps<T extends Playable = Playable> {
   singleName: string;
@@ -35,6 +54,8 @@ interface MultiLineViewProps<T extends Playable = Playable> {
   view: React.ComponentType<{ entity: T }>;
   onSave?: (entity: T) => Promise<T | null>;
   onDelete?: (id: string) => Promise<void>;
+  filterableFields?: (keyof T)[];
+  sortableFields?: SortableField<T>[];
 }
 
 const MultiLineView = <T extends Playable>({
@@ -48,12 +69,16 @@ const MultiLineView = <T extends Playable>({
   view: ViewComponent,
   onSave,
   onDelete,
+  filterableFields = [],
+  sortableFields = [],
 }: MultiLineViewProps<T>) => {
   const [values, setValues] = useState<Partial<T>>({});
   const [edit, setEdit] = useState<string | null>(null);
   const [isValid, setIsValid] = useState<boolean>(true);
   const [isNew, setIsNew] = useState<boolean>(false);
   const [hovered, setHovered] = useState<string | null>(null);
+  const [filterText, setFilterText] = useState<string>("");
+  const [sortSelection, setSortSelection] = useState<SortSelection<T>[]>([]);
   const {
     token: {
       colorTextSecondary,
@@ -63,11 +88,53 @@ const MultiLineView = <T extends Playable>({
     },
   } = theme.useToken();
 
+  // Filter and sort entities
+  const filteredAndSortedEntities = useMemo(() => {
+    let result = [...entities];
+
+    // Apply filtering
+    if (filterText && filterableFields.length > 0) {
+      const searchText = filterText.toLowerCase();
+      result = result.filter((entity) =>
+        filterableFields.some((field) => {
+          const value = entity[field];
+          return value && String(value).toLowerCase().includes(searchText);
+        }),
+      );
+    }
+
+    // Apply sorting
+    if (sortSelection.length > 0) {
+      result.sort((a, b) => {
+        for (const sort of sortSelection) {
+          const aValue = a[sort.field];
+          const bValue = b[sort.field];
+
+          let comparison = 0;
+          if (aValue < bValue) comparison = -1;
+          else if (aValue > bValue) comparison = 1;
+
+          if (comparison !== 0) {
+            return sort.direction === "desc" ? -comparison : comparison;
+          }
+        }
+        return 0;
+      });
+    }
+
+    return result;
+  }, [entities, filterText, filterableFields, sortSelection]);
+
   const itemsCountTotal = useMemo(() => {
-    return entities && 1 === entities.length
-      ? `1 ${singleName}`
-      : `${entities.length} ${pluralNames}`;
-  }, [entities]);
+    const total = filteredAndSortedEntities.length;
+    const originalTotal = entities.length;
+
+    if (total === originalTotal) {
+      return total === 1 ? `1 ${singleName}` : `${total} ${pluralNames}`;
+    } else {
+      return `${total} of ${originalTotal} ${pluralNames}`;
+    }
+  }, [filteredAndSortedEntities, entities, singleName, pluralNames]);
 
   const getEntitiesToSave = (id: string) => {
     const filteredEntities = entities.filter((ent) => id === ent._id);
@@ -243,6 +310,39 @@ const MultiLineView = <T extends Playable>({
     onClickEdit(newEntity._id);
   };
 
+  // Handle sort field toggle: none -> asc -> desc -> none
+  const handleSortToggle = (fieldKey: keyof T) => {
+    setSortSelection((prev) => {
+      const existingIndex = prev.findIndex((s) => s.field === fieldKey);
+
+      if (existingIndex === -1) {
+        // Field not selected, add as asc
+        return [...prev, { direction: "asc", field: fieldKey }];
+      } else {
+        const existing = prev[existingIndex];
+        if (existing.direction === "asc") {
+          // Change to desc
+          const updated = [...prev];
+          updated[existingIndex] = { direction: "desc", field: fieldKey };
+          return updated;
+        } else {
+          // Remove field (desc -> none)
+          return prev.filter((s) => s.field !== fieldKey);
+        }
+      }
+    });
+  };
+
+  // Get display label for sort field
+  const getSortFieldDisplay = (fieldKey: keyof T): string => {
+    const sortItem = sortSelection.find((s) => s.field === fieldKey);
+    const fieldConfig = sortableFields.find((f) => f.key === fieldKey);
+    const baseLabel = fieldConfig?.label || String(fieldKey);
+
+    if (!sortItem) return baseLabel;
+    return `${baseLabel} ${sortItem.direction === "asc" ? "↑" : "↓"}`;
+  };
+
   const toolbar = (position: ToolbarPosition) => {
     return (
       <div
@@ -260,7 +360,40 @@ const MultiLineView = <T extends Playable>({
               {itemsCountTotal} found
             </span>
           </div>
-          <span className="hidden">right block here!</span>
+          <div className="flex items-center gap-2">
+            {filterableFields.length > 0 && (
+              <Input
+                placeholder={`Filter ${pluralNames}...`}
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
+                style={{ width: 200 }}
+                allowClear
+              />
+            )}
+            {sortableFields.length > 0 && (
+              <Select
+                mode="multiple"
+                placeholder="Sort by..."
+                style={{ minWidth: 150 }}
+                value={sortSelection.map((s) => String(s.field))}
+                onChange={(vals: string[], option) => {
+                  // Ignore onChange to prevent default deselect behavior
+                  // All logic handled in onSelect
+                }}
+                onSelect={(value: string) => {
+                  handleSortToggle(value as keyof T);
+                }}
+                onDeselect={(value: string) => {
+                  // Prevent default deselect, handle via toggle instead
+                  handleSortToggle(value as keyof T);
+                }}
+                options={sortableFields.map((field) => ({
+                  label: getSortFieldDisplay(field.key),
+                  value: String(field.key),
+                }))}
+              />
+            )}
+          </div>
         </div>
       </div>
     );
@@ -271,7 +404,7 @@ const MultiLineView = <T extends Playable>({
       {(toolbarPosition === ToolbarPosition.UP ||
         singleToolbarUntil <= entities.length) &&
         toolbar(ToolbarPosition.UP)}
-      {entities?.map((entity) => (
+      {filteredAndSortedEntities?.map((entity) => (
         <div
           key={`multi-line-key-${entity._id}`}
           onMouseEnter={() => setHovered(entity._id)}
