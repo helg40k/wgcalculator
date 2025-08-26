@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useMemo, useState } from "react";
 import { notification } from "antd";
 import { usePathname } from "next/navigation";
