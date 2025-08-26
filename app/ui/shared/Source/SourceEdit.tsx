@@ -12,7 +12,7 @@ import { Flex, Form, Input, InputNumber, Select, theme } from "antd";
 
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { Source, sourceTypes } from "@/app/lib/definitions";
-import LinksEdit from "@/app/ui/shared/LinksEdit";
+import Links from "@/app/ui/shared/Links";
 import ReferenceCounter from "@/app/ui/shared/ReferenceCounter";
 
 const { TextArea } = Input;
@@ -155,7 +155,7 @@ const SourceEdit = ({
                   />
                 </Form.Item>
               </Flex>
-              <LinksEdit
+              <Links.Edit
                 formName={formName}
                 urls={entity.urls}
                 setUrls={setUrls}

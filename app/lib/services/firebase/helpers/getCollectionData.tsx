@@ -8,7 +8,7 @@ import {
 
 import collectionQuery from "@/app/lib/services/firebase/helpers/collectionQuery";
 
-type Props = {
+export type Props = {
   filters: Array<[string, WhereFilterOp, any]> | undefined;
   sort: [string, OrderByDirection] | undefined;
   limit: number | undefined;

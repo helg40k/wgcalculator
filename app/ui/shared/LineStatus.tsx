@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Badge, Dropdown, theme } from "antd";
+import { Badge, Dropdown, theme, Tooltip } from "antd";
 import clsx from "clsx";
+import { capitalize } from "lodash";
 
 import {
   EntityStatus,
@@ -79,12 +80,20 @@ const LineStatus: React.FC<LineStatusProps> = ({
   };
 
   const statusView = (
-    <span
-      className={clsx("font-mono text-xs", { "cursor-pointer": editable })}
-      style={style()}
+    <Tooltip
+      title={`${capitalize(status)} status`}
+      color="white"
+      styles={{ body: { color: colorTextSecondary } }}
+      mouseEnterDelay={1}
+      open={editable ? undefined : false}
     >
-      {status}
-    </span>
+      <span
+        className={clsx("font-mono text-xs", { "cursor-pointer": editable })}
+        style={style()}
+      >
+        {status}
+      </span>
+    </Tooltip>
   );
 
   return (

@@ -2,7 +2,7 @@ import { BookOpenIcon } from "@heroicons/react/24/outline";
 import { Flex, Row, theme, Typography } from "antd";
 
 import { Source } from "@/app/lib/definitions";
-import LinksView from "@/app/ui/shared/LinksView";
+import Links from "@/app/ui/shared/Links";
 import ReferenceCounter from "@/app/ui/shared/ReferenceCounter";
 
 const SourceView = ({ entity }: { entity: Source }) => {
@@ -50,7 +50,7 @@ const SourceView = ({ entity }: { entity: Source }) => {
                 <div className="ml-3">v{entity.version}</div>
                 <div className="ml-3">{entity.year}</div>
               </Flex>
-              <LinksView urls={entity.urls} />
+              <Links.View urls={entity.urls} />
             </div>
             {entity.description && (
               <div

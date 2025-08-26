@@ -1,7 +1,10 @@
 import firebase from "firebase/compat/app";
 
+// *** COMMON using types ***
+
 export const CollectionRegistry = {
   GameSystem: "systems",
+  Keyword: "keywords",
   Source: "sources",
 } as const;
 type CollectionName =
@@ -67,5 +70,9 @@ export interface Source extends Playable {
   type: SourceType;
   image?: string;
   urls?: string[];
+  description?: string;
+}
+
+export interface Keyword extends Playable {
   description?: string;
 }

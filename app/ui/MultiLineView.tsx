@@ -373,7 +373,10 @@ const MultiLineView = <T extends Playable>({
       >
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Button disabled={!!edit} onClick={() => onClickAdd(position)}>
+            <Button
+              disabled={!!edit || !EditComponent}
+              onClick={() => onClickAdd(position)}
+            >
               Add new
             </Button>
             <span style={{ color: colorTextSecondary }}>
@@ -430,6 +433,7 @@ const MultiLineView = <T extends Playable>({
                       >
                         <Button
                           style={hoverButtonStyle}
+                          disabled={!EditComponent}
                           onClick={() => onClickEdit(entity._id)}
                         >
                           <PencilSquareIcon className="w-4 text-black hover:text-blue-900" />
@@ -442,6 +446,7 @@ const MultiLineView = <T extends Playable>({
                       >
                         <Button
                           style={hoverButtonStyle}
+                          disabled={!EditComponent}
                           onClick={() => onClickDelete(entity._id, entity.name)}
                         >
                           <TrashIcon className="w-4 text-black hover:text-red-900" />
