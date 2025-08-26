@@ -27,20 +27,33 @@ const LineStatus: React.FC<LineStatusProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const {
-    token: { colorTextSecondary, colorTextTertiary },
+    token: { colorTextSecondary, colorTextTertiary, colorWarningBg },
   } = theme.useToken();
 
-  const isActive = status === EntityStatusRegistry.ACTIVE;
-  const isDisabled = status === EntityStatusRegistry.DISABLED;
-
-  if (show === false && isActive) {
+  if (show === false && status === EntityStatusRegistry.ACTIVE) {
     return <>{children}</>;
   }
 
-  const style = isDisabled
-    ? { color: colorTextSecondary }
-    : { color: colorTextTertiary };
-  const bgColor = isActive ? "white" : "lightGrey";
+  const style = () => {
+    switch (status) {
+      case EntityStatusRegistry.OBSOLETE:
+        return { color: colorTextSecondary };
+      case EntityStatusRegistry.DISABLED:
+        return { color: colorTextTertiary };
+      default:
+        return { color: colorTextTertiary };
+    }
+  };
+  const bgColor = () => {
+    switch (status) {
+      case EntityStatusRegistry.OBSOLETE:
+        return "lightGrey";
+      case EntityStatusRegistry.DISABLED:
+        return colorWarningBg;
+      default:
+        return "white";
+    }
+  };
 
   // Create sorted menu items for status selection
   const sortedStatuses = [...entityStatuses].sort();
@@ -68,7 +81,7 @@ const LineStatus: React.FC<LineStatusProps> = ({
   const statusView = (
     <span
       className={clsx("font-mono text-xs", { "cursor-pointer": editable })}
-      style={style}
+      style={style()}
     >
       {status}
     </span>
@@ -79,8 +92,8 @@ const LineStatus: React.FC<LineStatusProps> = ({
       <Badge.Ribbon
         className={clsx(
           "border-1",
-          { "border-gray-300": isActive },
-          { "border-gray-400": !isActive },
+          { "border-gray-300": status !== EntityStatusRegistry.OBSOLETE },
+          { "border-gray-400": status === EntityStatusRegistry.OBSOLETE },
         )}
         text={
           <>
@@ -98,7 +111,7 @@ const LineStatus: React.FC<LineStatusProps> = ({
             {!editable && statusView}
           </>
         }
-        color={bgColor}
+        color={bgColor()}
         placement="start"
       >
         {children}

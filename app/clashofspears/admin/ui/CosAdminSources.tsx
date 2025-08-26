@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Spin } from "antd";
 
+import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { CollectionRegistry, Source } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
 import MultiLineView from "@/app/ui/MultiLineView";
@@ -10,11 +11,16 @@ import SourceView from "@/app/ui/shared/SourceView";
 const collectionName = CollectionRegistry.Source;
 
 const CosAdminSources = () => {
+  const gameSystem = useContext(GameSystemContext);
   const { deleteEntity, loadEntities, loading, saveEntity } = useEntities();
   const [sources, setSources] = useState<Source[]>([]);
 
   useEffect(() => {
-    loadEntities<Source>(collectionName).then((value) => setSources(value));
+    loadEntities<Source>(
+      collectionName,
+      [["systemId", "==", gameSystem?._id || ""]],
+      ["year", "desc"],
+    ).then((value) => setSources(value));
   }, []);
 
   const onSave = async (source: Source): Promise<Source | null> => {

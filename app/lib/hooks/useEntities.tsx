@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { notification } from "antd";
+import { OrderByDirection, WhereFilterOp } from "firebase/firestore";
 
 import { Entity } from "@/app/lib/definitions";
 import useUser from "@/app/lib/hooks/useUser";
@@ -11,7 +12,12 @@ import updateDocument from "@/app/lib/services/firebase/helpers/updateDocument";
 
 import "@ant-design/v5-patch-for-react-19";
 
-const options = {
+const options: {
+  filters: [string, WhereFilterOp, any][] | undefined;
+  limit: undefined;
+  pagination: undefined;
+  sort: [string, OrderByDirection] | undefined;
+} = {
   filters: undefined,
   limit: undefined,
   pagination: undefined,
@@ -79,11 +85,20 @@ const useEntities = () => {
 
   const loadEntities = async <T extends Entity>(
     dbRef: string | null | undefined,
+    filters: [string, WhereFilterOp, any][] | undefined,
+    sort: [string, OrderByDirection] | undefined,
   ): Promise<T[]> => {
     if (!dbRef) {
       return [];
     }
     const type = dbRef as string;
+
+    if (filters) {
+      options.filters = filters;
+    }
+    if (sort) {
+      options.sort = sort;
+    }
 
     try {
       setLoading(true);

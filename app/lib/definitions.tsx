@@ -10,6 +10,7 @@ type CollectionName =
 export const EntityStatusRegistry = {
   ACTIVE: "active",
   DISABLED: "disabled",
+  OBSOLETE: "obsolete",
 } as const;
 export const entityStatuses = Object.values(EntityStatusRegistry) as Array<
   (typeof EntityStatusRegistry)[keyof typeof EntityStatusRegistry]
