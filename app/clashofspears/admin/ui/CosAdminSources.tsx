@@ -4,7 +4,7 @@ import { Spin } from "antd";
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { CollectionRegistry, Source } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
-import MultiLineView from "@/app/ui/MultiLineView";
+import CorsMultiLineView from "@/app/ui/CorsMultiLineView";
 import SourceUI from "@/app/ui/shared/Source";
 
 const collectionName = CollectionRegistry.Source;
@@ -34,7 +34,7 @@ const CosAdminSources = () => {
 
   return (
     <Spin spinning={loading} size="large">
-      <MultiLineView
+      <CorsMultiLineView
         singleName={"source"}
         pluralNames={"sources"}
         singleToolbarUntil={5}

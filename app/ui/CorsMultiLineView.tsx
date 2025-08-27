@@ -45,7 +45,7 @@ interface MultiLineViewProps<T extends Playable = Playable> {
   sortableFields?: SortableField<T>[];
 }
 
-const MultiLineView = <T extends Playable>({
+const CorsMultiLineView = <T extends Playable>({
   singleName = "item",
   pluralNames = "items",
   toolbarPosition = ToolbarPosition.UP,
@@ -539,4 +539,4 @@ const MultiLineView = <T extends Playable>({
   );
 };
 
-export default MultiLineView;
+export default CorsMultiLineView;
