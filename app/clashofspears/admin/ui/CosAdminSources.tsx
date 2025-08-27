@@ -34,7 +34,7 @@ const CosAdminSources = () => {
 
   return (
     <Spin spinning={loading} size="large">
-      <CorsMultiLineView
+      <CorsMultiLineView.List
         singleName={"source"}
         pluralNames={"sources"}
         singleToolbarUntil={5}

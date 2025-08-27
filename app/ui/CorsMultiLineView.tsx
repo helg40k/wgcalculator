@@ -25,13 +25,22 @@ import SortItems, {
 
 const hoverButtonStyle = { height: "26px", margin: "4px", padding: "4px" };
 
-interface MultiLineViewProps<T extends Playable = Playable> {
+// Base props shared by both List and Table
+interface BaseMultiLineViewProps<T extends Playable = Playable> {
   singleName: string;
   pluralNames: string;
   toolbarPosition?: ToolbarPosition;
   singleToolbarUntil?: number;
   entities: T[];
   setEntities: Dispatch<SetStateAction<T[]>>;
+  onSave?: (entity: T) => Promise<T | null>;
+  onDelete?: (id: string) => Promise<void>;
+  filterableFields?: (keyof T)[];
+}
+
+// Props specific to List variant
+interface ListProps<T extends Playable = Playable>
+  extends BaseMultiLineViewProps<T> {
   edit?: React.ComponentType<{
     entity: T;
     setValues: Dispatch<SetStateAction<Partial<T>>>;
@@ -39,26 +48,28 @@ interface MultiLineViewProps<T extends Playable = Playable> {
     setIsNew: Dispatch<SetStateAction<boolean>>;
   }>;
   view: React.ComponentType<{ entity: T }>;
-  onSave?: (entity: T) => Promise<T | null>;
-  onDelete?: (id: string) => Promise<void>;
-  filterableFields?: (keyof T)[];
   sortableFields?: SortableField<T>[];
 }
 
-const CorsMultiLineView = <T extends Playable>({
+// Props specific to Table variant
+interface TableProps<T extends Playable = Playable>
+  extends BaseMultiLineViewProps<T> {
+  table: any[]; // Placeholder for now
+}
+
+// Shared logic hook
+const useMultiLineViewLogic = <T extends Playable>({
   singleName = "item",
   pluralNames = "items",
-  toolbarPosition = ToolbarPosition.UP,
-  singleToolbarUntil = 20,
   entities,
   setEntities,
-  edit: EditComponent,
-  view: ViewComponent,
   onSave,
   onDelete,
   filterableFields = [],
   sortableFields = [],
-}: MultiLineViewProps<T>) => {
+}: BaseMultiLineViewProps<T> & {
+  sortableFields?: SortableField<T>[];
+}) => {
   const [values, setValues] = useState<Partial<T>>({});
   const [edit, setEdit] = useState<string | null>(null);
   const [isValid, setIsValid] = useState<boolean>(true);
@@ -291,7 +302,7 @@ const CorsMultiLineView = <T extends Playable>({
       } else {
         message.error(`Failed to update ${singleName} status!`);
       }
-    } catch (error) {
+    } catch {
       message.error(`Error updating ${singleName} status!`);
     }
   };
@@ -363,7 +374,10 @@ const CorsMultiLineView = <T extends Playable>({
     onClickEdit(newEntity._id);
   };
 
-  const toolbar = (position: ToolbarPosition) => {
+  const createToolbar = (
+    position: ToolbarPosition,
+    hasEditComponent: boolean = false,
+  ) => {
     return (
       <div
         className={clsx(
@@ -374,7 +388,7 @@ const CorsMultiLineView = <T extends Playable>({
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Button
-              disabled={!!edit || !EditComponent}
+              disabled={!!edit || !hasEditComponent}
               onClick={() => onClickAdd(position)}
             >
               Add new
@@ -385,7 +399,7 @@ const CorsMultiLineView = <T extends Playable>({
           </div>
           <div className="flex items-center gap-2">
             <SortItems
-              sortableFields={sortableFields}
+              sortableFields={sortableFields || []}
               sortSelection={sortSelection}
               setSortSelection={setSortSelection}
             />
@@ -401,11 +415,100 @@ const CorsMultiLineView = <T extends Playable>({
     );
   };
 
+  return {
+    // Theme
+    borderRadiusLG,
+    // Methods
+    cleanNewItem,
+    colorBgContainer,
+    colorBgTextHover,
+    colorTextSecondary,
+    createToolbar,
+    deleteItem,
+    // State
+    edit,
+    editingStatus,
+    filterText,
+    // Computed values
+    filteredAndSortedEntities,
+    getCurrentStatus,
+    getEntitiesToSave,
+    hovered,
+    isNew,
+    isValid,
+    itemsCountTotal,
+    onChangeStatus,
+    onClickAdd,
+    onClickCancel,
+    onClickDelete,
+    onClickEdit,
+    onClickSave,
+    resetEditingState,
+    saveItem,
+    setEdit,
+    setEditingStatus,
+    setFilterText,
+    setHovered,
+    setIsNew,
+    setIsValid,
+    setSortSelection,
+    setValues,
+    sortSelection,
+    values,
+  };
+};
+
+// List Component
+const CorsMultiLineViewList = <T extends Playable>({
+  singleName = "item",
+  pluralNames = "items",
+  toolbarPosition = ToolbarPosition.UP,
+  singleToolbarUntil = 20,
+  entities,
+  setEntities,
+  edit: EditComponent,
+  view: ViewComponent,
+  onSave,
+  onDelete,
+  filterableFields = [],
+  sortableFields = [],
+}: ListProps<T>) => {
+  const {
+    borderRadiusLG,
+    colorBgContainer,
+    colorBgTextHover,
+    createToolbar,
+    edit,
+    filteredAndSortedEntities,
+    getCurrentStatus,
+    hovered,
+    isNew,
+    isValid,
+    onChangeStatus,
+    onClickCancel,
+    onClickDelete,
+    onClickEdit,
+    onClickSave,
+    setHovered,
+    setIsNew,
+    setIsValid,
+    setValues,
+  } = useMultiLineViewLogic({
+    entities,
+    filterableFields,
+    onDelete,
+    onSave,
+    pluralNames,
+    setEntities,
+    singleName,
+    sortableFields,
+  });
+
   return (
     <>
       {(toolbarPosition === ToolbarPosition.UP ||
         singleToolbarUntil <= entities.length) &&
-        toolbar(ToolbarPosition.UP)}
+        createToolbar(ToolbarPosition.UP, !!EditComponent)}
       {filteredAndSortedEntities?.map((entity) => (
         <div
           key={`multi-line-key-${entity._id}`}
@@ -534,9 +637,21 @@ const CorsMultiLineView = <T extends Playable>({
       ))}
       {(toolbarPosition === ToolbarPosition.DOWN ||
         singleToolbarUntil <= entities.length) &&
-        toolbar(ToolbarPosition.DOWN)}
+        createToolbar(ToolbarPosition.DOWN, !!EditComponent)}
     </>
   );
+};
+
+// Table Component (placeholder)
+const CorsMultiLineViewTable = <T extends Playable>(props: TableProps<T>) => {
+  const { pluralNames } = props;
+  return <div>TEST - Table view for {pluralNames}</div>;
+};
+
+// Main component object with variants
+const CorsMultiLineView = {
+  List: CorsMultiLineViewList,
+  Table: CorsMultiLineViewTable,
 };
 
 export default CorsMultiLineView;

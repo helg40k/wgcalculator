@@ -5,7 +5,7 @@ import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { CollectionRegistry, Keyword } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
 import CorsMultiLineView from "@/app/ui/CorsMultiLineView";
-import KeywordUI from "@/app/ui/shared/Keyword";
+// import KeywordUI from "@/app/ui/shared/Keyword";
 
 const collectionName = CollectionRegistry.Keyword;
 
@@ -31,18 +31,16 @@ const CosAdminKeywords = () => {
 
   return (
     <Spin spinning={loading} size="large">
-      <CorsMultiLineView
+      <CorsMultiLineView.Table
         singleName={"keyword"}
         pluralNames={"keywords"}
         singleToolbarUntil={5}
         entities={keywords}
         setEntities={setKeywords}
-        view={KeywordUI.View}
-        edit={KeywordUI.Edit}
+        table={[]}
         onSave={onSave}
         onDelete={onDelete}
         filterableFields={["name", "description"]}
-        sortableFields={[{ key: "name", label: "Name" }]}
       />
     </Spin>
   );
