@@ -24,7 +24,125 @@ import SortItems, {
   SortSelection,
 } from "@/app/ui/shared/SortItems";
 
-const hoverButtonStyle = { height: "26px", margin: "4px", padding: "4px" };
+const hoverButtonStyle = {
+  height: "26px",
+  margin: "4px",
+  padding: "4px",
+  width: "26px",
+};
+
+// Reusable ActionButtons component for Edit/Delete actions
+interface ActionButtonsProps {
+  entityId: string;
+  entityName: string;
+  singleName: string;
+  edit: boolean; // whether edit functionality is available
+  isEditing: boolean; // whether any row is currently being edited
+  onClickEdit: (id: string) => void;
+  onClickDelete: (id: string, name: string) => void;
+}
+
+const ActionButtons = ({
+  entityId,
+  entityName,
+  singleName,
+  edit,
+  isEditing,
+  onClickEdit,
+  onClickDelete,
+}: ActionButtonsProps) => {
+  const {
+    token: { colorTextDisabled },
+  } = theme.useToken();
+
+  const disabled = !edit || isEditing;
+  const style = disabled ? { color: colorTextDisabled } : undefined;
+  return (
+    <div>
+      <Tooltip
+        title={`Edit ${singleName}`}
+        color="darkBlue"
+        mouseEnterDelay={1}
+      >
+        <Button
+          style={hoverButtonStyle}
+          disabled={disabled}
+          onClick={() => onClickEdit(entityId)}
+          icon={
+            <span className="text-black hover:text-blue-900 transition-colors">
+              <PencilSquareIcon className="w-4" style={style} />
+            </span>
+          }
+        />
+      </Tooltip>
+      <Tooltip
+        title={`Delete ${singleName}`}
+        color="darkRed"
+        mouseEnterDelay={1}
+      >
+        <Button
+          style={hoverButtonStyle}
+          disabled={disabled}
+          onClick={() => onClickDelete(entityId, entityName)}
+          icon={
+            <span className="text-black hover:text-red-900 transition-colors">
+              <TrashIcon className="w-4" style={style} />
+            </span>
+          }
+        />
+      </Tooltip>
+    </div>
+  );
+};
+
+// Reusable EditModeButtons component for editing actions
+interface EditModeButtonsProps {
+  onClickSave: () => void;
+  onClickCancel: () => void;
+  isValid: boolean;
+  isNew: boolean;
+}
+
+const EditModeButtons = ({
+  onClickSave,
+  onClickCancel,
+  isValid,
+  isNew,
+}: EditModeButtonsProps) => {
+  const {
+    token: { colorTextDisabled },
+  } = theme.useToken();
+
+  const disabled = !isValid || isNew;
+  const style = disabled ? { color: colorTextDisabled } : undefined;
+  return (
+    <div>
+      <Tooltip title="Save" color="darkBlue" mouseEnterDelay={1}>
+        <Button
+          style={hoverButtonStyle}
+          onClick={onClickSave}
+          disabled={disabled}
+          icon={
+            <span className="text-black hover:text-blue-900 transition-colors">
+              <CheckIcon className="w-4" style={style} />
+            </span>
+          }
+        />
+      </Tooltip>
+      <Tooltip title="Cancel" color="darkRed" mouseEnterDelay={1}>
+        <Button
+          style={hoverButtonStyle}
+          onClick={onClickCancel}
+          icon={
+            <span className="text-black hover:text-red-900 transition-colors">
+              <XMarkIcon className="w-4" />
+            </span>
+          }
+        />
+      </Tooltip>
+    </div>
+  );
+};
 
 // Base props shared by both List and Table
 interface BaseMultiLineViewProps<T extends Playable = Playable> {
@@ -401,6 +519,7 @@ const useMultiLineViewLogic = <T extends Playable>({
     position: ToolbarPosition,
     hasEditComponent: boolean = false,
   ) => {
+    const disabled = !!edit || !hasEditComponent;
     return (
       <div
         className={clsx(
@@ -410,10 +529,7 @@ const useMultiLineViewLogic = <T extends Playable>({
       >
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Button
-              disabled={!!edit || !hasEditComponent}
-              onClick={() => onClickAdd(position)}
-            >
+            <Button disabled={disabled} onClick={() => onClickAdd(position)}>
               Add new
             </Button>
             <span style={{ color: colorTextSecondary }}>
@@ -422,11 +538,50 @@ const useMultiLineViewLogic = <T extends Playable>({
           </div>
           <div className="flex items-center gap-2">
             <SortItems
+              disabled={disabled}
               sortableFields={sortableFields || []}
               sortSelection={sortSelection}
               setSortSelection={setSortSelection}
             />
             <FilterItems
+              disabled={disabled}
+              filterableFields={filterableFields}
+              filterText={filterText}
+              setFilterText={setFilterText}
+              placeholder={`Filter ${pluralNames}...`}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Toolbar specifically for table view (without SortItems)
+  const createTableToolbar = (
+    position: ToolbarPosition,
+    hasEditComponent: boolean = false,
+  ) => {
+    const disabled = !!edit || !hasEditComponent;
+    return (
+      <div
+        className={clsx(
+          { "mb-3": position === ToolbarPosition.UP },
+          { "mt-3": position === ToolbarPosition.DOWN },
+        )}
+      >
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Button disabled={disabled} onClick={() => onClickAdd(position)}>
+              Add new
+            </Button>
+            <span style={{ color: colorTextSecondary }}>
+              {itemsCountTotal} found
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Only FilterItems for table - sorting handled by table itself */}
+            <FilterItems
+              disabled={disabled}
               filterableFields={filterableFields}
               filterText={filterText}
               setFilterText={setFilterText}
@@ -446,6 +601,7 @@ const useMultiLineViewLogic = <T extends Playable>({
     colorBgContainer,
     colorBgTextHover,
     colorTextSecondary,
+    createTableToolbar,
     createToolbar,
     deleteItem,
     // State
@@ -535,7 +691,7 @@ const CorsMultiLineViewList = <T extends Playable>({
       {filteredAndSortedEntities?.map((entity) => (
         <div
           key={`multi-line-key-${entity._id}`}
-          onMouseEnter={() => setHovered(entity._id)}
+          onMouseEnter={() => !edit && setHovered(entity._id)}
           onMouseLeave={() => setHovered(null)}
           style={{
             backgroundColor:
@@ -547,38 +703,19 @@ const CorsMultiLineViewList = <T extends Playable>({
         >
           {(!edit || !EditComponent) && (
             <>
-              {hovered === entity._id && (
+              {hovered === entity._id && !edit && (
                 <Badge.Ribbon
                   className="border-1 border-gray-300"
                   text={
-                    <>
-                      <Tooltip
-                        title={`Edit ${singleName}`}
-                        color="darkBlue"
-                        mouseEnterDelay={1}
-                      >
-                        <Button
-                          style={hoverButtonStyle}
-                          disabled={!EditComponent}
-                          onClick={() => onClickEdit(entity._id)}
-                        >
-                          <PencilSquareIcon className="w-4 text-black hover:text-blue-900" />
-                        </Button>
-                      </Tooltip>
-                      <Tooltip
-                        title={`Delete ${singleName}`}
-                        color="darkRed"
-                        mouseEnterDelay={1}
-                      >
-                        <Button
-                          style={hoverButtonStyle}
-                          disabled={!EditComponent}
-                          onClick={() => onClickDelete(entity._id, entity.name)}
-                        >
-                          <TrashIcon className="w-4 text-black hover:text-red-900" />
-                        </Button>
-                      </Tooltip>
-                    </>
+                    <ActionButtons
+                      entityId={entity._id}
+                      entityName={entity.name}
+                      singleName={singleName}
+                      edit={!!EditComponent}
+                      isEditing={!!edit}
+                      onClickEdit={onClickEdit}
+                      onClickDelete={onClickDelete}
+                    />
                   }
                   color="white"
                 >
@@ -621,22 +758,12 @@ const CorsMultiLineViewList = <T extends Playable>({
             <Badge.Ribbon
               className="border-1 border-gray-400"
               text={
-                <>
-                  <Tooltip title="Save" color="darkBlue" mouseEnterDelay={1}>
-                    <Button
-                      style={hoverButtonStyle}
-                      onClick={onClickSave}
-                      disabled={!isValid || isNew}
-                    >
-                      <CheckIcon className="w-4 text-black hover:text-blue-900" />
-                    </Button>
-                  </Tooltip>
-                  <Tooltip title="Cancel" color="darkRed" mouseEnterDelay={1}>
-                    <Button style={hoverButtonStyle} onClick={onClickCancel}>
-                      <XMarkIcon className="w-4 text-black hover:text-red-900" />
-                    </Button>
-                  </Tooltip>
-                </>
+                <EditModeButtons
+                  onClickSave={onClickSave}
+                  onClickCancel={onClickCancel}
+                  isValid={isValid}
+                  isNew={isNew}
+                />
               }
               color="lightGrey"
             >
@@ -681,7 +808,7 @@ const CorsMultiLineViewTable = <T extends Playable>({
   const {
     borderRadiusLG,
     colorBgContainer,
-    createToolbar,
+    createTableToolbar,
     edit,
     editingStatus,
     filteredAndSortedEntities,
@@ -697,6 +824,7 @@ const CorsMultiLineViewTable = <T extends Playable>({
     setHovered,
     setIsNew,
     setIsValid,
+    setSortSelection,
     setValues,
     values,
   } = useMultiLineViewLogic({
@@ -711,6 +839,10 @@ const CorsMultiLineViewTable = <T extends Playable>({
       .filter((col) => col.sortable)
       .map((col) => ({ key: col.field as keyof T, label: col.header })),
   });
+
+  const isEditable = useMemo(() => {
+    return table.some((col) => !!col.edit);
+  }, [table]);
 
   // Convert table config to Ant Design columns
   const columns: ColumnsType<T> = table.map((colConfig) => ({
@@ -740,6 +872,7 @@ const CorsMultiLineViewTable = <T extends Playable>({
         <ViewComponent entity={record} field={colConfig.field} value={value} />
       );
     },
+    showSorterTooltip: false,
     sorter: !!colConfig.sortable,
     title: colConfig.header,
   }));
@@ -749,71 +882,66 @@ const CorsMultiLineViewTable = <T extends Playable>({
     key: "actions",
     render: (_, record: T) => {
       const isEditing = edit === record._id;
-      const isHovered = hovered === record._id;
 
       if (isEditing) {
         return (
-          <div className="flex gap-1">
-            <Tooltip title="Save" color="darkBlue" mouseEnterDelay={1}>
-              <Button
-                size="small"
-                onClick={onClickSave}
-                disabled={!isValid || isNew}
-                icon={<CheckIcon className="w-4" />}
-              />
-            </Tooltip>
-            <Tooltip title="Cancel" color="darkRed" mouseEnterDelay={1}>
-              <Button
-                size="small"
-                onClick={onClickCancel}
-                icon={<XMarkIcon className="w-4" />}
-              />
-            </Tooltip>
-          </div>
+          <EditModeButtons
+            onClickSave={onClickSave}
+            onClickCancel={onClickCancel}
+            isValid={isValid}
+            isNew={isNew}
+          />
         );
       }
 
       return (
-        <div className="flex gap-1" style={{ opacity: isHovered ? 1 : 0 }}>
-          <Tooltip
-            title={`Edit ${singleName}`}
-            color="darkBlue"
-            mouseEnterDelay={1}
-          >
-            <Button
-              size="small"
-              onClick={() => onClickEdit(record._id)}
-              icon={<PencilSquareIcon className="w-4" />}
-            />
-          </Tooltip>
-          <Tooltip
-            title={`Delete ${singleName}`}
-            color="darkRed"
-            mouseEnterDelay={1}
-          >
-            <Button
-              size="small"
-              onClick={() => onClickDelete(record._id, record.name)}
-              icon={<TrashIcon className="w-4" />}
-            />
-          </Tooltip>
-        </div>
+        <ActionButtons
+          entityId={record._id}
+          entityName={record.name}
+          singleName={singleName}
+          edit={isEditable}
+          isEditing={!!edit}
+          onClickEdit={onClickEdit}
+          onClickDelete={onClickDelete}
+        />
       );
     },
-    title: "Actions",
-    width: 120,
+    title: <div className="ml-1">Actions</div>,
+    width: 90,
   };
 
   const finalColumns = [...columns, actionsColumn];
+
+  // Handle table sorting changes
+  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
+    if (sorter && sorter.field) {
+      const direction =
+        sorter.order === "ascend"
+          ? "asc"
+          : sorter.order === "descend"
+            ? "desc"
+            : null;
+
+      if (direction) {
+        setSortSelection([
+          {
+            direction,
+            field: sorter.field as keyof T,
+          },
+        ]);
+      } else {
+        setSortSelection([]);
+      }
+    } else {
+      setSortSelection([]);
+    }
+  };
 
   return (
     <>
       {(toolbarPosition === ToolbarPosition.UP ||
         singleToolbarUntil <= entities.length) &&
-        createToolbar(
-          ToolbarPosition.UP,
-          table.some((col) => !!col.edit),
-        )}
+        createTableToolbar(ToolbarPosition.UP, isEditable)}
 
       <Table<T>
         columns={finalColumns}
@@ -825,8 +953,9 @@ const CorsMultiLineViewTable = <T extends Playable>({
           backgroundColor: colorBgContainer,
           borderRadius: borderRadiusLG,
         }}
+        onChange={handleTableChange}
         onRow={(record) => ({
-          onMouseEnter: () => setHovered(record._id),
+          onMouseEnter: () => !edit && setHovered(record._id),
           onMouseLeave: () => setHovered(null),
         })}
         rowClassName={(record) => {
@@ -836,7 +965,7 @@ const CorsMultiLineViewTable = <T extends Playable>({
 
           return clsx({
             "bg-blue-50": isEditing,
-            "hover:bg-gray-50": !isEditing && isHovered,
+            "bg-gray-50": !isEditing && isHovered,
             "opacity-60": status === "disabled",
           });
         }}
@@ -844,10 +973,7 @@ const CorsMultiLineViewTable = <T extends Playable>({
 
       {(toolbarPosition === ToolbarPosition.DOWN ||
         singleToolbarUntil <= entities.length) &&
-        createToolbar(
-          ToolbarPosition.DOWN,
-          table.some((col) => !!col.edit),
-        )}
+        createTableToolbar(ToolbarPosition.DOWN, isEditable)}
     </>
   );
 };

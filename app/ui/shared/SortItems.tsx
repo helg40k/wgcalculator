@@ -17,6 +17,7 @@ interface SortItemsProps<T> {
   setSortSelection: Dispatch<SetStateAction<SortSelection<T>[]>>;
   placeholder?: string;
   style?: React.CSSProperties;
+  disabled?: boolean;
 }
 
 const SortItems = <T,>({
@@ -25,6 +26,7 @@ const SortItems = <T,>({
   setSortSelection,
   placeholder = "Sort by...",
   style = { maxWidth: 350, minWidth: 150 },
+  disabled = false,
 }: SortItemsProps<T>) => {
   // Handle sort field toggle: none -> asc -> desc -> none
   const handleSortToggle = (fieldKey: keyof T) => {
@@ -71,6 +73,7 @@ const SortItems = <T,>({
       mode="multiple"
       placeholder={placeholder}
       style={style}
+      disabled={disabled}
       value={sortSelection.map((s) => String(s.field))}
       allowClear={false}
       removeIcon={null}

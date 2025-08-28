@@ -8,6 +8,7 @@ interface FilterItemsProps<T> {
   setFilterText: Dispatch<SetStateAction<string>>;
   placeholder?: string;
   style?: React.CSSProperties;
+  disabled?: boolean;
 }
 
 const FilterItems = <T,>({
@@ -16,6 +17,7 @@ const FilterItems = <T,>({
   setFilterText,
   placeholder,
   style = { width: 200 },
+  disabled = false,
 }: FilterItemsProps<T>) => {
   const {
     token: { colorTextSecondary },
@@ -35,6 +37,7 @@ const FilterItems = <T,>({
       onChange={(e) => setFilterText(e.target.value)}
       style={style}
       allowClear
+      disabled={disabled}
     />
   );
 };
