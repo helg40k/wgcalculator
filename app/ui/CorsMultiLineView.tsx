@@ -5,7 +5,8 @@ import {
   TrashIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { Badge, Button, message, Modal, theme, Tooltip } from "antd";
+import { Badge, Button, message, Modal, Table, theme, Tooltip } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import clsx from "clsx";
 
 import { EntityStatus, Playable } from "@/app/lib/definitions";
@@ -51,10 +52,32 @@ interface ListProps<T extends Playable = Playable>
   sortableFields?: SortableField<T>[];
 }
 
+// Table column configuration
+interface TableColumnConfig<T extends Playable = Playable> {
+  field: keyof T | string;
+  header: string;
+  sortable?: boolean;
+  // View component is mandatory - receives field and value to display
+  view: React.ComponentType<{
+    entity: T;
+    field: keyof T | string;
+    value: any;
+  }>;
+  // Edit component is optional - if not provided, view component is used
+  edit?: React.ComponentType<{
+    entity: T;
+    field: keyof T | string;
+    value: any;
+    setValues: Dispatch<SetStateAction<Partial<T>>>;
+    setValid: Dispatch<SetStateAction<boolean>>;
+    setIsNew: Dispatch<SetStateAction<boolean>>;
+  }>;
+}
+
 // Props specific to Table variant
 interface TableProps<T extends Playable = Playable>
   extends BaseMultiLineViewProps<T> {
-  table: any[]; // Placeholder for now
+  table: TableColumnConfig<T>[];
 }
 
 // Shared logic hook
@@ -642,10 +665,191 @@ const CorsMultiLineViewList = <T extends Playable>({
   );
 };
 
-// Table Component (placeholder)
-const CorsMultiLineViewTable = <T extends Playable>(props: TableProps<T>) => {
-  const { pluralNames } = props;
-  return <div>TEST - Table view for {pluralNames}</div>;
+// Table Component
+const CorsMultiLineViewTable = <T extends Playable>({
+  singleName = "item",
+  pluralNames = "items",
+  toolbarPosition = ToolbarPosition.UP,
+  singleToolbarUntil = 20,
+  entities,
+  setEntities,
+  table,
+  onSave,
+  onDelete,
+  filterableFields = [],
+}: TableProps<T>) => {
+  const {
+    borderRadiusLG,
+    colorBgContainer,
+    createToolbar,
+    edit,
+    editingStatus,
+    filteredAndSortedEntities,
+    getCurrentStatus,
+    hovered,
+    isNew,
+    isValid,
+    onChangeStatus,
+    onClickCancel,
+    onClickDelete,
+    onClickEdit,
+    onClickSave,
+    setHovered,
+    setIsNew,
+    setIsValid,
+    setValues,
+    values,
+  } = useMultiLineViewLogic({
+    entities,
+    filterableFields,
+    onDelete,
+    onSave,
+    pluralNames,
+    setEntities,
+    singleName,
+    sortableFields: table
+      .filter((col) => col.sortable)
+      .map((col) => ({ key: col.field as keyof T, label: col.header })),
+  });
+
+  // Convert table config to Ant Design columns
+  const columns: ColumnsType<T> = table.map((colConfig) => ({
+    dataIndex: colConfig.field as string,
+    key: colConfig.field as string,
+    render: (value: any, record: T) => {
+      const isEditing = edit === record._id;
+
+      if (isEditing && colConfig.edit) {
+        // Use edit component if available and in edit mode
+        const EditComponent = colConfig.edit;
+        return (
+          <EditComponent
+            entity={record}
+            field={colConfig.field}
+            value={value}
+            setValues={setValues}
+            setValid={setIsValid}
+            setIsNew={setIsNew}
+          />
+        );
+      }
+
+      // Always use view component (mandatory)
+      const ViewComponent = colConfig.view;
+      return (
+        <ViewComponent entity={record} field={colConfig.field} value={value} />
+      );
+    },
+    sorter: !!colConfig.sortable,
+    title: colConfig.header,
+  }));
+
+  // Add actions column
+  const actionsColumn: ColumnsType<T>[0] = {
+    key: "actions",
+    render: (_, record: T) => {
+      const isEditing = edit === record._id;
+      const isHovered = hovered === record._id;
+
+      if (isEditing) {
+        return (
+          <div className="flex gap-1">
+            <Tooltip title="Save" color="darkBlue" mouseEnterDelay={1}>
+              <Button
+                size="small"
+                onClick={onClickSave}
+                disabled={!isValid || isNew}
+                icon={<CheckIcon className="w-4" />}
+              />
+            </Tooltip>
+            <Tooltip title="Cancel" color="darkRed" mouseEnterDelay={1}>
+              <Button
+                size="small"
+                onClick={onClickCancel}
+                icon={<XMarkIcon className="w-4" />}
+              />
+            </Tooltip>
+          </div>
+        );
+      }
+
+      return (
+        <div className="flex gap-1" style={{ opacity: isHovered ? 1 : 0 }}>
+          <Tooltip
+            title={`Edit ${singleName}`}
+            color="darkBlue"
+            mouseEnterDelay={1}
+          >
+            <Button
+              size="small"
+              onClick={() => onClickEdit(record._id)}
+              icon={<PencilSquareIcon className="w-4" />}
+            />
+          </Tooltip>
+          <Tooltip
+            title={`Delete ${singleName}`}
+            color="darkRed"
+            mouseEnterDelay={1}
+          >
+            <Button
+              size="small"
+              onClick={() => onClickDelete(record._id, record.name)}
+              icon={<TrashIcon className="w-4" />}
+            />
+          </Tooltip>
+        </div>
+      );
+    },
+    title: "Actions",
+    width: 120,
+  };
+
+  const finalColumns = [...columns, actionsColumn];
+
+  return (
+    <>
+      {(toolbarPosition === ToolbarPosition.UP ||
+        singleToolbarUntil <= entities.length) &&
+        createToolbar(
+          ToolbarPosition.UP,
+          table.some((col) => !!col.edit),
+        )}
+
+      <Table<T>
+        columns={finalColumns}
+        dataSource={filteredAndSortedEntities}
+        rowKey="_id"
+        pagination={false}
+        size="small"
+        style={{
+          backgroundColor: colorBgContainer,
+          borderRadius: borderRadiusLG,
+        }}
+        onRow={(record) => ({
+          onMouseEnter: () => setHovered(record._id),
+          onMouseLeave: () => setHovered(null),
+        })}
+        rowClassName={(record) => {
+          const status = getCurrentStatus(record);
+          const isEditing = edit === record._id;
+          const isHovered = hovered === record._id;
+
+          return clsx({
+            "bg-blue-50": isEditing,
+            "hover:bg-gray-50": !isEditing && isHovered,
+            "opacity-60": status === "disabled",
+          });
+        }}
+      />
+
+      {(toolbarPosition === ToolbarPosition.DOWN ||
+        singleToolbarUntil <= entities.length) &&
+        createToolbar(
+          ToolbarPosition.DOWN,
+          table.some((col) => !!col.edit),
+        )}
+    </>
+  );
 };
 
 // Main component object with variants

@@ -5,7 +5,7 @@ import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { CollectionRegistry, Keyword } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
 import CorsMultiLineView from "@/app/ui/CorsMultiLineView";
-// import KeywordUI from "@/app/ui/shared/Keyword";
+import KeywordUI from "@/app/ui/shared/Keyword";
 
 const collectionName = CollectionRegistry.Keyword;
 
@@ -29,6 +29,23 @@ const CosAdminKeywords = () => {
     await deleteEntity(collectionName, id);
   };
 
+  const tableData = [
+    {
+      edit: KeywordUI.Edit,
+      field: "name",
+      header: "Name",
+      sortable: true,
+      view: KeywordUI.View,
+    },
+    {
+      edit: KeywordUI.Edit,
+      field: "description",
+      header: "Description",
+      sortable: true,
+      view: KeywordUI.View,
+    },
+  ];
+
   return (
     <Spin spinning={loading} size="large">
       <CorsMultiLineView.Table
@@ -37,7 +54,7 @@ const CosAdminKeywords = () => {
         singleToolbarUntil={5}
         entities={keywords}
         setEntities={setKeywords}
-        table={[]}
+        table={tableData}
         onSave={onSave}
         onDelete={onDelete}
         filterableFields={["name", "description"]}

@@ -3,7 +3,15 @@ import { Flex, Row, theme, Typography } from "antd";
 import { Keyword } from "@/app/lib/definitions";
 import ReferenceCounter from "@/app/ui/shared/ReferenceCounter";
 
-const KeywordView = ({ entity }: { entity: Keyword }) => {
+const KeywordView = ({
+  entity,
+  field,
+  value,
+}: {
+  entity: Keyword;
+  field: keyof Keyword | string;
+  value: any;
+}) => {
   const {
     token: {
       colorTextPlaceholder,
@@ -13,7 +21,8 @@ const KeywordView = ({ entity }: { entity: Keyword }) => {
     },
   } = theme.useToken();
 
-  return entity.name;
+  // Display the field value passed from the table
+  return <div>{value}</div>;
 };
 
 export default KeywordView;
