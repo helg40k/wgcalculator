@@ -62,10 +62,11 @@ const CosAdminKeywords = () => {
         singleToolbarUntil={5}
         entities={keywords}
         setEntities={setKeywords}
+        sortableStatus={true}
         table={tableData}
         onSave={onSave}
         onDelete={onDelete}
-        filterableFields={["name", "description"]}
+        filterableFields={["name", "description", "status"]}
       />
     </Spin>
   );

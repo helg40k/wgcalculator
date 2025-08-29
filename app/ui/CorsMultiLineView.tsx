@@ -17,8 +17,8 @@ import {
   mergeDeep,
   ToolbarPosition,
 } from "@/app/ui/shared";
+import EntityStatusUI from "@/app/ui/shared/EntityStatusUI";
 import FilterItems from "@/app/ui/shared/FilterItems";
-import LineStatus from "@/app/ui/shared/LineStatus";
 import SortItems, {
   SortableField,
   SortSelection,
@@ -195,6 +195,7 @@ interface TableColumnConfig<T extends Playable = Playable> {
 // Props specific to Table variant
 interface TableProps<T extends Playable = Playable>
   extends BaseMultiLineViewProps<T> {
+  sortableStatus?: boolean;
   table: TableColumnConfig<T>[];
 }
 
@@ -719,7 +720,7 @@ const CorsMultiLineViewList = <T extends Playable>({
                   }
                   color="white"
                 >
-                  <LineStatus
+                  <EntityStatusUI.Badge
                     entityId={entity._id}
                     status={getCurrentStatus(entity)}
                     editable={true}
@@ -727,11 +728,11 @@ const CorsMultiLineViewList = <T extends Playable>({
                     onChange={onChangeStatus}
                   >
                     <ViewComponent key={entity._id} entity={entity} />
-                  </LineStatus>
+                  </EntityStatusUI.Badge>
                 </Badge.Ribbon>
               )}
               {hovered !== entity._id && (
-                <LineStatus
+                <EntityStatusUI.Badge
                   entityId={entity._id}
                   status={getCurrentStatus(entity)}
                   editable={true}
@@ -739,12 +740,12 @@ const CorsMultiLineViewList = <T extends Playable>({
                   onChange={onChangeStatus}
                 >
                   <ViewComponent key={entity._id} entity={entity} />
-                </LineStatus>
+                </EntityStatusUI.Badge>
               )}
             </>
           )}
           {edit && edit !== entity._id && (
-            <LineStatus
+            <EntityStatusUI.Badge
               entityId={entity._id}
               status={getCurrentStatus(entity)}
               editable={false}
@@ -752,7 +753,7 @@ const CorsMultiLineViewList = <T extends Playable>({
               onChange={onChangeStatus}
             >
               <ViewComponent key={entity._id} entity={entity} />
-            </LineStatus>
+            </EntityStatusUI.Badge>
           )}
           {edit === entity._id && EditComponent && (
             <Badge.Ribbon
@@ -767,7 +768,7 @@ const CorsMultiLineViewList = <T extends Playable>({
               }
               color="lightGrey"
             >
-              <LineStatus
+              <EntityStatusUI.Badge
                 entityId={entity._id}
                 status={getCurrentStatus(entity)}
                 editable={NEW_ENTITY_TEMP_ID !== entity._id}
@@ -780,7 +781,7 @@ const CorsMultiLineViewList = <T extends Playable>({
                   setValid={setIsValid}
                   setIsNew={setIsNew}
                 />
-              </LineStatus>
+              </EntityStatusUI.Badge>
             </Badge.Ribbon>
           )}
         </div>
@@ -800,6 +801,7 @@ const CorsMultiLineViewTable = <T extends Playable>({
   singleToolbarUntil = 20,
   entities,
   setEntities,
+  sortableStatus = true,
   table,
   onSave,
   onDelete,
@@ -877,6 +879,24 @@ const CorsMultiLineViewTable = <T extends Playable>({
     title: colConfig.header,
   }));
 
+  // Add status column
+  const statusColumn: ColumnsType<T>[0] = {
+    dataIndex: "status",
+    key: "status",
+    render: (value, record: T) => (
+      <EntityStatusUI.Tag
+        entityId={record._id}
+        status={value}
+        editable={(!edit || edit === record._id) && !isNew}
+        onChange={onChangeStatus}
+      />
+    ),
+    showSorterTooltip: false,
+    sorter: sortableStatus,
+    title: "Status",
+    width: 80,
+  };
+
   // Add actions column
   const actionsColumn: ColumnsType<T>[0] = {
     key: "actions",
@@ -910,7 +930,7 @@ const CorsMultiLineViewTable = <T extends Playable>({
     width: 90,
   };
 
-  const finalColumns = [...columns, actionsColumn];
+  const finalColumns = [statusColumn, ...columns, actionsColumn];
 
   // Handle table sorting changes
   const handleTableChange = (pagination: any, filters: any, sorter: any) => {
@@ -966,7 +986,7 @@ const CorsMultiLineViewTable = <T extends Playable>({
           return clsx({
             "bg-blue-50": isEditing,
             "bg-gray-50": !isEditing && isHovered,
-            "opacity-60": status === "disabled",
+            // "opacity-60": status === EntityStatusRegistry.DISABLED,
           });
         }}
       />

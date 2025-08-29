@@ -52,13 +52,14 @@ const CosAdminSources = () => {
         edit={SourceUI.Edit}
         onSave={onSave}
         onDelete={onDelete}
-        filterableFields={["name", "authors", "type", "description"]}
+        filterableFields={["name", "authors", "type", "description", "status"]}
         sortableFields={[
           { key: "name", label: "Name" },
           { key: "authors", label: "Authors" },
           { key: "type", label: "Type" },
           { key: "year", label: "Year" },
           { key: "version", label: "Version" },
+          { key: "status", label: "Status" },
         ]}
       />
     </Spin>
