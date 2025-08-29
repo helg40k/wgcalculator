@@ -10,7 +10,7 @@ import KeywordUI from "@/app/ui/shared/Keyword";
 const collectionName = CollectionRegistry.Keyword;
 
 const CosAdminKeywords = () => {
-  const gameSystem = useContext(GameSystemContext);
+  const [gameSystem, utils] = useContext(GameSystemContext);
   const { deleteEntity, loadEntities, loading, saveEntity } = useEntities();
   const [keywords, setKeywords] = useState<Keyword[]>([]);
 
@@ -20,6 +20,14 @@ const CosAdminKeywords = () => {
       sort: ["name", "asc"],
     }).then((value) => setKeywords(value));
   }, []);
+
+  // example how to use
+  useEffect(() => {
+    console.log(
+      `Allowed to Refer ("${collectionName}")`,
+      utils.getAllowedToRefer(collectionName),
+    );
+  }, [gameSystem]);
 
   const onSave = async (keyword: Keyword): Promise<Keyword | null> => {
     return await saveEntity(collectionName, keyword);

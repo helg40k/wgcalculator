@@ -2,17 +2,19 @@
 
 import { createContext, ReactNode } from "react";
 
-import { GameSystem } from "@/app/lib/definitions";
 import useGameSystem from "@/app/lib/hooks/useGameSystem";
 
-export const GameSystemContext = createContext<GameSystem | undefined>(
+type GameSystemContextType = ReturnType<typeof useGameSystem>;
+
+export const GameSystemContext = createContext<GameSystemContextType>([
   undefined,
-);
+  { getAllowedToRefer: () => [] },
+]);
 
 export const GameSystemProvider = ({ children }: { children: ReactNode }) => {
-  const gameSystem = useGameSystem();
+  const [gameSystem, utils] = useGameSystem();
   return (
-    <GameSystemContext.Provider value={gameSystem}>
+    <GameSystemContext.Provider value={[gameSystem, utils]}>
       {children}
     </GameSystemContext.Provider>
   );

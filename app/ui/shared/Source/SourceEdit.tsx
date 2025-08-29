@@ -30,7 +30,7 @@ const SourceEdit = ({
   setValid,
   setIsNew,
 }: SourceEditProps) => {
-  const gameSystem = useContext(GameSystemContext);
+  const [gameSystem] = useContext(GameSystemContext);
   const [urls, setUrls] = useState<string[]>(entity.urls || []);
   const [areUrlsValid, setAreUrlsValid] = useState<boolean>(true);
   const [form] = Form.useForm();

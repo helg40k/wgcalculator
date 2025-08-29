@@ -10,7 +10,7 @@ import SourceUI from "@/app/ui/shared/Source";
 const collectionName = CollectionRegistry.Source;
 
 const CosAdminSources = () => {
-  const gameSystem = useContext(GameSystemContext);
+  const [gameSystem, utils] = useContext(GameSystemContext);
   const { deleteEntity, loadEntities, loading, saveEntity } = useEntities();
   const [sources, setSources] = useState<Source[]>([]);
 
@@ -20,6 +20,14 @@ const CosAdminSources = () => {
       sort: ["year", "desc"],
     }).then((value) => setSources(value));
   }, []);
+
+  // example how to use
+  useEffect(() => {
+    console.log(
+      `Allowed to Refer ("${collectionName}")`,
+      utils.getAllowedToRefer(collectionName),
+    );
+  }, [gameSystem]);
 
   const onSave = async (source: Source): Promise<Source | null> => {
     if (!source.version) {

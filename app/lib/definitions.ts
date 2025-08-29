@@ -7,7 +7,7 @@ export const CollectionRegistry = {
   Keyword: "keywords",
   Source: "sources",
 } as const;
-type CollectionName =
+export type CollectionName =
   (typeof CollectionRegistry)[keyof typeof CollectionRegistry];
 
 export const EntityStatusRegistry = {
@@ -33,6 +33,10 @@ export interface References {
   [key: string]: CollectionName;
 }
 
+export type ReferenceHierarchy = {
+  [K in CollectionName]?: CollectionName[];
+};
+
 export interface Entity {
   _id: string;
   _createdAt: firebase.firestore.Timestamp;
@@ -56,6 +60,7 @@ export interface GameSystem extends Entity {
   rulebooks?: string[];
   supplements?: string[];
   additional: string[];
+  referenceHierarchy?: ReferenceHierarchy;
 }
 
 export interface Playable extends Entity {

@@ -1,11 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { notification } from "antd";
 import { usePathname } from "next/navigation";
 
-import { CollectionRegistry, GameSystem } from "@/app/lib/definitions";
+import {
+  CollectionName,
+  CollectionRegistry,
+  GameSystem,
+} from "@/app/lib/definitions";
 import getDocuments from "@/app/lib/services/firebase/helpers/getDocuments";
 
-const useGameSystem = () => {
+interface GameSystemUtils {
+  getAllowedToRefer: (name: CollectionName) => CollectionName[];
+}
+
+const useGameSystem = (): [GameSystem | undefined, GameSystemUtils] => {
   const [gameSystem, setGameSystem] = useState<GameSystem | undefined>();
   const [error, setError] = useState<any>();
   const pathname = usePathname();
@@ -37,7 +45,17 @@ const useGameSystem = () => {
       });
   }, [key]);
 
-  return gameSystem;
+  const getAllowedToRefer = useCallback(
+    (name: CollectionName): CollectionName[] => {
+      if (!gameSystem?.referenceHierarchy) {
+        return [];
+      }
+      return gameSystem.referenceHierarchy[name] || [];
+    },
+    [gameSystem?.referenceHierarchy],
+  );
+
+  return [gameSystem, { getAllowedToRefer }];
 };
 
 export default useGameSystem;
