@@ -1,4 +1,11 @@
-import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   CheckIcon,
   PencilSquareIcon,
@@ -111,6 +118,7 @@ interface EditModeButtonsProps {
   onClickCancel: () => void;
   isValid: boolean;
   isNew: boolean;
+  allowSaveNew?: boolean; // Allow saving new items (for Table), default false (for List)
 }
 
 const EditModeButtons = ({
@@ -118,12 +126,13 @@ const EditModeButtons = ({
   onClickCancel,
   isValid,
   isNew,
+  allowSaveNew = false,
 }: EditModeButtonsProps) => {
   const {
     token: { colorTextDisabled },
   } = theme.useToken();
 
-  const disabled = !isValid || isNew;
+  const disabled = !isValid || (isNew && !allowSaveNew);
   const style = disabled ? { color: colorTextDisabled } : undefined;
   return (
     <div>
@@ -821,12 +830,14 @@ const CrudMultiLineViewTable = <T extends Playable>({
 }: TableProps<T>) => {
   const {
     borderRadiusLG,
+    cleanNewItem,
     colorBgContainer,
     createTableToolbar,
     edit,
     editingStatus,
     filteredAndSortedEntities,
     getCurrentStatus,
+    getEntitiesToSave,
     hovered,
     isNew,
     isValid,
@@ -835,6 +846,7 @@ const CrudMultiLineViewTable = <T extends Playable>({
     onClickDelete,
     onClickEdit,
     onClickSave,
+    resetEditingState,
     setHovered,
     setIsNew,
     setIsValid,
@@ -857,40 +869,130 @@ const CrudMultiLineViewTable = <T extends Playable>({
   // Form instance for table editing
   const [form] = Form.useForm();
 
+  // Function to validate only required fields
+  const validateRequiredFields = useCallback(() => {
+    const fieldsWithRules = table
+      .filter((col) => col.validationRules && col.validationRules.length > 0)
+      .map((col) => col.field as string);
+
+    if (fieldsWithRules.length > 0) {
+      return form
+        .validateFields(fieldsWithRules)
+        .then(() => {
+          setIsValid(true);
+          return true;
+        })
+        .catch((errorInfo) => {
+          // Check if there are actual errors or just outOfDate status
+          const hasActualErrors =
+            errorInfo.errorFields && errorInfo.errorFields.length > 0;
+          setIsValid(!hasActualErrors);
+          return !hasActualErrors;
+        });
+    } else {
+      setIsValid(true);
+      return Promise.resolve(true);
+    }
+  }, [table, form, setIsValid]);
+
+  // Custom cancel logic for Table with form validation
+  const onClickCancelTable = useCallback(() => {
+    const id = edit;
+    if (id) {
+      // For new items: if form is invalid (has validation errors), cancel without confirmation
+      if (isNew && !isValid) {
+        cleanNewItem(id);
+        resetEditingState();
+        return;
+      }
+
+      // For all other cases: check if there are actual changes
+      const [oldEntity, newEntity] = getEntitiesToSave(id);
+      const hasChanges = !equalDeep(oldEntity, newEntity, false);
+
+      if (!hasChanges) {
+        // No changes, cancel without confirmation
+        resetEditingState();
+      } else {
+        // Has changes, show confirmation dialog
+        Modal.confirm({
+          content: (
+            <>
+              The {singleName} was changed!
+              <br />
+              Would you like to ignore changes?
+            </>
+          ),
+          okText: "Ignore",
+          onOk: () => {
+            cleanNewItem(id);
+            resetEditingState();
+          },
+          title: "Ignore changes",
+        });
+      }
+    } else {
+      setEntities((prev) => [...prev.filter((item) => !!item._id)]);
+      resetEditingState();
+    }
+  }, [
+    edit,
+    isNew,
+    isValid,
+    cleanNewItem,
+    resetEditingState,
+    getEntitiesToSave,
+    singleName,
+    setEntities,
+  ]);
+
   // Set form values when editing starts
   useEffect(() => {
     if (edit) {
       const record = entities.find((e) => e._id === edit);
       if (record) {
-        form.setFieldsValue(record);
+        // Clear form for new items, set values for existing items
+        if (edit === NEW_ENTITY_TEMP_ID || !edit) {
+          form.resetFields();
+          validateRequiredFields();
+        } else {
+          form.setFieldsValue(record);
+          validateRequiredFields();
+        }
       }
     }
-  }, [edit, entities, form]);
+  }, [edit, entities, form, setIsValid, table, validateRequiredFields]);
 
   // Custom row component for editing
-  const EditableRow = ({ className, style, ...restProps }: any) => {
-    const record = restProps["data-row-key"]
-      ? entities.find((e) => e._id === restProps["data-row-key"])
-      : null;
-    const isEditing = edit === record?._id;
+  const EditableRow = useCallback(
+    ({ className, style, ...restProps }: any) => {
+      const record = restProps["data-row-key"]
+        ? entities.find((e) => e._id === restProps["data-row-key"])
+        : null;
+      const isEditing = edit === record?._id;
 
-    if (isEditing && record) {
-      return (
-        <Form
-          form={form}
-          component="tr"
-          className={className}
-          style={style}
-          onValuesChange={(changedValues, allValues) => {
-            setValues(allValues);
-          }}
-          {...restProps}
-        />
-      );
-    }
+      if (isEditing && record) {
+        return (
+          <Form
+            form={form}
+            component="tr"
+            className={className}
+            style={style}
+            validateTrigger={["onChange", "onBlur"]}
+            onValuesChange={(changedValues, allValues) => {
+              setValues(allValues);
+              // Validate required fields on each change
+              validateRequiredFields();
+            }}
+            {...restProps}
+          />
+        );
+      }
 
-    return <tr className={className} style={style} {...restProps} />;
-  };
+      return <tr className={className} style={style} {...restProps} />;
+    },
+    [edit, entities, form, setValues],
+  );
 
   const isEditable = useMemo(() => {
     return table.some((col) => !!col.edit);
@@ -934,14 +1036,33 @@ const CrudMultiLineViewTable = <T extends Playable>({
   const statusColumn: ColumnsType<T>[0] = {
     dataIndex: "status",
     key: "status",
-    render: (value, record: T) => (
-      <EntityStatusUI.Tag
-        entityId={record._id}
-        status={value}
-        editable={(!edit || edit === record._id) && !isNew}
-        onChange={onChangeStatus}
-      />
-    ),
+    render: (value, record: T) => {
+      // Logic same as List component:
+      // 1. View mode (no editing) → editable=true
+      // 2. Editing other row → editable=false
+      // 3. Editing current row (existing) → editable=true, but not for new items
+      let editable = true;
+
+      if (edit && edit !== record._id) {
+        // Editing other row → disable
+        editable = false;
+      } else if (edit === record._id) {
+        // Editing current row → allow only for existing items (not new)
+        editable = NEW_ENTITY_TEMP_ID !== record._id;
+      }
+
+      // Show current status (handles editing status automatically)
+      const currentStatus = getCurrentStatus(record);
+
+      return (
+        <EntityStatusUI.Tag
+          entityId={record._id}
+          status={currentStatus}
+          editable={editable}
+          onChange={onChangeStatus}
+        />
+      );
+    },
     showSorterTooltip: false,
     sorter: sortableStatus,
     title: "Status",
@@ -958,9 +1079,10 @@ const CrudMultiLineViewTable = <T extends Playable>({
         return (
           <EditModeButtons
             onClickSave={onClickSave}
-            onClickCancel={onClickCancel}
+            onClickCancel={onClickCancelTable}
             isValid={isValid}
             isNew={isNew}
+            allowSaveNew={true}
           />
         );
       }
@@ -1035,14 +1157,12 @@ const CrudMultiLineViewTable = <T extends Playable>({
           onMouseLeave: () => setHovered(null),
         })}
         rowClassName={(record) => {
-          const status = getCurrentStatus(record);
           const isEditing = edit === record._id;
           const isHovered = hovered === record._id;
 
           return clsx({
             "bg-blue-50": isEditing,
             "bg-gray-50": !isEditing && isHovered,
-            // "opacity-60": status === EntityStatusRegistry.DISABLED,
           });
         }}
       />

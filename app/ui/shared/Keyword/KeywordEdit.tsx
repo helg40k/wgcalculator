@@ -17,7 +17,12 @@ const KeywordEdit = ({
   validationRules,
 }: KeywordEditProps) => {
   return (
-    <Form.Item name={field} rules={validationRules} style={{ margin: 0 }}>
+    <Form.Item
+      name={field}
+      rules={validationRules}
+      style={{ margin: 0 }}
+      validateTrigger={["onChange", "onBlur"]}
+    >
       <Input />
     </Form.Item>
   );
