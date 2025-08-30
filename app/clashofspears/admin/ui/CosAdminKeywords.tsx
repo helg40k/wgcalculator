@@ -4,7 +4,7 @@ import { Spin } from "antd";
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { CollectionRegistry, Keyword } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
-import CorsMultiLineView from "@/app/ui/CorsMultiLineView";
+import CrudMultiLineView from "@/app/ui/CrudMultiLineView";
 import KeywordUI from "@/app/ui/shared/Keyword";
 
 const collectionName = CollectionRegistry.Keyword;
@@ -57,7 +57,7 @@ const CosAdminKeywords = () => {
 
   return (
     <Spin spinning={loading} size="large">
-      <CorsMultiLineView.Table
+      <CrudMultiLineView.Table
         singleName={"keyword"}
         pluralNames={"keywords"}
         singleToolbarUntil={5}

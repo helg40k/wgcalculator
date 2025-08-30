@@ -651,7 +651,7 @@ const useMultiLineViewLogic = <T extends Playable>({
 };
 
 // List Component
-const CorsMultiLineViewList = <T extends Playable>({
+const CrudMultiLineViewList = <T extends Playable>({
   singleName = "item",
   pluralNames = "items",
   toolbarPosition = ToolbarPosition.UP,
@@ -806,7 +806,7 @@ const CorsMultiLineViewList = <T extends Playable>({
 };
 
 // Table Component
-const CorsMultiLineViewTable = <T extends Playable>({
+const CrudMultiLineViewTable = <T extends Playable>({
   singleName = "item",
   pluralNames = "items",
   toolbarPosition = ToolbarPosition.UP,
@@ -1055,9 +1055,9 @@ const CorsMultiLineViewTable = <T extends Playable>({
 };
 
 // Main component object with variants
-const CorsMultiLineView = {
-  List: CorsMultiLineViewList,
-  Table: CorsMultiLineViewTable,
+const CrudMultiLineView = {
+  List: CrudMultiLineViewList,
+  Table: CrudMultiLineViewTable,
 };
 
-export default CorsMultiLineView;
+export default CrudMultiLineView;
