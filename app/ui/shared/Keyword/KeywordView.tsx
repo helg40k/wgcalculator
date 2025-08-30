@@ -1,28 +1,29 @@
-import { Flex, Row, theme, Typography } from "antd";
+import React from "react";
 
 import { Keyword } from "@/app/lib/definitions";
-import ReferenceCounter from "@/app/ui/shared/ReferenceCounter";
 
-const KeywordView = ({
-  entity,
-  field,
-  value,
-}: {
+interface KeywordViewProps {
   entity: Keyword;
   field: keyof Keyword | string;
-  value: any;
-}) => {
-  const {
-    token: {
-      colorTextPlaceholder,
-      colorTextSecondary,
-      colorTextTertiary,
-      borderRadiusLG,
-    },
-  } = theme.useToken();
+  value: string | number;
+}
 
-  // Display the field value passed from the table
-  return <div>{value}</div>;
+const KeywordView = ({ entity, field, value }: KeywordViewProps) => {
+  return value;
 };
 
-export default KeywordView;
+const KeywordViewPrewrap = ({ entity, field, value }: KeywordViewProps) => {
+  return <div className="whitespace-pre-wrap">{value}</div>;
+};
+
+// Create a typed component with Prewrap property
+interface KeywordViewComponent {
+  (props: KeywordViewProps): React.ReactElement;
+  Prewrap: (props: KeywordViewProps) => React.ReactElement;
+}
+
+// Attach Prewrap as a property to KeywordView
+const KeywordViewWithPrewrap = KeywordView as unknown as KeywordViewComponent;
+KeywordViewWithPrewrap.Prewrap = KeywordViewPrewrap;
+
+export default KeywordViewWithPrewrap;

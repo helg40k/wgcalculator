@@ -1,34 +1,26 @@
-import { Flex, Row, theme, Typography } from "antd";
+import { Form, Input } from "antd";
+import { Rule } from "antd/es/form";
 
 import { Keyword } from "@/app/lib/definitions";
-import ReferenceCounter from "@/app/ui/shared/ReferenceCounter";
+
+interface KeywordEditProps {
+  entity: Keyword;
+  field: keyof Keyword | string;
+  value: string | number;
+  validationRules?: Rule[];
+}
 
 const KeywordEdit = ({
   entity,
   field,
   value,
-  setValues,
-  setValid,
-  setIsNew,
-}: {
-  entity: Keyword;
-  field: keyof Keyword | string;
-  value: any;
-  setValues: (values: Partial<Keyword>) => void;
-  setValid: (valid: boolean) => void;
-  setIsNew: (isNew: boolean) => void;
-}) => {
-  const {
-    token: {
-      colorTextPlaceholder,
-      colorTextSecondary,
-      colorTextTertiary,
-      borderRadiusLG,
-    },
-  } = theme.useToken();
-
-  // Display the field value with "Edit" prefix
-  return <div>Edit: {value}</div>;
+  validationRules,
+}: KeywordEditProps) => {
+  return (
+    <Form.Item name={field} rules={validationRules} style={{ margin: 0 }}>
+      <Input />
+    </Form.Item>
+  );
 };
 
 export default KeywordEdit;

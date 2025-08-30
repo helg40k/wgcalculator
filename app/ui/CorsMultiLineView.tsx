@@ -1,11 +1,21 @@
-import { Dispatch, SetStateAction, useMemo, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
 import {
   CheckIcon,
   PencilSquareIcon,
   TrashIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import { Badge, Button, message, Modal, Table, theme, Tooltip } from "antd";
+import {
+  Badge,
+  Button,
+  Form,
+  message,
+  Modal,
+  Table,
+  theme,
+  Tooltip,
+} from "antd";
+import type { Rule } from "antd/es/form";
 import type { ColumnsType } from "antd/es/table";
 import clsx from "clsx";
 
@@ -175,6 +185,7 @@ interface TableColumnConfig<T extends Playable = Playable> {
   field: keyof T | string;
   header: string;
   sortable?: boolean;
+  validationRules?: Rule[];
   // View component is mandatory - receives field and value to display
   view: React.ComponentType<{
     entity: T;
@@ -186,6 +197,7 @@ interface TableColumnConfig<T extends Playable = Playable> {
     entity: T;
     field: keyof T | string;
     value: any;
+    validationRules?: Rule[];
     setValues: Dispatch<SetStateAction<Partial<T>>>;
     setValid: Dispatch<SetStateAction<boolean>>;
     setIsNew: Dispatch<SetStateAction<boolean>>;
@@ -842,6 +854,44 @@ const CorsMultiLineViewTable = <T extends Playable>({
       .map((col) => ({ key: col.field as keyof T, label: col.header })),
   });
 
+  // Form instance for table editing
+  const [form] = Form.useForm();
+
+  // Set form values when editing starts
+  useEffect(() => {
+    if (edit) {
+      const record = entities.find((e) => e._id === edit);
+      if (record) {
+        form.setFieldsValue(record);
+      }
+    }
+  }, [edit, entities, form]);
+
+  // Custom row component for editing
+  const EditableRow = ({ className, style, ...restProps }: any) => {
+    const record = restProps["data-row-key"]
+      ? entities.find((e) => e._id === restProps["data-row-key"])
+      : null;
+    const isEditing = edit === record?._id;
+
+    if (isEditing && record) {
+      return (
+        <Form
+          form={form}
+          component="tr"
+          className={className}
+          style={style}
+          onValuesChange={(changedValues, allValues) => {
+            setValues(allValues);
+          }}
+          {...restProps}
+        />
+      );
+    }
+
+    return <tr className={className} style={style} {...restProps} />;
+  };
+
   const isEditable = useMemo(() => {
     return table.some((col) => !!col.edit);
   }, [table]);
@@ -861,6 +911,7 @@ const CorsMultiLineViewTable = <T extends Playable>({
             entity={record}
             field={colConfig.field}
             value={value}
+            validationRules={colConfig.validationRules}
             setValues={setValues}
             setValid={setIsValid}
             setIsNew={setIsNew}
@@ -972,6 +1023,11 @@ const CorsMultiLineViewTable = <T extends Playable>({
         style={{
           backgroundColor: colorBgContainer,
           borderRadius: borderRadiusLG,
+        }}
+        components={{
+          body: {
+            row: EditableRow,
+          },
         }}
         onChange={handleTableChange}
         onRow={(record) => ({

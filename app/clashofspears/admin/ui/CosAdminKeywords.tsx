@@ -43,6 +43,7 @@ const CosAdminKeywords = () => {
       field: "name",
       header: "Name",
       sortable: true,
+      validationRules: [{ message: "Name is required", required: true }],
       view: KeywordUI.View,
     },
     {
@@ -50,7 +51,7 @@ const CosAdminKeywords = () => {
       field: "description",
       header: "Description",
       sortable: true,
-      view: KeywordUI.View,
+      view: KeywordUI.View.Prewrap,
     },
   ];
 
