@@ -2,6 +2,7 @@ import {
   Dispatch,
   SetStateAction,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useState,
@@ -26,6 +27,7 @@ import type { Rule } from "antd/es/form";
 import type { ColumnsType } from "antd/es/table";
 import clsx from "clsx";
 
+import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { EntityStatus, Playable } from "@/app/lib/definitions";
 import { NEW_ENTITY_TEMP_ID } from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
 import {
@@ -866,6 +868,9 @@ const CrudMultiLineViewTable = <T extends Playable>({
       .map((col) => ({ key: col.field as keyof T, label: col.header })),
   });
 
+  // Game system context for setting systemId
+  const [gameSystem] = useContext(GameSystemContext);
+
   // Form instance for table editing
   const [form] = Form.useForm();
 
@@ -952,16 +957,24 @@ const CrudMultiLineViewTable = <T extends Playable>({
       const record = entities.find((e) => e._id === edit);
       if (record) {
         // Clear form for new items, set values for existing items
-        if (edit === NEW_ENTITY_TEMP_ID || !edit) {
+        if (edit === NEW_ENTITY_TEMP_ID) {
           form.resetFields();
-          validateRequiredFields();
+          // For new items, set systemId from gameSystem context if available
+          // This mimics the behavior in SourceEdit.tsx
+          if (gameSystem?._id) {
+            form.setFieldsValue({ systemId: gameSystem._id });
+          }
+          // Validate after a short delay to ensure form is ready
+          setTimeout(() => validateRequiredFields(), 0);
         } else {
           form.setFieldsValue(record);
-          validateRequiredFields();
+          // Validate after setting values
+          setTimeout(() => validateRequiredFields(), 0);
         }
       }
     }
-  }, [edit, entities, form, setIsValid, table, validateRequiredFields]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [edit, gameSystem?._id]); // Depend on edit state and gameSystem changes
 
   // Custom row component for editing
   const EditableRow = useCallback(
@@ -980,6 +993,10 @@ const CrudMultiLineViewTable = <T extends Playable>({
             style={style}
             validateTrigger={["onChange", "onBlur"]}
             onValuesChange={(changedValues, allValues) => {
+              // Ensure systemId is always set for new items
+              if (edit === NEW_ENTITY_TEMP_ID && gameSystem?._id) {
+                allValues.systemId = gameSystem._id;
+              }
               setValues(allValues);
               // Validate required fields on each change
               validateRequiredFields();
@@ -991,7 +1008,7 @@ const CrudMultiLineViewTable = <T extends Playable>({
 
       return <tr className={className} style={style} {...restProps} />;
     },
-    [edit, entities, form, setValues],
+    [edit, entities, form, setValues, validateRequiredFields, gameSystem?._id],
   );
 
   const isEditable = useMemo(() => {
@@ -999,136 +1016,171 @@ const CrudMultiLineViewTable = <T extends Playable>({
   }, [table]);
 
   // Convert table config to Ant Design columns
-  const columns: ColumnsType<T> = table.map((colConfig) => ({
-    dataIndex: colConfig.field as string,
-    key: colConfig.field as string,
-    render: (value: any, record: T) => {
-      const isEditing = edit === record._id;
+  const columns: ColumnsType<T> = useMemo(
+    () =>
+      table.map((colConfig) => ({
+        dataIndex: colConfig.field as string,
+        key: colConfig.field as string,
+        render: (value: any, record: T) => {
+          const isEditing = edit === record._id;
 
-      if (isEditing && colConfig.edit) {
-        // Use edit component if available and in edit mode
-        const EditComponent = colConfig.edit;
-        return (
-          <EditComponent
-            entity={record}
-            field={colConfig.field}
-            value={value}
-            validationRules={colConfig.validationRules}
-            setValues={setValues}
-            setValid={setIsValid}
-            setIsNew={setIsNew}
-          />
-        );
-      }
+          if (isEditing && colConfig.edit) {
+            // Use edit component if available and in edit mode
+            const EditComponent = colConfig.edit;
+            return (
+              <EditComponent
+                entity={record}
+                field={colConfig.field}
+                value={value}
+                validationRules={colConfig.validationRules}
+                setValues={setValues}
+                setValid={setIsValid}
+                setIsNew={setIsNew}
+              />
+            );
+          }
 
-      // Always use view component (mandatory)
-      const ViewComponent = colConfig.view;
-      return (
-        <ViewComponent entity={record} field={colConfig.field} value={value} />
-      );
-    },
-    showSorterTooltip: false,
-    sorter: !!colConfig.sortable,
-    title: colConfig.header,
-  }));
+          // Always use view component (mandatory)
+          const ViewComponent = colConfig.view;
+          return (
+            <ViewComponent
+              entity={record}
+              field={colConfig.field}
+              value={value}
+            />
+          );
+        },
+        showSorterTooltip: false,
+        sorter: edit ? false : !!colConfig.sortable,
+        title: colConfig.header,
+      })),
+    [table, edit, setValues, setIsValid, setIsNew],
+  );
 
   // Add status column
-  const statusColumn: ColumnsType<T>[0] = {
-    dataIndex: "status",
-    key: "status",
-    render: (value, record: T) => {
-      // Logic same as List component:
-      // 1. View mode (no editing) → editable=true
-      // 2. Editing other row → editable=false
-      // 3. Editing current row (existing) → editable=true, but not for new items
-      let editable = true;
+  const statusColumn: ColumnsType<T>[0] = useMemo(
+    () => ({
+      dataIndex: "status",
+      key: "status",
+      render: (value, record: T) => {
+        // Logic same as List component:
+        // 1. View mode (no editing) → editable=true
+        // 2. Editing other row → editable=false
+        // 3. Editing current row (existing) → editable=true, but not for new items
+        let editable = true;
 
-      if (edit && edit !== record._id) {
-        // Editing other row → disable
-        editable = false;
-      } else if (edit === record._id) {
-        // Editing current row → allow only for existing items (not new)
-        editable = NEW_ENTITY_TEMP_ID !== record._id;
-      }
+        if (edit && edit !== record._id) {
+          // Editing other row → disable
+          editable = false;
+        } else if (edit === record._id) {
+          // Editing current row → allow only for existing items (not new)
+          editable = NEW_ENTITY_TEMP_ID !== record._id;
+        }
 
-      // Show current status (handles editing status automatically)
-      const currentStatus = getCurrentStatus(record);
+        // Show current status (handles editing status automatically)
+        const currentStatus = getCurrentStatus(record);
 
-      return (
-        <EntityStatusUI.Tag
-          entityId={record._id}
-          status={currentStatus}
-          editable={editable}
-          onChange={onChangeStatus}
-        />
-      );
-    },
-    showSorterTooltip: false,
-    sorter: sortableStatus,
-    title: "Status",
-    width: 80,
-  };
-
-  // Add actions column
-  const actionsColumn: ColumnsType<T>[0] = {
-    key: "actions",
-    render: (_, record: T) => {
-      const isEditing = edit === record._id;
-
-      if (isEditing) {
         return (
-          <EditModeButtons
-            onClickSave={onClickSave}
-            onClickCancel={onClickCancelTable}
-            isValid={isValid}
-            isNew={isNew}
-            allowSaveNew={true}
+          <EntityStatusUI.Tag
+            entityId={record._id}
+            status={currentStatus}
+            editable={editable}
+            onChange={onChangeStatus}
           />
         );
-      }
+      },
+      showSorterTooltip: false,
+      sorter: edit ? false : sortableStatus,
+      title: "Status",
+      width: 80,
+    }),
+    [edit, getCurrentStatus, onChangeStatus, sortableStatus],
+  );
 
-      return (
-        <ActionButtons
-          entityId={record._id}
-          entityName={record.name}
-          singleName={singleName}
-          edit={isEditable}
-          isEditing={!!edit}
-          onClickEdit={onClickEdit}
-          onClickDelete={onClickDelete}
-        />
-      );
-    },
-    title: <div className="ml-1">Actions</div>,
-    width: 90,
-  };
+  // Add actions column
+  const actionsColumn: ColumnsType<T>[0] = useMemo(
+    () => ({
+      key: "actions",
+      render: (_, record: T) => {
+        const isEditing = edit === record._id;
 
-  const finalColumns = [statusColumn, ...columns, actionsColumn];
+        if (isEditing) {
+          return (
+            <EditModeButtons
+              onClickSave={onClickSave}
+              onClickCancel={onClickCancelTable}
+              isValid={isValid}
+              isNew={isNew}
+              allowSaveNew={true}
+            />
+          );
+        }
+
+        return (
+          <ActionButtons
+            entityId={record._id}
+            entityName={record.name}
+            singleName={singleName}
+            edit={isEditable}
+            isEditing={!!edit}
+            onClickEdit={onClickEdit}
+            onClickDelete={onClickDelete}
+          />
+        );
+      },
+      title: <div className="ml-1">Actions</div>,
+      width: 90,
+    }),
+    [
+      edit,
+      isValid,
+      isNew,
+      onClickSave,
+      onClickCancelTable,
+      isEditable,
+      singleName,
+      onClickEdit,
+      onClickDelete,
+    ],
+  );
+
+  const finalColumns = useMemo(
+    () => [statusColumn, ...columns, actionsColumn],
+    [statusColumn, columns, actionsColumn],
+  );
 
   // Handle table sorting changes
-  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
-    if (sorter && sorter.field) {
-      const direction =
-        sorter.order === "ascend"
-          ? "asc"
-          : sorter.order === "descend"
-            ? "desc"
-            : null;
+  const handleTableChange = useCallback(
+    (pagination: any, filters: any, sorter: any) => {
+      // Disable sorting when in edit mode
+      if (edit) {
+        return;
+      }
 
-      if (direction) {
-        setSortSelection([
-          {
-            direction,
-            field: sorter.field as keyof T,
-          },
-        ]);
+      if (sorter && sorter.field) {
+        const direction =
+          sorter.order === "ascend"
+            ? "asc"
+            : sorter.order === "descend"
+              ? "desc"
+              : null;
+
+        if (direction) {
+          setSortSelection([
+            {
+              direction,
+              field: sorter.field as keyof T,
+            },
+          ]);
+        } else {
+          setSortSelection([]);
+        }
       } else {
         setSortSelection([]);
       }
-    } else {
-      setSortSelection([]);
-    }
-  };
+    },
+    [setSortSelection, edit],
+  );
 
   return (
     <>
@@ -1152,19 +1204,25 @@ const CrudMultiLineViewTable = <T extends Playable>({
           },
         }}
         onChange={handleTableChange}
-        onRow={(record) => ({
-          onMouseEnter: () => !edit && setHovered(record._id),
-          onMouseLeave: () => setHovered(null),
-        })}
-        rowClassName={(record) => {
-          const isEditing = edit === record._id;
-          const isHovered = hovered === record._id;
+        onRow={useCallback(
+          (record: T) => ({
+            onMouseEnter: () => !edit && setHovered(record._id),
+            onMouseLeave: () => setHovered(null),
+          }),
+          [edit, setHovered],
+        )}
+        rowClassName={useCallback(
+          (record: T) => {
+            const isEditing = edit === record._id;
+            const isHovered = hovered === record._id;
 
-          return clsx({
-            "bg-blue-50": isEditing,
-            "bg-gray-50": !isEditing && isHovered,
-          });
-        }}
+            return clsx({
+              "bg-blue-50": isEditing,
+              "bg-gray-50": !isEditing && isHovered,
+            });
+          },
+          [edit, hovered],
+        )}
       />
 
       {(toolbarPosition === ToolbarPosition.DOWN ||

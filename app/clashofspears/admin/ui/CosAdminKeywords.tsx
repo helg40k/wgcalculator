@@ -60,7 +60,7 @@ const CosAdminKeywords = () => {
       <CrudMultiLineView.Table
         singleName={"keyword"}
         pluralNames={"keywords"}
-        singleToolbarUntil={5}
+        singleToolbarUntil={10}
         entities={keywords}
         setEntities={setKeywords}
         sortableStatus={true}

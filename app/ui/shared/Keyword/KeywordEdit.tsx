@@ -3,6 +3,8 @@ import { Rule } from "antd/es/form";
 
 import { Keyword } from "@/app/lib/definitions";
 
+import "./style.css";
+
 interface KeywordEditProps {
   entity: Keyword;
   field: keyof Keyword | string;
@@ -22,6 +24,7 @@ const KeywordEdit = ({
       rules={validationRules}
       style={{ margin: 0 }}
       validateTrigger={["onChange", "onBlur"]}
+      className="table-edit-form-item"
     >
       <Input />
     </Form.Item>
