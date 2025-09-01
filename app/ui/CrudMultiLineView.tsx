@@ -956,9 +956,9 @@ const CrudMultiLineViewTable = <T extends Playable>({
     if (edit) {
       const record = entities.find((e) => e._id === edit);
       if (record) {
+        form.resetFields();
         // Clear form for new items, set values for existing items
         if (edit === NEW_ENTITY_TEMP_ID) {
-          form.resetFields();
           // For new items, set systemId from gameSystem context if available
           // This mimics the behavior in SourceEdit.tsx
           if (gameSystem?._id) {
@@ -992,7 +992,7 @@ const CrudMultiLineViewTable = <T extends Playable>({
             className={className}
             style={style}
             validateTrigger={["onChange", "onBlur"]}
-            onValuesChange={(changedValues, allValues) => {
+            onValuesChange={(_, allValues) => {
               // Ensure systemId is always set for new items
               if (edit === NEW_ENTITY_TEMP_ID && gameSystem?._id) {
                 allValues.systemId = gameSystem._id;

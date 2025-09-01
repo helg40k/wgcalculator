@@ -51,7 +51,14 @@ const CosAdminKeywords = () => {
       field: "description",
       header: "Description",
       sortable: true,
-      view: TableCell.View.Prewrap,
+      view: TableCell.View.Area,
+    },
+    {
+      edit: TableCell.Edit.Bool,
+      field: "test",
+      header: "Test",
+      sortable: true,
+      view: TableCell.View.Bool,
     },
   ];
 

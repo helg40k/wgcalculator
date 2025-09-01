@@ -80,4 +80,5 @@ export interface Source extends Playable {
 
 export interface Keyword extends Playable {
   description?: string;
+  test?: boolean;
 }
