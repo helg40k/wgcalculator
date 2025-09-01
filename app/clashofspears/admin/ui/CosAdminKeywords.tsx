@@ -5,7 +5,7 @@ import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { CollectionRegistry, Keyword } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
 import CrudMultiLineView from "@/app/ui/CrudMultiLineView";
-import KeywordUI from "@/app/ui/shared/Keyword";
+import TableCell from "@/app/ui/shared/TableCell";
 
 const collectionName = CollectionRegistry.Keyword;
 
@@ -39,19 +39,19 @@ const CosAdminKeywords = () => {
 
   const tableData = [
     {
-      edit: KeywordUI.Edit,
+      edit: TableCell.Edit,
       field: "name",
       header: "Name",
       sortable: true,
       validationRules: [{ message: "Name is required", required: true }],
-      view: KeywordUI.View,
+      view: TableCell.View,
     },
     {
-      edit: KeywordUI.Edit,
+      edit: TableCell.Edit,
       field: "description",
       header: "Description",
       sortable: true,
-      view: KeywordUI.View.Prewrap,
+      view: TableCell.View.Prewrap,
     },
   ];
 

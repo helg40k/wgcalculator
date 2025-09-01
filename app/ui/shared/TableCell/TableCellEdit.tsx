@@ -1,23 +1,23 @@
 import { Form, Input } from "antd";
 import { Rule } from "antd/es/form";
 
-import { Keyword } from "@/app/lib/definitions";
+import { Playable } from "@/app/lib/definitions";
 
 import "./style.css";
 
-interface KeywordEditProps {
-  entity: Keyword;
-  field: keyof Keyword | string;
+interface TableCellEditProps {
+  entity: Playable;
+  field: keyof Playable | string;
   value: string | number;
   validationRules?: Rule[];
 }
 
-const KeywordEdit = ({
+const TableCellEdit = ({
   entity,
   field,
   value,
   validationRules,
-}: KeywordEditProps) => {
+}: TableCellEditProps) => {
   return (
     <Form.Item
       name={field}
@@ -31,4 +31,4 @@ const KeywordEdit = ({
   );
 };
 
-export default KeywordEdit;
+export default TableCellEdit;
