@@ -1,0 +1,4 @@
+/* Hide expand column in table */
+.hide-expand-column .ant-table-expand-icon-col {
+    display: none !important;
+}

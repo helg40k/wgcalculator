@@ -69,6 +69,7 @@ const CosAdminKeywords = () => {
         pluralNames={"keywords"}
         singleToolbarUntil={10}
         entities={keywords}
+        rowFooter={(record) => <div>TEST for {record.name}</div>}
         setEntities={setKeywords}
         sortableStatus={true}
         table={tableData}

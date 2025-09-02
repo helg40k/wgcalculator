@@ -43,6 +43,8 @@ import SortItems, {
   SortSelection,
 } from "@/app/ui/shared/SortItems";
 
+import "./CrudMultiLineView.css";
+
 const hoverButtonStyle = {
   height: "26px",
   margin: "4px",
@@ -220,6 +222,7 @@ interface TableProps<T extends Playable = Playable>
   extends BaseMultiLineViewProps<T> {
   sortableStatus?: boolean;
   table: TableColumnConfig<T>[];
+  rowFooter?: (record: T) => React.ReactNode;
 }
 
 // Shared logic hook
@@ -861,6 +864,7 @@ const CrudMultiLineViewTable = <T extends Playable>({
   onSave,
   onDelete,
   filterableFields = [],
+  rowFooter,
 }: TableProps<T>) => {
   const {
     borderRadiusLG,
@@ -1181,6 +1185,13 @@ const CrudMultiLineViewTable = <T extends Playable>({
     [statusColumn, columns, actionsColumn],
   );
 
+  // Get all row keys for always expanded rows
+  const expandedRowKeys = useMemo(() => {
+    return rowFooter
+      ? filteredAndSortedEntities.map((entity) => entity._id)
+      : [];
+  }, [rowFooter, filteredAndSortedEntities]);
+
   // Handle table sorting changes
   const handleTableChange = useCallback(
     (pagination: any, filters: any, sorter: any) => {
@@ -1230,6 +1241,16 @@ const CrudMultiLineViewTable = <T extends Playable>({
           backgroundColor: colorBgContainer,
           borderRadius: borderRadiusLG,
         }}
+        className={rowFooter ? "hide-expand-column" : ""}
+        expandable={
+          rowFooter
+            ? {
+                expandedRowKeys: expandedRowKeys,
+                expandedRowRender: (record: T) => rowFooter(record),
+                showExpandColumn: false, // Hide expand column
+              }
+            : undefined
+        }
         components={{
           body: {
             row: EditableRow,
