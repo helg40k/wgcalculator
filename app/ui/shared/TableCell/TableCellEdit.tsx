@@ -1,4 +1,4 @@
-import { Form, Input } from "antd";
+import { Form, Input, Switch } from "antd";
 import { Rule } from "antd/es/form";
 
 import { Playable } from "@/app/lib/definitions";
@@ -87,7 +87,7 @@ const TableCellEditBool = ({
       value={value}
       validationRules={validationRules}
     >
-      <Input />
+      <Switch />
     </TableCellEditFormItem>
   );
 };

@@ -275,8 +275,40 @@ const useMultiLineViewLogic = <T extends Playable>({
           const bValue = b[sort.field];
 
           let comparison = 0;
-          if (aValue < bValue) comparison = -1;
-          else if (aValue > bValue) comparison = 1;
+
+          // Handle boolean values specially
+          if (typeof aValue === "boolean" && typeof bValue === "boolean") {
+            if (aValue === bValue) comparison = 0;
+            else if (aValue && !bValue)
+              comparison = 1; // true > false
+            else comparison = -1; // false < true
+          } else if (
+            typeof aValue === "boolean" ||
+            typeof bValue === "boolean"
+          ) {
+            // Handle mixed boolean/undefined values
+            const aBool = aValue === true;
+            const bBool = bValue === true;
+            if (aBool === bBool) comparison = 0;
+            else if (aBool && !bBool)
+              comparison = 1; // true > false
+            else comparison = -1; // false < true
+          } else if (typeof aValue === "number" || typeof bValue === "number") {
+            // Handle number values (including string numbers)
+            const aNum = Number(aValue);
+            const bNum = Number(bValue);
+            if (isNaN(aNum) && isNaN(bNum)) comparison = 0;
+            else if (isNaN(aNum))
+              comparison = 1; // NaN goes to end
+            else if (isNaN(bNum))
+              comparison = -1; // NaN goes to end
+            else if (aNum < bNum) comparison = -1;
+            else if (aNum > bNum) comparison = 1;
+          } else {
+            // Handle other types (strings, etc.)
+            if (aValue < bValue) comparison = -1;
+            else if (aValue > bValue) comparison = 1;
+          }
 
           if (comparison !== 0) {
             return sort.direction === "desc" ? -comparison : comparison;
