@@ -99,7 +99,9 @@ const SourceEdit = ({
             className="w-30"
             style={{ color: colorTextPlaceholder }}
           />
-          <ReferenceCounter references={entity.references} />
+          <div className="pl-1">
+            <ReferenceCounter references={entity.references} />
+          </div>
         </Flex>
         <Flex vertical style={{ padding: "0 8px 0 8px" }} className="w-full">
           <div className="pr-19">

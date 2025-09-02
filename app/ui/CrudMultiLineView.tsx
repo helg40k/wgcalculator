@@ -30,6 +30,7 @@ import clsx from "clsx";
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { EntityStatus, Playable } from "@/app/lib/definitions";
 import { NEW_ENTITY_TEMP_ID } from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
+import errorMessage from "@/app/ui/errorMessage";
 import {
   equalDeep,
   getNewEntity,
@@ -376,28 +377,32 @@ const useMultiLineViewLogic = <T extends Playable>({
   const saveItem = (entityToSave: T) => {
     const id = entityToSave._id;
     if (onSave) {
-      onSave(entityToSave).then((saved) => {
-        if (saved) {
-          message.success(`The ${singleName} has been saved`);
-          const isNewItem = NEW_ENTITY_TEMP_ID === id || !id;
-          const index = entities.findIndex((item) =>
-            isNewItem
-              ? NEW_ENTITY_TEMP_ID === item._id || !item._id
-              : item._id === saved._id,
-          );
-          if (index >= 0) {
-            const updated = [...entities];
-            updated[index] = saved;
-            setEntities(updated);
+      onSave(entityToSave)
+        .then((saved) => {
+          if (saved) {
+            message.success(`The ${singleName} has been saved`);
+            const isNewItem = NEW_ENTITY_TEMP_ID === id || !id;
+            const index = entities.findIndex((item) =>
+              isNewItem
+                ? NEW_ENTITY_TEMP_ID === item._id || !item._id
+                : item._id === saved._id,
+            );
+            if (index >= 0) {
+              const updated = [...entities];
+              updated[index] = saved;
+              setEntities(updated);
+            } else {
+              setEntities((prev) => [...prev, saved]);
+            }
           } else {
-            setEntities((prev) => [...prev, saved]);
+            message.error(`The ${singleName} has not been saved!`);
           }
-        } else {
-          message.error(`The ${singleName} has not been saved!`);
-        }
 
-        resetEditingState();
-      });
+          resetEditingState();
+        })
+        .catch((reason) => {
+          errorMessage(reason?.message);
+        });
     } else {
       throw new Error(
         `Unable to save ${singleName}: the save function is undefined!`,
@@ -502,8 +507,8 @@ const useMultiLineViewLogic = <T extends Playable>({
       } else {
         message.error(`Failed to update ${singleName} status!`);
       }
-    } catch {
-      message.error(`Error updating ${singleName} status!`);
+    } catch (error: any) {
+      errorMessage(error?.message);
     }
   };
 
@@ -1257,24 +1262,15 @@ const CrudMultiLineViewTable = <T extends Playable>({
           },
         }}
         onChange={handleTableChange}
-        onRow={useCallback(
-          (record: T) => ({
-            onMouseEnter: () => !edit && setHovered(record._id),
-            onMouseLeave: () => setHovered(null),
-          }),
-          [edit, setHovered],
-        )}
+        onRow={useCallback((record: T) => ({}), [])}
         rowClassName={useCallback(
           (record: T) => {
             const isEditing = edit === record._id;
-            const isHovered = hovered === record._id;
-
             return clsx({
               "bg-blue-50": isEditing,
-              "bg-gray-50": !isEditing && isHovered,
             });
           },
-          [edit, hovered],
+          [edit],
         )}
       />
 

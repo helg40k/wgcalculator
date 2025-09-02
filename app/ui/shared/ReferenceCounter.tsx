@@ -21,10 +21,7 @@ const ReferenceCounter = ({ references }: ReferenceCounterProps) => {
   }, [refNumber]);
 
   return (
-    <div
-      className="p-0.5 pl-1 text-nowrap"
-      style={{ color: colorTextSecondary }}
-    >
+    <div className="p-0.5 text-nowrap" style={{ color: colorTextSecondary }}>
       <Tooltip
         title={<span style={{ color: colorText }}>Found {refMessage}</span>}
         color="white"

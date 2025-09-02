@@ -2,3 +2,22 @@
 .hide-expand-column .ant-table-expand-icon-col {
     display: none !important;
 }
+
+/* Style for row footer */
+.hide-expand-column .ant-table-tbody > tr.ant-table-expanded-row > td {
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    background-color: inherit !important;
+    padding-top: 0 !important;
+}
+
+/* Remove border from the row above the footer */
+.hide-expand-column .ant-table-tbody > tr:has(+ tr.ant-table-expanded-row) > td {
+    border-bottom: none !important;
+}
+
+/* Disable hover effects in table */
+.hide-expand-column .ant-table-tbody > tr:hover > td {
+    background-color: inherit !important;
+}

@@ -5,6 +5,7 @@ import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { CollectionRegistry, Keyword } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
 import CrudMultiLineView from "@/app/ui/CrudMultiLineView";
+import ReferenceCounter from "@/app/ui/shared/ReferenceCounter";
 import TableCell from "@/app/ui/shared/TableCell";
 
 const collectionName = CollectionRegistry.Keyword;
@@ -30,6 +31,9 @@ const CosAdminKeywords = () => {
   }, [gameSystem]);
 
   const onSave = async (keyword: Keyword): Promise<Keyword | null> => {
+    if (keywords.some((k) => k.name === keyword.name.trim())) {
+      throw new Error("Name must be unique!");
+    }
     return await saveEntity(collectionName, keyword);
   };
 
@@ -43,7 +47,17 @@ const CosAdminKeywords = () => {
       field: "name",
       header: "Name",
       sortable: true,
-      validationRules: [{ message: "Name is required", required: true }],
+      validationRules: [
+        { message: "Name is required", required: true },
+        () => ({
+          validator(_: any, value: string) {
+            if (keywords.some((k) => k.name === value?.trim())) {
+              return Promise.reject(new Error("Name is unique"));
+            }
+            return Promise.resolve();
+          },
+        }),
+      ],
       view: TableCell.View,
     },
     {
@@ -52,13 +66,6 @@ const CosAdminKeywords = () => {
       header: "Description",
       sortable: true,
       view: TableCell.View.Area,
-    },
-    {
-      edit: TableCell.Edit.Bool,
-      field: "test",
-      header: "Test",
-      sortable: true,
-      view: TableCell.View.Bool,
     },
   ];
 
@@ -69,7 +76,9 @@ const CosAdminKeywords = () => {
         pluralNames={"keywords"}
         singleToolbarUntil={10}
         entities={keywords}
-        rowFooter={(record) => <div>TEST for {record.name}</div>}
+        rowFooter={(record: Keyword) => (
+          <ReferenceCounter references={record.references} />
+        )}
         setEntities={setKeywords}
         sortableStatus={true}
         table={tableData}
