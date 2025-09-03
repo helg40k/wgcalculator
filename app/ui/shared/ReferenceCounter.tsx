@@ -1,13 +1,17 @@
 import { useMemo } from "react";
 import { theme, Tooltip } from "antd";
 
-import { References } from "@/app/lib/definitions";
+import { CollectionName, References } from "@/app/lib/definitions";
 
 interface ReferenceCounterProps {
   references: References | null | undefined;
+  allowedToRefer: CollectionName[];
 }
 
-const ReferenceCounter = ({ references }: ReferenceCounterProps) => {
+const ReferenceCounter = ({
+  references,
+  allowedToRefer,
+}: ReferenceCounterProps) => {
   const {
     token: { colorText, colorTextSecondary },
   } = theme.useToken();

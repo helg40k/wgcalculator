@@ -11,7 +11,7 @@ import { BookOpenIcon } from "@heroicons/react/24/outline";
 import { Flex, Form, Input, InputNumber, Select, theme } from "antd";
 
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
-import { Source, sourceTypes } from "@/app/lib/definitions";
+import { CollectionName, Source, sourceTypes } from "@/app/lib/definitions";
 import Links from "@/app/ui/shared/Links";
 import ReferenceCounter from "@/app/ui/shared/ReferenceCounter";
 
@@ -22,6 +22,7 @@ interface SourceEditProps {
   setValues: Dispatch<SetStateAction<any>>;
   setValid: Dispatch<SetStateAction<boolean>>;
   setIsNew: Dispatch<SetStateAction<boolean>>;
+  allowedToRefer: CollectionName[];
 }
 
 const SourceEdit = ({
@@ -29,6 +30,7 @@ const SourceEdit = ({
   setValues,
   setValid,
   setIsNew,
+  allowedToRefer,
 }: SourceEditProps) => {
   const [gameSystem] = useContext(GameSystemContext);
   const [urls, setUrls] = useState<string[]>(entity.urls || []);
@@ -100,7 +102,10 @@ const SourceEdit = ({
             style={{ color: colorTextPlaceholder }}
           />
           <div className="pl-1">
-            <ReferenceCounter references={entity.references} />
+            <ReferenceCounter
+              references={entity.references}
+              allowedToRefer={allowedToRefer}
+            />
           </div>
         </Flex>
         <Flex vertical style={{ padding: "0 8px 0 8px" }} className="w-full">

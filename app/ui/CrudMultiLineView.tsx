@@ -28,7 +28,7 @@ import type { ColumnsType } from "antd/es/table";
 import clsx from "clsx";
 
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
-import { EntityStatus, Playable } from "@/app/lib/definitions";
+import { CollectionName, EntityStatus, Playable } from "@/app/lib/definitions";
 import { NEW_ENTITY_TEMP_ID } from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
 import errorMessage from "@/app/ui/errorMessage";
 import {
@@ -179,6 +179,7 @@ interface BaseMultiLineViewProps<T extends Playable = Playable> {
   onSave?: (entity: T) => Promise<T | null>;
   onDelete?: (id: string) => Promise<void>;
   filterableFields?: (keyof T)[];
+  allowedToRefer?: CollectionName[];
 }
 
 // Props specific to List variant
@@ -189,8 +190,9 @@ interface ListProps<T extends Playable = Playable>
     setValues: Dispatch<SetStateAction<Partial<T>>>;
     setValid: Dispatch<SetStateAction<boolean>>;
     setIsNew: Dispatch<SetStateAction<boolean>>;
+    allowedToRefer: CollectionName[];
   }>;
-  view: React.ComponentType<{ entity: T }>;
+  view: React.ComponentType<{ entity: T; allowedToRefer: CollectionName[] }>;
   sortableFields?: SortableField<T>[];
 }
 
@@ -236,6 +238,7 @@ const useMultiLineViewLogic = <T extends Playable>({
   onDelete,
   filterableFields = [],
   sortableFields = [],
+  allowedToRefer = [],
 }: BaseMultiLineViewProps<T> & {
   sortableFields?: SortableField<T>[];
 }) => {
@@ -727,6 +730,7 @@ const CrudMultiLineViewList = <T extends Playable>({
   onDelete,
   filterableFields = [],
   sortableFields = [],
+  allowedToRefer = [],
 }: ListProps<T>) => {
   const {
     borderRadiusLG,
@@ -749,6 +753,7 @@ const CrudMultiLineViewList = <T extends Playable>({
     setIsValid,
     setValues,
   } = useMultiLineViewLogic({
+    allowedToRefer,
     entities,
     filterableFields,
     onDelete,
@@ -802,7 +807,11 @@ const CrudMultiLineViewList = <T extends Playable>({
                     show={true}
                     onChange={onChangeStatus}
                   >
-                    <ViewComponent key={entity._id} entity={entity} />
+                    <ViewComponent
+                      key={entity._id}
+                      entity={entity}
+                      allowedToRefer={allowedToRefer}
+                    />
                   </EntityStatusUI.Badge>
                 </Badge.Ribbon>
               )}
@@ -814,7 +823,11 @@ const CrudMultiLineViewList = <T extends Playable>({
                   show={false}
                   onChange={onChangeStatus}
                 >
-                  <ViewComponent key={entity._id} entity={entity} />
+                  <ViewComponent
+                    key={entity._id}
+                    entity={entity}
+                    allowedToRefer={allowedToRefer}
+                  />
                 </EntityStatusUI.Badge>
               )}
             </>
@@ -827,7 +840,11 @@ const CrudMultiLineViewList = <T extends Playable>({
               show={false}
               onChange={onChangeStatus}
             >
-              <ViewComponent key={entity._id} entity={entity} />
+              <ViewComponent
+                key={entity._id}
+                entity={entity}
+                allowedToRefer={allowedToRefer}
+              />
             </EntityStatusUI.Badge>
           )}
           {edit === entity._id && EditComponent && (
@@ -855,6 +872,7 @@ const CrudMultiLineViewList = <T extends Playable>({
                   setValues={setValues}
                   setValid={setIsValid}
                   setIsNew={setIsNew}
+                  allowedToRefer={allowedToRefer}
                 />
               </EntityStatusUI.Badge>
             </Badge.Ribbon>
@@ -882,6 +900,7 @@ const CrudMultiLineViewTable = <T extends Playable>({
   onDelete,
   filterableFields = [],
   rowFooter,
+  allowedToRefer,
 }: TableProps<T>) => {
   const {
     borderRadiusLG,
@@ -909,6 +928,7 @@ const CrudMultiLineViewTable = <T extends Playable>({
     setValues,
     values,
   } = useMultiLineViewLogic({
+    allowedToRefer,
     entities,
     filterableFields,
     onDelete,

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { Spin } from "antd";
 
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
@@ -22,12 +22,8 @@ const CosAdminKeywords = () => {
     }).then((value) => setKeywords(value));
   }, []);
 
-  // example how to use
-  useEffect(() => {
-    console.log(
-      `Allowed to Refer ("${collectionName}")`,
-      utils.getAllowedToRefer(collectionName),
-    );
+  const allowedToRefer = useMemo(() => {
+    return utils.getAllowedToRefer(collectionName);
   }, [gameSystem]);
 
   const onSave = async (keyword: Keyword): Promise<Keyword | null> => {
@@ -74,7 +70,10 @@ const CosAdminKeywords = () => {
         singleToolbarUntil={10}
         entities={keywords}
         rowFooter={(record: Keyword) => (
-          <ReferenceCounter references={record.references} />
+          <ReferenceCounter
+            references={record.references}
+            allowedToRefer={allowedToRefer}
+          />
         )}
         setEntities={setKeywords}
         sortableStatus={true}
@@ -82,6 +81,7 @@ const CosAdminKeywords = () => {
         onSave={onSave}
         onDelete={onDelete}
         filterableFields={["name", "description", "status"]}
+        allowedToRefer={allowedToRefer}
       />
     </Spin>
   );

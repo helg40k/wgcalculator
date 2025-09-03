@@ -1,11 +1,16 @@
 import { BookOpenIcon } from "@heroicons/react/24/outline";
 import { Flex, Row, theme, Typography } from "antd";
 
-import { Source } from "@/app/lib/definitions";
+import { CollectionName, Source } from "@/app/lib/definitions";
 import Links from "@/app/ui/shared/Links";
 import ReferenceCounter from "@/app/ui/shared/ReferenceCounter";
 
-const SourceView = ({ entity }: { entity: Source }) => {
+interface SourceViewProps {
+  entity: Source;
+  allowedToRefer: CollectionName[];
+}
+
+const SourceView = ({ entity, allowedToRefer }: SourceViewProps) => {
   const {
     token: {
       colorTextPlaceholder,
@@ -24,7 +29,10 @@ const SourceView = ({ entity }: { entity: Source }) => {
             style={{ color: colorTextPlaceholder }}
           />
           <div className="pl-1">
-            <ReferenceCounter references={entity.references} />
+            <ReferenceCounter
+              references={entity.references}
+              allowedToRefer={allowedToRefer}
+            />
           </div>
         </Flex>
         <Flex vertical style={{ padding: "0 8px 0 8px" }} className="w-full">

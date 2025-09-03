@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { Spin } from "antd";
 
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
@@ -21,12 +21,8 @@ const CosAdminSources = () => {
     }).then((value) => setSources(value));
   }, []);
 
-  // example how to use
-  useEffect(() => {
-    console.log(
-      `Allowed to Refer ("${collectionName}")`,
-      utils.getAllowedToRefer(collectionName),
-    );
+  const allowedToRefer = useMemo(() => {
+    return utils.getAllowedToRefer(collectionName);
   }, [gameSystem]);
 
   const onSave = async (source: Source): Promise<Source | null> => {
@@ -61,6 +57,7 @@ const CosAdminSources = () => {
           { key: "version", label: "Version" },
           { key: "status", label: "Status" },
         ]}
+        allowedToRefer={allowedToRefer}
       />
     </Spin>
   );
