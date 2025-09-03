@@ -339,7 +339,19 @@ const useMultiLineViewLogic = <T extends Playable>({
   const getEntitiesToSave = (id: string) => {
     const filteredEntities = entities.filter((ent) => id === ent._id);
     const oldEntity = filteredEntities[0] || {};
-    let newEntity = mergeDeep({}, oldEntity, values) as T;
+
+    // Trim string values in form data before merging
+    const trimmedValues: Partial<T> = {};
+    Object.keys(values).forEach((key) => {
+      const value = values[key as keyof T];
+      if (typeof value === "string") {
+        (trimmedValues as any)[key] = value.trim();
+      } else {
+        (trimmedValues as any)[key] = value;
+      }
+    });
+
+    let newEntity = mergeDeep({}, oldEntity, trimmedValues) as T;
 
     // Include editing status if it was changed during editing
     if (edit === id && editingStatus !== null) {
@@ -1057,46 +1069,75 @@ const CrudMultiLineViewTable = <T extends Playable>({
   }, [table]);
 
   // Convert table config to Ant Design columns
-  const columns: ColumnsType<T> = useMemo(
-    () =>
-      table.map((colConfig) => ({
-        dataIndex: colConfig.field as string,
-        key: colConfig.field as string,
-        render: (value: any, record: T) => {
-          const isEditing = edit === record._id;
+  const columns: ColumnsType<T> = useMemo(() => {
+    const assembleValidationRules = (
+      validationRules: Rule[] | undefined,
+      record: T,
+    ) => {
+      const rules = validationRules || [];
+      const uniqueRule: any = rules.find((r: any) => r.unique);
+      if (uniqueRule) {
+        return [
+          ...rules.filter((r: any) => !r.unique),
+          () => ({
+            validator(_: any, fieldValue: string) {
+              if (
+                entities.some(
+                  (ent: T) =>
+                    ent.name === fieldValue?.trim() && ent._id !== record._id,
+                )
+              ) {
+                return Promise.reject(new Error(uniqueRule.message));
+              }
+              return Promise.resolve();
+            },
+          }),
+        ];
+      }
+      return rules.length > 0 ? rules : undefined;
+    };
 
-          if (isEditing && colConfig.edit) {
-            // Use edit component if available and in edit mode
-            const EditComponent = colConfig.edit;
-            return (
-              <EditComponent
-                entity={record}
-                field={colConfig.field}
-                value={value}
-                validationRules={colConfig.validationRules}
-                setValues={setValues}
-                setValid={setIsValid}
-                setIsNew={setIsNew}
-              />
-            );
-          }
+    return table.map((colConfig) => ({
+      dataIndex: colConfig.field as string,
+      key: colConfig.field as string,
+      render: (value: any, record: T) => {
+        const isEditing = edit === record._id;
 
-          // Always use view component (mandatory)
-          const ViewComponent = colConfig.view;
+        const rules = assembleValidationRules(
+          colConfig.validationRules,
+          record,
+        );
+        if (isEditing && colConfig.edit) {
+          // Use edit component if available and in edit mode
+          const EditComponent = colConfig.edit;
           return (
-            <ViewComponent
+            <EditComponent
               entity={record}
               field={colConfig.field}
               value={value}
+              validationRules={rules}
+              setValues={setValues}
+              setValid={setIsValid}
+              setIsNew={setIsNew}
             />
           );
-        },
-        showSorterTooltip: false,
-        sorter: edit ? false : !!colConfig.sortable,
-        title: colConfig.header,
-      })),
-    [table, edit, setValues, setIsValid, setIsNew],
-  );
+        }
+
+        // Always use view component (mandatory)
+        const ViewComponent = colConfig.view;
+        return (
+          <ViewComponent
+            entity={record}
+            field={colConfig.field}
+            value={value}
+          />
+        );
+      },
+      showSorterTooltip: false,
+      sorter: edit ? false : !!colConfig.sortable,
+      title: colConfig.header,
+    }));
+  }, [table, edit, setValues, setIsValid, setIsNew]);
 
   // Add status column
   const statusColumn: ColumnsType<T>[0] = useMemo(

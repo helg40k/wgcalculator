@@ -31,7 +31,11 @@ const CosAdminKeywords = () => {
   }, [gameSystem]);
 
   const onSave = async (keyword: Keyword): Promise<Keyword | null> => {
-    if (keywords.some((k) => k.name === keyword.name.trim())) {
+    if (
+      keywords.some(
+        (k) => k.name === keyword.name.trim() && k._id !== keyword._id,
+      )
+    ) {
       throw new Error("Name must be unique!");
     }
     return await saveEntity(collectionName, keyword);
@@ -49,14 +53,7 @@ const CosAdminKeywords = () => {
       sortable: true,
       validationRules: [
         { message: "Name is required", required: true },
-        () => ({
-          validator(_: any, value: string) {
-            if (keywords.some((k) => k.name === value?.trim())) {
-              return Promise.reject(new Error("Name is unique"));
-            }
-            return Promise.resolve();
-          },
-        }),
+        { message: "Name is unique", unique: true },
       ],
       view: TableCell.View,
     },
