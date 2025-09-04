@@ -5,8 +5,8 @@ import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { CollectionRegistry, Keyword } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
 import CrudMultiLineView from "@/app/ui/CrudMultiLineView";
+import CrudTableCell from "@/app/ui/shared/CrudTableCell";
 import ReferenceCounter from "@/app/ui/shared/ReferenceCounter";
-import TableCell from "@/app/ui/shared/TableCell";
 
 const collectionName = CollectionRegistry.Keyword;
 
@@ -39,7 +39,7 @@ const CosAdminKeywords = () => {
 
   const tableData = [
     {
-      edit: TableCell.Edit,
+      edit: CrudTableCell.Edit,
       field: "name",
       header: "Name",
       sortable: true,
@@ -47,14 +47,14 @@ const CosAdminKeywords = () => {
         { message: "Name is required", required: true },
         { message: "Name is unique", unique: true },
       ],
-      view: TableCell.View,
+      view: CrudTableCell.View,
     },
     {
-      edit: TableCell.Edit,
+      edit: CrudTableCell.Edit,
       field: "description",
       header: "Description",
       sortable: true,
-      view: TableCell.View.Area,
+      view: CrudTableCell.View.Area,
     },
   ];
 

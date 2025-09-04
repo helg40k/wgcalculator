@@ -2,9 +2,8 @@ import React from "react";
 import { CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
 
 import { Playable } from "@/app/lib/definitions";
-import TableCellEditWithTypedComponents from "@/app/ui/shared/TableCell/TableCellEdit";
 
-interface TableCellViewProps {
+interface CrudTableCellViewProps {
   entity: Playable;
   field: keyof Playable | string;
   value: string | number | boolean;
@@ -17,11 +16,19 @@ const convertValueForView = (value: string | number | boolean) => {
   return value.toString();
 };
 
-const TableCellView = ({ entity, field, value }: TableCellViewProps) => {
+const CrudTableCellView = ({
+  entity,
+  field,
+  value,
+}: CrudTableCellViewProps) => {
   return convertValueForView(value);
 };
 
-const TableCellViewBool = ({ entity, field, value }: TableCellViewProps) => {
+const CrudTableCellViewBool = ({
+  entity,
+  field,
+  value,
+}: CrudTableCellViewProps) => {
   return value ? (
     <span className="text-green-700">
       <CheckCircleOutlined className="text-lg" />
@@ -33,21 +40,25 @@ const TableCellViewBool = ({ entity, field, value }: TableCellViewProps) => {
   );
 };
 
-const TableCellViewArea = ({ entity, field, value }: TableCellViewProps) => {
+const CrudTableCellViewArea = ({
+  entity,
+  field,
+  value,
+}: CrudTableCellViewProps) => {
   return <div className="whitespace-pre-wrap">{value}</div>;
 };
 
 // Create a typed component
-interface TableCellViewComponent {
-  (props: TableCellViewProps): React.ReactElement;
-  Area: (props: TableCellViewProps) => React.ReactElement;
-  Bool: (props: TableCellViewProps) => React.ReactElement;
+interface CrudTableCellViewComponent {
+  (props: CrudTableCellViewProps): React.ReactElement;
+  Area: (props: CrudTableCellViewProps) => React.ReactElement;
+  Bool: (props: CrudTableCellViewProps) => React.ReactElement;
 }
 
 // Attach the typed component as a property to TableCellView
-const TableCellViewWithTypedComponents =
-  TableCellView as unknown as TableCellViewComponent;
-TableCellViewWithTypedComponents.Area = TableCellViewArea;
-TableCellViewWithTypedComponents.Bool = TableCellViewBool;
+const CrudTableCellViewWithTypedComponents =
+  CrudTableCellView as unknown as CrudTableCellViewComponent;
+CrudTableCellViewWithTypedComponents.Area = CrudTableCellViewArea;
+CrudTableCellViewWithTypedComponents.Bool = CrudTableCellViewBool;
 
-export default TableCellViewWithTypedComponents;
+export default CrudTableCellViewWithTypedComponents;

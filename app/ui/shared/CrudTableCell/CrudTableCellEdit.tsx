@@ -7,24 +7,24 @@ const { TextArea } = Input;
 
 import "./style.css";
 
-interface TableCellEditProps {
+interface CrudTableCellEditProps {
   entity: Playable;
   field: keyof Playable | string;
   value: string | number | boolean;
   validationRules?: Rule[];
 }
 
-interface TableCellEditFormItemProps extends TableCellEditProps {
+interface CrudTableCellEditFormItemProps extends CrudTableCellEditProps {
   children: React.ReactNode;
 }
 
-const TableCellEditFormItem = ({
+const CrudTableCellEditFormItem = ({
   children,
   entity,
   field,
   value,
   validationRules,
-}: TableCellEditFormItemProps) => {
+}: CrudTableCellEditFormItemProps) => {
   return (
     <Form.Item
       name={field}
@@ -38,71 +38,71 @@ const TableCellEditFormItem = ({
   );
 };
 
-const TableCellEdit = ({
+const CrudTableCellEdit = ({
   entity,
   field,
   value,
   validationRules,
-}: TableCellEditProps) => {
+}: CrudTableCellEditProps) => {
   return (
-    <TableCellEditFormItem
+    <CrudTableCellEditFormItem
       entity={entity}
       field={field}
       value={value}
       validationRules={validationRules}
     >
       <Input />
-    </TableCellEditFormItem>
+    </CrudTableCellEditFormItem>
   );
 };
 
-const TableCellEditArea = ({
+const CrudTableCellEditArea = ({
   entity,
   field,
   value,
   validationRules,
-}: TableCellEditProps) => {
+}: CrudTableCellEditProps) => {
   return (
-    <TableCellEditFormItem
+    <CrudTableCellEditFormItem
       entity={entity}
       field={field}
       value={value}
       validationRules={validationRules}
     >
       <TextArea rows={2} />
-    </TableCellEditFormItem>
+    </CrudTableCellEditFormItem>
   );
 };
 
-const TableCellEditBool = ({
+const CrudTableCellEditBool = ({
   entity,
   field,
   value,
   validationRules,
-}: TableCellEditProps) => {
+}: CrudTableCellEditProps) => {
   return (
-    <TableCellEditFormItem
+    <CrudTableCellEditFormItem
       entity={entity}
       field={field}
       value={value}
       validationRules={validationRules}
     >
       <Switch />
-    </TableCellEditFormItem>
+    </CrudTableCellEditFormItem>
   );
 };
 
 // Create a typed component
-interface TableCellEditComponent {
-  (props: TableCellEditProps): React.ReactElement;
-  Area: (props: TableCellEditProps) => React.ReactElement;
-  Bool: (props: TableCellEditProps) => React.ReactElement;
+interface CrudTableCellEditComponent {
+  (props: CrudTableCellEditProps): React.ReactElement;
+  Area: (props: CrudTableCellEditProps) => React.ReactElement;
+  Bool: (props: CrudTableCellEditProps) => React.ReactElement;
 }
 
 // Attach the typed component as a property to TableCellView
-const TableCellEditWithTypedComponents =
-  TableCellEdit as unknown as TableCellEditComponent;
-TableCellEditWithTypedComponents.Area = TableCellEditArea;
-TableCellEditWithTypedComponents.Bool = TableCellEditBool;
+const CrudTableCellEditWithTypedComponents =
+  CrudTableCellEdit as unknown as CrudTableCellEditComponent;
+CrudTableCellEditWithTypedComponents.Area = CrudTableCellEditArea;
+CrudTableCellEditWithTypedComponents.Bool = CrudTableCellEditBool;
 
-export default TableCellEditWithTypedComponents;
+export default CrudTableCellEditWithTypedComponents;
