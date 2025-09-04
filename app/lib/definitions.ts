@@ -68,6 +68,10 @@ export interface Playable extends Entity {
   references?: References;
 }
 
+export type Mentions = {
+  [K in CollectionName]?: Playable[];
+};
+
 export interface Source extends Playable {
   authors?: string;
   year: number;

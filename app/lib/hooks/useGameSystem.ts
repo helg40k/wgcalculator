@@ -10,6 +10,7 @@ import {
 import getDocuments from "@/app/lib/services/firebase/helpers/getDocuments";
 
 interface GameSystemUtils {
+  canBeMentionedBy: (name: CollectionName) => CollectionName[];
   getAllowedToRefer: (name: CollectionName) => CollectionName[];
 }
 
@@ -55,7 +56,21 @@ const useGameSystem = (): [GameSystem | undefined, GameSystemUtils] => {
     [gameSystem?.referenceHierarchy],
   );
 
-  return [gameSystem, { getAllowedToRefer }];
+  const canBeMentionedBy = useCallback(
+    (name: CollectionName): CollectionName[] => {
+      if (!gameSystem?.referenceHierarchy) {
+        return [];
+      }
+      return Object.entries(gameSystem.referenceHierarchy)
+        .filter(([, references]) =>
+          references.some((colName) => colName === name),
+        )
+        .map(([collectionKey]) => collectionKey as CollectionName);
+    },
+    [gameSystem?.referenceHierarchy],
+  );
+
+  return [gameSystem, { canBeMentionedBy, getAllowedToRefer }];
 };
 
 export default useGameSystem;

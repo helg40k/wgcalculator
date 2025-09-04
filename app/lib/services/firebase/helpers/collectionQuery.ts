@@ -21,6 +21,7 @@ const collectionQuery = (
   sort: [string, OrderByDirection] | undefined,
   limitCount: number | undefined,
   pagination: DocumentSnapshot<any, any> | unknown[] | undefined,
+  withoutSort: boolean | undefined,
 ) => {
   const collRef = collection(firestore, collectionPath);
   let q = query(collRef);
@@ -48,10 +49,12 @@ const collectionQuery = (
     });
   }
 
-  if (sort && sort[0] && sort[1]) {
-    q = query(q, orderBy(...sort));
-  } else {
-    q = query(q, orderBy(...baseSortRule));
+  if (!withoutSort) {
+    if (sort && sort[0] && sort[1]) {
+      q = query(q, orderBy(...sort));
+    } else {
+      q = query(q, orderBy(...baseSortRule));
+    }
   }
 
   if (limitCount) {

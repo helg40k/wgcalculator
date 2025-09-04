@@ -1,16 +1,18 @@
+import { memo, useMemo } from "react";
 import { BookOpenIcon } from "@heroicons/react/24/outline";
 import { Flex, Row, theme, Typography } from "antd";
 
-import { CollectionName, Source } from "@/app/lib/definitions";
+import { CollectionRegistry, Source } from "@/app/lib/definitions";
 import Links from "@/app/ui/shared/Links";
 import ReferenceCounter from "@/app/ui/shared/ReferenceCounter";
 
+const collectionName = CollectionRegistry.Source;
+
 interface SourceViewProps {
   entity: Source;
-  allowedToRefer: CollectionName[];
 }
 
-const SourceView = ({ entity, allowedToRefer }: SourceViewProps) => {
+const SourceView = ({ entity }: SourceViewProps) => {
   const {
     token: {
       colorTextPlaceholder,
@@ -20,19 +22,31 @@ const SourceView = ({ entity, allowedToRefer }: SourceViewProps) => {
     },
   } = theme.useToken();
 
+  const themeTokens = useMemo(
+    () => ({
+      borderRadiusLG,
+      colorTextPlaceholder,
+      colorTextSecondary,
+      colorTextTertiary,
+    }),
+    [
+      colorTextPlaceholder,
+      colorTextSecondary,
+      colorTextTertiary,
+      borderRadiusLG,
+    ],
+  );
+
   return (
-    <Row style={{ borderRadius: borderRadiusLG }}>
+    <Row style={{ borderRadius: themeTokens.borderRadiusLG }}>
       <Flex justify="left" className="w-full">
         <Flex vertical>
           <BookOpenIcon
             className="w-30"
-            style={{ color: colorTextPlaceholder }}
+            style={{ color: themeTokens.colorTextPlaceholder }}
           />
           <div className="pl-1">
-            <ReferenceCounter
-              references={entity.references}
-              allowedToRefer={allowedToRefer}
-            />
+            <ReferenceCounter entity={entity} collectionName={collectionName} />
           </div>
         </Flex>
         <Flex vertical style={{ padding: "0 8px 0 8px" }} className="w-full">
@@ -43,7 +57,7 @@ const SourceView = ({ entity, allowedToRefer }: SourceViewProps) => {
             {entity.authors && (
               <div
                 className="text-xs ml-3"
-                style={{ color: colorTextTertiary }}
+                style={{ color: themeTokens.colorTextTertiary }}
               >
                 by {entity.authors}
               </div>
@@ -66,7 +80,7 @@ const SourceView = ({ entity, allowedToRefer }: SourceViewProps) => {
               <div
                 className="ml-10 whitespace-pre-wrap"
                 style={{
-                  color: colorTextSecondary,
+                  color: themeTokens.colorTextSecondary,
                 }}
               >
                 {entity.description}
@@ -79,4 +93,7 @@ const SourceView = ({ entity, allowedToRefer }: SourceViewProps) => {
   );
 };
 
-export default SourceView;
+export default memo(SourceView, (prevProps, nextProps) => {
+  // Only re-render if entity ID actually changed
+  return prevProps.entity._id === nextProps.entity._id;
+});

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Spin } from "antd";
 
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
@@ -11,7 +11,7 @@ import TableCell from "@/app/ui/shared/TableCell";
 const collectionName = CollectionRegistry.Keyword;
 
 const CosAdminKeywords = () => {
-  const [gameSystem, utils] = useContext(GameSystemContext);
+  const [gameSystem] = useContext(GameSystemContext);
   const { deleteEntity, loadEntities, loading, saveEntity } = useEntities();
   const [keywords, setKeywords] = useState<Keyword[]>([]);
 
@@ -21,10 +21,6 @@ const CosAdminKeywords = () => {
       sort: ["name", "asc"],
     }).then((value) => setKeywords(value));
   }, []);
-
-  const allowedToRefer = useMemo(() => {
-    return utils.getAllowedToRefer(collectionName);
-  }, [gameSystem]);
 
   const onSave = async (keyword: Keyword): Promise<Keyword | null> => {
     if (
@@ -70,10 +66,7 @@ const CosAdminKeywords = () => {
         singleToolbarUntil={10}
         entities={keywords}
         rowFooter={(record: Keyword) => (
-          <ReferenceCounter
-            references={record.references}
-            allowedToRefer={allowedToRefer}
-          />
+          <ReferenceCounter entity={record} collectionName={collectionName} />
         )}
         setEntities={setKeywords}
         sortableStatus={true}
@@ -81,7 +74,6 @@ const CosAdminKeywords = () => {
         onSave={onSave}
         onDelete={onDelete}
         filterableFields={["name", "description", "status"]}
-        allowedToRefer={allowedToRefer}
       />
     </Spin>
   );

@@ -8,7 +8,10 @@ type GameSystemContextType = ReturnType<typeof useGameSystem>;
 
 export const GameSystemContext = createContext<GameSystemContextType>([
   undefined,
-  { getAllowedToRefer: () => [] },
+  {
+    canBeMentionedBy: () => [],
+    getAllowedToRefer: () => [],
+  },
 ]);
 
 export const GameSystemProvider = ({ children }: { children: ReactNode }) => {

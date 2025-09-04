@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Spin } from "antd";
 
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
@@ -10,7 +10,7 @@ import SourceUI from "@/app/ui/shared/Source";
 const collectionName = CollectionRegistry.Source;
 
 const CosAdminSources = () => {
-  const [gameSystem, utils] = useContext(GameSystemContext);
+  const [gameSystem] = useContext(GameSystemContext);
   const { deleteEntity, loadEntities, loading, saveEntity } = useEntities();
   const [sources, setSources] = useState<Source[]>([]);
 
@@ -20,10 +20,6 @@ const CosAdminSources = () => {
       sort: ["year", "desc"],
     }).then((value) => setSources(value));
   }, []);
-
-  const allowedToRefer = useMemo(() => {
-    return utils.getAllowedToRefer(collectionName);
-  }, [gameSystem]);
 
   const onSave = async (source: Source): Promise<Source | null> => {
     if (!source.version) {
@@ -57,7 +53,6 @@ const CosAdminSources = () => {
           { key: "version", label: "Version" },
           { key: "status", label: "Status" },
         ]}
-        allowedToRefer={allowedToRefer}
       />
     </Spin>
   );

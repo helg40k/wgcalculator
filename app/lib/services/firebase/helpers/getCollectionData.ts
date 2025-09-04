@@ -13,6 +13,7 @@ export type Props = {
   sort: [string, OrderByDirection] | undefined;
   limit: number | undefined;
   pagination: DocumentSnapshot<any, any> | unknown[] | undefined;
+  withoutSort: boolean | undefined;
 };
 
 /**
@@ -25,7 +26,7 @@ export type Props = {
  */
 const getCollectionData = async (
   collectionPath: string,
-  { filters, sort, limit: limitCount, pagination }: Props,
+  { filters, sort, limit: limitCount, pagination, withoutSort }: Props,
 ): Promise<DocumentData[]> => {
   const quer = collectionQuery(
     collectionPath,
@@ -33,6 +34,7 @@ const getCollectionData = async (
     sort,
     limitCount,
     pagination,
+    withoutSort,
   );
   const snapshot = await getDocs(quer);
   return snapshot.docs.map((doc) => doc.data());

@@ -23,6 +23,7 @@ type EntityProps = {
   limit?: number | undefined;
   pagination?: DocumentSnapshot<any, any> | unknown[] | undefined;
   sort?: [string, OrderByDirection] | undefined;
+  withoutSort?: boolean;
 };
 
 const useEntities = () => {
@@ -98,6 +99,7 @@ const useEntities = () => {
       limit: options?.limit,
       pagination: options?.pagination,
       sort: options?.sort,
+      withoutSort: options?.withoutSort,
     };
 
     try {

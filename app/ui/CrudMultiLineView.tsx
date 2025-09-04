@@ -1,5 +1,6 @@
 import {
   Dispatch,
+  memo,
   SetStateAction,
   useCallback,
   useContext,
@@ -28,7 +29,7 @@ import type { ColumnsType } from "antd/es/table";
 import clsx from "clsx";
 
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
-import { CollectionName, EntityStatus, Playable } from "@/app/lib/definitions";
+import { EntityStatus, Playable } from "@/app/lib/definitions";
 import { NEW_ENTITY_TEMP_ID } from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
 import errorMessage from "@/app/ui/errorMessage";
 import {
@@ -179,7 +180,6 @@ interface BaseMultiLineViewProps<T extends Playable = Playable> {
   onSave?: (entity: T) => Promise<T | null>;
   onDelete?: (id: string) => Promise<void>;
   filterableFields?: (keyof T)[];
-  allowedToRefer?: CollectionName[];
 }
 
 // Props specific to List variant
@@ -190,9 +190,8 @@ interface ListProps<T extends Playable = Playable>
     setValues: Dispatch<SetStateAction<Partial<T>>>;
     setValid: Dispatch<SetStateAction<boolean>>;
     setIsNew: Dispatch<SetStateAction<boolean>>;
-    allowedToRefer: CollectionName[];
   }>;
-  view: React.ComponentType<{ entity: T; allowedToRefer: CollectionName[] }>;
+  view: React.ComponentType<{ entity: T }>;
   sortableFields?: SortableField<T>[];
 }
 
@@ -238,7 +237,6 @@ const useMultiLineViewLogic = <T extends Playable>({
   onDelete,
   filterableFields = [],
   sortableFields = [],
-  allowedToRefer = [],
 }: BaseMultiLineViewProps<T> & {
   sortableFields?: SortableField<T>[];
 }) => {
@@ -716,6 +714,160 @@ const useMultiLineViewLogic = <T extends Playable>({
   };
 };
 
+// Memoized wrapper for entity rendering to prevent unnecessary rerenders
+const EntityRenderer = memo(
+  function EntityRenderer({
+    entity,
+    edit,
+    EditComponent,
+    ViewComponent,
+    getCurrentStatus,
+    onChangeStatus,
+    onClickCancel,
+    onClickDelete,
+    onClickEdit,
+    onClickSave,
+    isNew,
+    isValid,
+    setIsNew,
+    setIsValid,
+    setValues,
+    singleName,
+  }: {
+    entity: any;
+    edit: string | null;
+    EditComponent?: React.ComponentType<any>;
+    ViewComponent: React.ComponentType<any>;
+    getCurrentStatus: (entity: any) => EntityStatus;
+    onChangeStatus: (id: string, newStatus: EntityStatus) => Promise<void>;
+    onClickCancel: () => void;
+    onClickDelete: (id: string, name: string) => void;
+    onClickEdit: (id: string) => void;
+    onClickSave: () => void;
+    isNew: boolean;
+    isValid: boolean;
+    setIsNew: Dispatch<SetStateAction<boolean>>;
+    setIsValid: Dispatch<SetStateAction<boolean>>;
+    setValues: Dispatch<SetStateAction<any>>;
+    singleName: string;
+  }) {
+    const viewElement = <ViewComponent entity={entity} />;
+
+    return (
+      <div>
+        {(!edit || !EditComponent) && (
+          <EntityStatusUI.Badge
+            entityId={entity._id}
+            status={getCurrentStatus(entity)}
+            editable={true}
+            show={false}
+            onChange={onChangeStatus}
+          >
+            {viewElement}
+          </EntityStatusUI.Badge>
+        )}
+        {edit && edit !== entity._id && (
+          <EntityStatusUI.Badge
+            entityId={entity._id}
+            status={getCurrentStatus(entity)}
+            editable={false}
+            show={false}
+            onChange={onChangeStatus}
+          >
+            {viewElement}
+          </EntityStatusUI.Badge>
+        )}
+        {edit === entity._id && EditComponent && (
+          <Badge.Ribbon
+            className="border-1 border-gray-400"
+            text={
+              <EditModeButtons
+                onClickSave={onClickSave}
+                onClickCancel={onClickCancel}
+                isValid={isValid}
+                isNew={isNew}
+              />
+            }
+            color="lightGrey"
+          >
+            <EntityStatusUI.Badge
+              entityId={entity._id}
+              status={getCurrentStatus(entity)}
+              editable={NEW_ENTITY_TEMP_ID !== entity._id}
+              onChange={onChangeStatus}
+            >
+              <EditComponent
+                entity={entity}
+                setValues={setValues}
+                setValid={setIsValid}
+                setIsNew={setIsNew}
+              />
+            </EntityStatusUI.Badge>
+          </Badge.Ribbon>
+        )}
+      </div>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Only re-render if entity ID or edit state changed
+    const entityChanged = prevProps.entity._id !== nextProps.entity._id;
+    const editChanged = prevProps.edit !== nextProps.edit;
+
+    return !entityChanged && !editChanged;
+  },
+);
+
+// Separate hover component that can re-render without affecting EntityRenderer
+const HoverBadge = memo(function HoverBadge({
+  entity,
+  singleName,
+  EditComponent,
+  edit,
+  onClickEdit,
+  onClickDelete,
+  getCurrentStatus,
+  onChangeStatus,
+  ViewComponent,
+}: {
+  entity: any;
+  singleName: string;
+  EditComponent?: React.ComponentType<any>;
+  edit: string | null;
+  onClickEdit: (id: string) => void;
+  onClickDelete: (id: string, name: string) => void;
+  getCurrentStatus: (entity: any) => EntityStatus;
+  onChangeStatus: (id: string, newStatus: EntityStatus) => Promise<void>;
+  ViewComponent: React.ComponentType<any>;
+}) {
+  return (
+    <Badge.Ribbon
+      className="border-1 border-gray-300"
+      text={
+        <ActionButtons
+          entityId={entity._id}
+          entityName={entity.name}
+          singleName={singleName}
+          edit={!!EditComponent}
+          isEditing={!!edit}
+          onClickEdit={onClickEdit}
+          onClickDelete={onClickDelete}
+        />
+      }
+      color="white"
+    >
+      <EntityStatusUI.Badge
+        entityId={entity._id}
+        status={getCurrentStatus(entity)}
+        editable={true}
+        show={true}
+        onChange={onChangeStatus}
+      >
+        <ViewComponent entity={entity} />
+      </EntityStatusUI.Badge>
+    </Badge.Ribbon>
+  );
+});
+
 // List Component
 const CrudMultiLineViewList = <T extends Playable>({
   singleName = "item",
@@ -730,7 +882,6 @@ const CrudMultiLineViewList = <T extends Playable>({
   onDelete,
   filterableFields = [],
   sortableFields = [],
-  allowedToRefer = [],
 }: ListProps<T>) => {
   const {
     borderRadiusLG,
@@ -753,7 +904,6 @@ const CrudMultiLineViewList = <T extends Playable>({
     setIsValid,
     setValues,
   } = useMultiLineViewLogic({
-    allowedToRefer,
     entities,
     filterableFields,
     onDelete,
@@ -769,116 +919,64 @@ const CrudMultiLineViewList = <T extends Playable>({
       {(toolbarPosition === ToolbarPosition.UP ||
         singleToolbarUntil <= entities.length) &&
         createToolbar(ToolbarPosition.UP, !!EditComponent)}
-      {filteredAndSortedEntities?.map((entity) => (
-        <div
-          key={`multi-line-key-${entity._id}`}
-          onMouseEnter={() => !edit && setHovered(entity._id)}
-          onMouseLeave={() => setHovered(null)}
-          style={{
-            backgroundColor:
-              hovered === entity._id && !edit
-                ? colorBgTextHover
-                : colorBgContainer,
-            borderRadius: borderRadiusLG,
-          }}
-        >
-          {(!edit || !EditComponent) && (
-            <>
-              {hovered === entity._id && !edit && (
-                <Badge.Ribbon
-                  className="border-1 border-gray-300"
-                  text={
-                    <ActionButtons
-                      entityId={entity._id}
-                      entityName={entity.name}
-                      singleName={singleName}
-                      edit={!!EditComponent}
-                      isEditing={!!edit}
-                      onClickEdit={onClickEdit}
-                      onClickDelete={onClickDelete}
-                    />
-                  }
-                  color="white"
-                >
-                  <EntityStatusUI.Badge
-                    entityId={entity._id}
-                    status={getCurrentStatus(entity)}
-                    editable={true}
-                    show={true}
-                    onChange={onChangeStatus}
-                  >
-                    <ViewComponent
-                      key={entity._id}
-                      entity={entity}
-                      allowedToRefer={allowedToRefer}
-                    />
-                  </EntityStatusUI.Badge>
-                </Badge.Ribbon>
-              )}
-              {hovered !== entity._id && (
-                <EntityStatusUI.Badge
-                  entityId={entity._id}
-                  status={getCurrentStatus(entity)}
-                  editable={true}
-                  show={false}
-                  onChange={onChangeStatus}
-                >
-                  <ViewComponent
-                    key={entity._id}
-                    entity={entity}
-                    allowedToRefer={allowedToRefer}
-                  />
-                </EntityStatusUI.Badge>
-              )}
-            </>
-          )}
-          {edit && edit !== entity._id && (
-            <EntityStatusUI.Badge
-              entityId={entity._id}
-              status={getCurrentStatus(entity)}
-              editable={false}
-              show={false}
-              onChange={onChangeStatus}
-            >
-              <ViewComponent
-                key={entity._id}
-                entity={entity}
-                allowedToRefer={allowedToRefer}
-              />
-            </EntityStatusUI.Badge>
-          )}
-          {edit === entity._id && EditComponent && (
-            <Badge.Ribbon
-              className="border-1 border-gray-400"
-              text={
-                <EditModeButtons
-                  onClickSave={onClickSave}
-                  onClickCancel={onClickCancel}
-                  isValid={isValid}
-                  isNew={isNew}
-                />
-              }
-              color="lightGrey"
-            >
-              <EntityStatusUI.Badge
-                entityId={entity._id}
-                status={getCurrentStatus(entity)}
-                editable={NEW_ENTITY_TEMP_ID !== entity._id}
-                onChange={onChangeStatus}
+      {filteredAndSortedEntities?.map((entity) => {
+        const isHovered = hovered === entity._id;
+        return (
+          <div
+            key={`multi-line-key-${entity._id}`}
+            onMouseEnter={() => !edit && setHovered(entity._id)}
+            onMouseLeave={() => setHovered(null)}
+            style={{
+              backgroundColor:
+                isHovered && !edit ? colorBgTextHover : colorBgContainer,
+              borderRadius: borderRadiusLG,
+              position: "relative",
+            }}
+          >
+            <EntityRenderer
+              entity={entity}
+              edit={edit}
+              EditComponent={EditComponent}
+              ViewComponent={ViewComponent}
+              getCurrentStatus={getCurrentStatus}
+              onChangeStatus={onChangeStatus}
+              onClickCancel={onClickCancel}
+              onClickDelete={onClickDelete}
+              onClickEdit={onClickEdit}
+              onClickSave={onClickSave}
+              isNew={isNew}
+              isValid={isValid}
+              setIsNew={setIsNew}
+              setIsValid={setIsValid}
+              setValues={setValues}
+              singleName={singleName}
+            />
+            {isHovered && !edit && EditComponent && (
+              <div
+                style={{
+                  left: 0,
+                  position: "absolute",
+                  right: 0,
+                  top: 0,
+                  zIndex: 10,
+                }}
               >
-                <EditComponent
-                  key={entity._id}
+                <HoverBadge
                   entity={entity}
-                  setValues={setValues}
-                  setValid={setIsValid}
-                  setIsNew={setIsNew}
-                  allowedToRefer={allowedToRefer}
+                  singleName={singleName}
+                  EditComponent={EditComponent}
+                  edit={edit}
+                  onClickEdit={onClickEdit}
+                  onClickDelete={onClickDelete}
+                  getCurrentStatus={getCurrentStatus}
+                  onChangeStatus={onChangeStatus}
+                  ViewComponent={ViewComponent}
                 />
-              </EntityStatusUI.Badge>
-            </Badge.Ribbon>
-          )}
-        </div>
-      ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
       {(toolbarPosition === ToolbarPosition.DOWN ||
         singleToolbarUntil <= entities.length) &&
         createToolbar(ToolbarPosition.DOWN, !!EditComponent)}
@@ -900,7 +998,6 @@ const CrudMultiLineViewTable = <T extends Playable>({
   onDelete,
   filterableFields = [],
   rowFooter,
-  allowedToRefer,
 }: TableProps<T>) => {
   const {
     borderRadiusLG,
@@ -928,7 +1025,6 @@ const CrudMultiLineViewTable = <T extends Playable>({
     setValues,
     values,
   } = useMultiLineViewLogic({
-    allowedToRefer,
     entities,
     filterableFields,
     onDelete,
