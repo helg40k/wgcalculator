@@ -1409,13 +1409,13 @@ const CrudMultiLineViewTable = <T extends Playable>({
             ? {
                 expandedRowKeys: expandedRowKeys,
                 expandedRowRender: (record: T) => (
-                  <div 
+                  <div
                     className={clsx({
                       "bg-blue-50": edit === record._id,
                     })}
-                    style={{ 
-                      margin: '-8px -8px',
-                      padding: '8px 8px'
+                    style={{
+                      margin: "-8px -8px",
+                      padding: "8px 8px",
                     }}
                   >
                     {rowFooter(record)}

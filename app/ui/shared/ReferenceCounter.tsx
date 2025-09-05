@@ -1,4 +1,11 @@
-import { memo, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   ArrowUturnRightIcon,
   PaperClipIcon,
@@ -90,40 +97,55 @@ const ReferenceCounter = ({
       : `${displayNumber} outer mentions`;
   }, [displayNumber]);
 
-  const getCalculatedCollections = useCallback((collectionNames: CollectionName[]) => {
-    const result: Record<CollectionName, number> = {} as Record<
-      CollectionName,
-      number
-    >;
-    if (collectionNames) {
-      collectionNames.forEach((collName) => {
-        const previousQuantity = result[collName] || 0;
-        result[collName] = previousQuantity + 1;
-      });
-    }
-    return result;
-  }, []);
+  const getCalculatedCollections = useCallback(
+    (collectionNames: CollectionName[]) => {
+      const result: Record<CollectionName, number> = {} as Record<
+        CollectionName,
+        number
+      >;
+      if (collectionNames) {
+        collectionNames.forEach((collName) => {
+          const previousQuantity = result[collName] || 0;
+          result[collName] = previousQuantity + 1;
+        });
+      }
+      return result;
+    },
+    [],
+  );
 
-  const tooltipBody = useMemo(() => (
-    <div style={{ color: colorText }}>
-      <div>{refMessage} added</div>
-      {0 < refNumber &&
-        Object.entries(
-          getCalculatedCollections(Object.values(entity.references || {})),
-        ).map(([collName, quantity]) => (
-          <div key={collName}>{`${quantity} ${collName}`}</div>
-        ))}
-      <div>{mentMessage} found</div>
-      {0 < mentNumber &&
-        Object.entries(
-          getCalculatedCollections(
-            Object.keys(mentions || {}) as CollectionName[],
-          ),
-        ).map(([collName, quantity]) => (
-          <div key={collName}>{`${quantity} ${collName}`}</div>
-        ))}
-    </div>
-  ), [colorText, refMessage, refNumber, mentMessage, mentNumber, entity.references, mentions, getCalculatedCollections]);
+  const tooltipBody = useMemo(
+    () => (
+      <div style={{ color: colorText }}>
+        <div>{refMessage} added</div>
+        {0 < refNumber &&
+          Object.entries(
+            getCalculatedCollections(Object.values(entity.references || {})),
+          ).map(([collName, quantity]) => (
+            <div key={collName}>{`${quantity} ${collName}`}</div>
+          ))}
+        <div>{mentMessage} found</div>
+        {0 < mentNumber &&
+          Object.entries(
+            getCalculatedCollections(
+              Object.keys(mentions || {}) as CollectionName[],
+            ),
+          ).map(([collName, quantity]) => (
+            <div key={collName}>{`${quantity} ${collName}`}</div>
+          ))}
+      </div>
+    ),
+    [
+      colorText,
+      refMessage,
+      refNumber,
+      mentMessage,
+      mentNumber,
+      entity.references,
+      mentions,
+      getCalculatedCollections,
+    ],
+  );
 
   return (
     <div
