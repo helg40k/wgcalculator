@@ -12,8 +12,8 @@ import { Flex, Form, Input, InputNumber, Select, theme } from "antd";
 
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { CollectionRegistry, Source, sourceTypes } from "@/app/lib/definitions";
+import ReferenceCounter from "@/app/ui/shared/CrudReferenceCounter";
 import Links from "@/app/ui/shared/Links";
-import ReferenceCounter from "@/app/ui/shared/ReferenceCounter";
 
 const { TextArea } = Input;
 

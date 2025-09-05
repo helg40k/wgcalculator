@@ -3,8 +3,8 @@ import { BookOpenIcon } from "@heroicons/react/24/outline";
 import { Flex, Row, theme, Typography } from "antd";
 
 import { CollectionRegistry, Source } from "@/app/lib/definitions";
+import ReferenceCounter from "@/app/ui/shared/CrudReferenceCounter";
 import Links from "@/app/ui/shared/Links";
-import ReferenceCounter from "@/app/ui/shared/ReferenceCounter";
 
 const collectionName = CollectionRegistry.Source;
 

@@ -5,8 +5,8 @@ import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { CollectionRegistry, Keyword } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
 import CrudMultiLineView from "@/app/ui/CrudMultiLineView";
+import ReferenceCounter from "@/app/ui/shared/CrudReferenceCounter";
 import CrudTableCell from "@/app/ui/shared/CrudTableCell";
-import ReferenceCounter from "@/app/ui/shared/ReferenceCounter";
 
 const collectionName = CollectionRegistry.Keyword;
 

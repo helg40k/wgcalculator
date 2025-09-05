@@ -26,7 +26,12 @@ const ReferenceCounter = ({
   collectionName,
 }: ReferenceCounterProps) => {
   const {
-    token: { colorText, colorTextSecondary },
+    token: {
+      colorText,
+      colorTextSecondary,
+      colorTextTertiary,
+      colorTextDisabled,
+    },
   } = theme.useToken();
   const [, utils] = useContext(GameSystemContext);
   const { loadEntities, loading, saveEntity } = useEntities();
@@ -82,7 +87,7 @@ const ReferenceCounter = ({
   }, [mentions, entity._id]);
 
   // Use previous number if current is 0 and we have a previous value
-  const displayNumber =
+  const displayMentNumber =
     mentNumber === 0 && getPreviousMentNumber() > 0
       ? getPreviousMentNumber()
       : mentNumber;
@@ -92,10 +97,10 @@ const ReferenceCounter = ({
   }, [refNumber]);
 
   const mentMessage = useMemo(() => {
-    return 1 === displayNumber
+    return 1 === displayMentNumber
       ? "1 outer mention"
-      : `${displayNumber} outer mentions`;
-  }, [displayNumber]);
+      : `${displayMentNumber} outer mentions`;
+  }, [displayMentNumber]);
 
   const getCalculatedCollections = useCallback(
     (collectionNames: CollectionName[]) => {
@@ -114,25 +119,33 @@ const ReferenceCounter = ({
     [],
   );
 
+  const renderTooltipCollectionList = useCallback(
+    (collections: CollectionName[]) => {
+      return Object.entries(getCalculatedCollections(collections))
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([collName, quantity]) => (
+          <div key={collName} className="text-xs ml-10">
+            {quantity} <span className="font-mono">{collName}</span>
+          </div>
+        ));
+    },
+    [getCalculatedCollections],
+  );
+
   const tooltipBody = useMemo(
     () => (
       <div style={{ color: colorText }}>
-        <div>{refMessage} added</div>
+        <div className="ml-4">{refMessage} added</div>
         {0 < refNumber &&
-          Object.entries(
-            getCalculatedCollections(Object.values(entity.references || {})),
-          ).map(([collName, quantity]) => (
-            <div key={collName}>{`${quantity} ${collName}`}</div>
-          ))}
-        <div>{mentMessage} found</div>
+          renderTooltipCollectionList(Object.values(entity.references || {}))}
+        <div className="ml-4">{mentMessage} found</div>
         {0 < mentNumber &&
-          Object.entries(
-            getCalculatedCollections(
-              Object.keys(mentions || {}) as CollectionName[],
-            ),
-          ).map(([collName, quantity]) => (
-            <div key={collName}>{`${quantity} ${collName}`}</div>
-          ))}
+          renderTooltipCollectionList(
+            Object.keys(mentions || {}) as CollectionName[],
+          )}
+        <div className="mt-2 text-xs" style={{ color: colorTextDisabled }}>
+          *Click to manage or get know more
+        </div>
       </div>
     ),
     [
@@ -149,15 +162,18 @@ const ReferenceCounter = ({
 
   return (
     <div
-      className="flex p-0.5 text-nowrap justify-start"
+      className="flex p-0.5 text-nowrap justify-start cursor-pointer"
       style={{ color: colorTextSecondary }}
     >
       <Tooltip title={tooltipBody} color="white" mouseEnterDelay={0.5}>
-        <div className="flex items-center">
+        <div
+          className="flex items-center"
+          style={0 === refNumber ? { color: colorTextTertiary } : undefined}
+        >
           <PaperClipIcon className="h-3.5" />
           <span className="pl-0.5">{refMessage}</span>
         </div>
-        {0 < mentNumber && (
+        {0 < displayMentNumber && (
           <div className="flex items-center">
             <ArrowUturnRightIcon className="h-3.5" />
             <span className="pl-0.5">{mentMessage}</span>
