@@ -714,108 +714,99 @@ const useMultiLineViewLogic = <T extends Playable>({
   };
 };
 
-// Memoized wrapper for entity rendering to prevent unnecessary rerenders
-const EntityRenderer = memo(
-  function EntityRenderer({
-    entity,
-    edit,
-    EditComponent,
-    ViewComponent,
-    getCurrentStatus,
-    onChangeStatus,
-    onClickCancel,
-    onClickDelete,
-    onClickEdit,
-    onClickSave,
-    isNew,
-    isValid,
-    setIsNew,
-    setIsValid,
-    setValues,
-    singleName,
-  }: {
-    entity: any;
-    edit: string | null;
-    EditComponent?: React.ComponentType<any>;
-    ViewComponent: React.ComponentType<any>;
-    getCurrentStatus: (entity: any) => EntityStatus;
-    onChangeStatus: (id: string, newStatus: EntityStatus) => Promise<void>;
-    onClickCancel: () => void;
-    onClickDelete: (id: string, name: string) => void;
-    onClickEdit: (id: string) => void;
-    onClickSave: () => void;
-    isNew: boolean;
-    isValid: boolean;
-    setIsNew: Dispatch<SetStateAction<boolean>>;
-    setIsValid: Dispatch<SetStateAction<boolean>>;
-    setValues: Dispatch<SetStateAction<any>>;
-    singleName: string;
-  }) {
-    const viewElement = <ViewComponent entity={entity} />;
+// TODO unnecessary wrapper, inline it!
+const EntityRenderer = ({
+  entity,
+  edit,
+  EditComponent,
+  ViewComponent,
+  getCurrentStatus,
+  onChangeStatus,
+  onClickCancel,
+  onClickDelete,
+  onClickEdit,
+  onClickSave,
+  isNew,
+  isValid,
+  setIsNew,
+  setIsValid,
+  setValues,
+  singleName,
+}: {
+  entity: any;
+  edit: string | null;
+  EditComponent?: React.ComponentType<any>;
+  ViewComponent: React.ComponentType<any>;
+  getCurrentStatus: (entity: any) => EntityStatus;
+  onChangeStatus: (id: string, newStatus: EntityStatus) => Promise<void>;
+  onClickCancel: () => void;
+  onClickDelete: (id: string, name: string) => void;
+  onClickEdit: (id: string) => void;
+  onClickSave: () => void;
+  isNew: boolean;
+  isValid: boolean;
+  setIsNew: Dispatch<SetStateAction<boolean>>;
+  setIsValid: Dispatch<SetStateAction<boolean>>;
+  setValues: Dispatch<SetStateAction<any>>;
+  singleName: string;
+}) => {
+  const viewElement = <ViewComponent entity={entity} />;
 
-    return (
-      <div>
-        {(!edit || !EditComponent) && (
+  return (
+    <div>
+      {(!edit || !EditComponent) && (
+        <EntityStatusUI.Badge
+          entityId={entity._id}
+          status={getCurrentStatus(entity)}
+          editable={true}
+          show={false}
+          onChange={onChangeStatus}
+        >
+          {viewElement}
+        </EntityStatusUI.Badge>
+      )}
+      {edit && edit !== entity._id && (
+        <EntityStatusUI.Badge
+          entityId={entity._id}
+          status={getCurrentStatus(entity)}
+          editable={false}
+          show={false}
+          onChange={onChangeStatus}
+        >
+          {viewElement}
+        </EntityStatusUI.Badge>
+      )}
+      {edit === entity._id && EditComponent && (
+        <Badge.Ribbon
+          className="border-1 border-gray-400"
+          text={
+            <EditModeButtons
+              onClickSave={onClickSave}
+              onClickCancel={onClickCancel}
+              isValid={isValid}
+              isNew={isNew}
+            />
+          }
+          color="lightGrey"
+        >
           <EntityStatusUI.Badge
             entityId={entity._id}
             status={getCurrentStatus(entity)}
-            editable={true}
-            show={false}
+            editable={NEW_ENTITY_TEMP_ID !== entity._id}
             onChange={onChangeStatus}
           >
-            {viewElement}
+            <EditComponent
+              entity={entity}
+              setValues={setValues}
+              setValid={setIsValid}
+              setIsNew={setIsNew}
+            />
           </EntityStatusUI.Badge>
-        )}
-        {edit && edit !== entity._id && (
-          <EntityStatusUI.Badge
-            entityId={entity._id}
-            status={getCurrentStatus(entity)}
-            editable={false}
-            show={false}
-            onChange={onChangeStatus}
-          >
-            {viewElement}
-          </EntityStatusUI.Badge>
-        )}
-        {edit === entity._id && EditComponent && (
-          <Badge.Ribbon
-            className="border-1 border-gray-400"
-            text={
-              <EditModeButtons
-                onClickSave={onClickSave}
-                onClickCancel={onClickCancel}
-                isValid={isValid}
-                isNew={isNew}
-              />
-            }
-            color="lightGrey"
-          >
-            <EntityStatusUI.Badge
-              entityId={entity._id}
-              status={getCurrentStatus(entity)}
-              editable={NEW_ENTITY_TEMP_ID !== entity._id}
-              onChange={onChangeStatus}
-            >
-              <EditComponent
-                entity={entity}
-                setValues={setValues}
-                setValid={setIsValid}
-                setIsNew={setIsNew}
-              />
-            </EntityStatusUI.Badge>
-          </Badge.Ribbon>
-        )}
-      </div>
-    );
-  },
-  (prevProps, nextProps) => {
-    // Only re-render if entity ID or edit state changed
-    const entityChanged = prevProps.entity._id !== nextProps.entity._id;
-    const editChanged = prevProps.edit !== nextProps.edit;
-
-    return !entityChanged && !editChanged;
-  },
-);
+        </Badge.Ribbon>
+      )}
+    </div>
+  );
+};
 
 // Separate hover component that can re-render without affecting EntityRenderer
 const HoverBadge = memo(function HoverBadge({

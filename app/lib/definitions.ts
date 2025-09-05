@@ -26,6 +26,7 @@ export const sourceTypes = [
   "expansion",
   "FAQ/errata",
   "playtest",
+  "technical",
 ] as const;
 export type SourceType = (typeof sourceTypes)[number];
 

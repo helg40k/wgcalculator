@@ -157,10 +157,12 @@ const ReferenceCounter = ({
           <PaperClipIcon className="h-3.5" />
           <span className="pl-0.5">{refMessage}</span>
         </div>
-        <div className="flex items-center">
-          <ArrowUturnRightIcon className="h-3.5" />
-          <span className="pl-0.5">{mentMessage}</span>
-        </div>
+        {0 < mentNumber && (
+          <div className="flex items-center">
+            <ArrowUturnRightIcon className="h-3.5" />
+            <span className="pl-0.5">{mentMessage}</span>
+          </div>
+        )}
       </Tooltip>
     </div>
   );
