@@ -1408,7 +1408,19 @@ const CrudMultiLineViewTable = <T extends Playable>({
           rowFooter
             ? {
                 expandedRowKeys: expandedRowKeys,
-                expandedRowRender: (record: T) => rowFooter(record),
+                expandedRowRender: (record: T) => (
+                  <div 
+                    className={clsx({
+                      "bg-blue-50": edit === record._id,
+                    })}
+                    style={{ 
+                      margin: '-8px -8px',
+                      padding: '8px 8px'
+                    }}
+                  >
+                    {rowFooter(record)}
+                  </div>
+                ),
                 showExpandColumn: false, // Hide expand column
               }
             : undefined
@@ -1422,9 +1434,8 @@ const CrudMultiLineViewTable = <T extends Playable>({
         onRow={useCallback((record: T) => ({}), [])}
         rowClassName={useCallback(
           (record: T) => {
-            const isEditing = edit === record._id;
             return clsx({
-              "bg-blue-50": isEditing,
+              "bg-blue-50": edit === record._id,
             });
           },
           [edit],
