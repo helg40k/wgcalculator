@@ -6,6 +6,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { createRoot } from "react-dom/client";
 import {
   ArrowUturnRightIcon,
   PaperClipIcon,
@@ -15,6 +16,7 @@ import { theme, Tooltip } from "antd";
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { CollectionName, Mentions, Playable } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
+import CrudReferenceModal from "@/app/ui/shared/CrudReferenceCounter/CrudReferenceModal";
 
 interface ReferenceCounterProps<T extends Playable = Playable> {
   entity: T;
@@ -160,27 +162,53 @@ const ReferenceCounter = ({
     ],
   );
 
+  const onClick = () => {
+    const modalContainer = document.createElement("div");
+    document.body.appendChild(modalContainer);
+
+    const root = createRoot(modalContainer);
+
+    const closeModal = () => {
+      root.unmount();
+      document.body.removeChild(modalContainer);
+    };
+
+    root.render(
+      <CrudReferenceModal
+        showModal={true}
+        entityName={entity.name}
+        onOk={closeModal}
+        onCancel={closeModal}
+        references={entity.references || {}}
+        mentions={mentions}
+      />,
+    );
+  };
+
   return (
-    <div
-      className="flex p-0.5 text-nowrap justify-start cursor-pointer"
-      style={{ color: colorTextSecondary }}
-    >
-      <Tooltip title={tooltipBody} color="white" mouseEnterDelay={0.5}>
-        <div
-          className="flex items-center"
-          style={0 === refNumber ? { color: colorTextTertiary } : undefined}
-        >
-          <PaperClipIcon className="h-3.5" />
-          <span className="pl-0.5">{refMessage}</span>
-        </div>
-        {0 < displayMentNumber && (
-          <div className="flex items-center">
-            <ArrowUturnRightIcon className="h-3.5" />
-            <span className="pl-0.5">{mentMessage}</span>
+    <>
+      <div
+        className="flex p-0.5 text-nowrap justify-start cursor-pointer"
+        style={{ color: colorTextSecondary }}
+        onClick={onClick}
+      >
+        <Tooltip title={tooltipBody} color="white" mouseEnterDelay={0.5}>
+          <div
+            className="flex items-center"
+            style={0 === refNumber ? { color: colorTextTertiary } : undefined}
+          >
+            <PaperClipIcon className="h-3.5" />
+            <span className="pl-0.5">{refMessage}</span>
           </div>
-        )}
-      </Tooltip>
-    </div>
+          {0 < displayMentNumber && (
+            <div className="flex items-center">
+              <ArrowUturnRightIcon className="h-3.5" />
+              <span className="pl-0.5">{mentMessage}</span>
+            </div>
+          )}
+        </Tooltip>
+      </div>
+    </>
   );
 };
 
