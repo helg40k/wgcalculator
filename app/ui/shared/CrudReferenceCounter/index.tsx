@@ -58,7 +58,7 @@ const ReferenceCounter = ({
       const loadedMentions = {} as Mentions;
       for (const mentionCollectionName of canBeMentionedBy) {
         loadedMentions[mentionCollectionName] = await loadEntities<Playable>(
-          collectionName,
+          mentionCollectionName,
           {
             filters: [[`references.${entity._id}`, "==", collectionName]],
             withoutSort: true,
@@ -70,6 +70,10 @@ const ReferenceCounter = ({
 
     loadMentions();
   }, []); // Empty dependency array - only run once
+
+  const allowedToRefer = useMemo(() => {
+    return utils.getAllowedToRefer(collectionName);
+  }, [collectionName, utils]);
 
   const refNumber = useMemo(() => {
     return !entity.references ? 0 : Object.keys(entity.references).length;
@@ -181,6 +185,8 @@ const ReferenceCounter = ({
         onCancel={closeModal}
         references={entity.references || {}}
         mentions={mentions}
+        collectionName={collectionName}
+        allowedToRefer={allowedToRefer}
       />,
     );
   };
