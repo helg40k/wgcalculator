@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CaretRightOutlined } from "@ant-design/icons";
-import { Collapse, CollapseProps, Divider, Modal, theme } from "antd";
+import { TrashIcon } from "@heroicons/react/24/outline";
+import { Button, Collapse, CollapseProps, Divider, Modal, theme } from "antd";
 
 import {
   CollectionName,
@@ -9,6 +10,26 @@ import {
   References,
 } from "@/app/lib/definitions";
 import useLoadReferences from "@/app/lib/hooks/useLoadReferences";
+import EntityStatusUI from "@/app/ui/shared/EntityStatusUI";
+
+interface DeleteButtonProps {
+  onDelete: () => void;
+}
+
+const DeleteButton = ({ onDelete }: DeleteButtonProps) => (
+  <Button
+    style={{
+      height: "22px",
+      width: "22px",
+    }}
+    onClick={onDelete}
+    icon={
+      <span className="text-black hover:text-red-900 transition-colors">
+        <TrashIcon className="w-3" />
+      </span>
+    }
+  />
+);
 
 interface CrudReferenceModalProps {
   showModal: boolean;
@@ -41,14 +62,15 @@ const CrudReferenceModal = ({
     },
   } = theme.useToken();
   const [references, setReferences] = useState<References>(oldReferences);
-  const [refObject, setRefObject] = useState<
-    Partial<Record<CollectionName, Entity[]>>
-  >({});
   const [referenceExpandedKeys, setReferenceExpandedKeys] = useState<string[]>(
     [],
   );
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
-  const { loadReferences, loading } = useLoadReferences();
+  const [loadedEntities, setLoadedEntities] = useState<
+    Partial<Record<CollectionName, Entity[]>>
+  >({});
+  const { loadReferences } = useLoadReferences();
+  const loadingRef = useRef<Set<string>>(new Set());
 
   const refNumber = useMemo(() => {
     return Object.keys(references).length;
@@ -74,57 +96,75 @@ const CrudReferenceModal = ({
   }, [allowedToRefer, references]);
 
   useEffect(() => {
-    const loadAllReferences = async () => {
-      const results: Partial<Record<CollectionName, Entity[]>> = {};
-      await Promise.all(
-        Object.entries(groupedRefIds).map(async ([colName, entIds]) => {
-          if (entIds.length) {
-            results[colName as CollectionName] = await loadReferences(
-              colName,
-              entIds,
-            );
-          } else {
-            results[colName as CollectionName] = [];
-          }
-        }),
-      );
-      setRefObject(results);
-    };
-
-    loadAllReferences();
-  }, [groupedRefIds, loadReferences]);
+    Object.entries(groupedRefIds).forEach(async ([colName, entIds]) => {
+      if (entIds.length > 0 && !loadingRef.current.has(colName)) {
+        loadingRef.current.add(colName);
+        try {
+          const entities = await loadReferences(colName, entIds);
+          setLoadedEntities((prev) => ({
+            ...prev,
+            [colName as CollectionName]: entities,
+          }));
+        } finally {
+          loadingRef.current.delete(colName);
+        }
+      }
+    });
+  }, [JSON.stringify(groupedRefIds), loadReferences]);
 
   const referenceCollections: CollapseProps["items"] = useMemo(() => {
-    return Object.entries(refObject)
+    return Object.entries(groupedRefIds)
       .sort(([colName1], [colName2]) => colName1.localeCompare(colName2))
-      .map(([colName, entities]) => {
+      .map(([colName, entIds]) => {
+        const entities = loadedEntities[colName as CollectionName] || [];
         return {
           children: (
             <div className="-mt-5">
-              {entities.map((ent) => (
-                <div key={`${colName}-${ent._id}`} className="my-0.5 pl-12">
-                  {ent.name}
-                </div>
-              ))}
+              {entities.length > 0
+                ? entities.map((ent) => (
+                    <div
+                      key={`${colName}-${ent._id}`}
+                      className="my-0.5 py-0.5 pl-12 flex items-center justify-between hover:bg-blue-50"
+                    >
+                      <span>{ent.name}</span>
+                      <div className="flex items-center gap-1">
+                        <EntityStatusUI.Tag
+                          entityId={ent._id}
+                          status={ent.status}
+                          editable={false}
+                        />
+                        <DeleteButton onDelete={() => {}} />
+                        <div className="pr-2" />
+                      </div>
+                    </div>
+                  ))
+                : entIds.map((id) => (
+                    <div
+                      key={`${colName}-${id}`}
+                      className="my-0.5 py-0.5 pl-12 flex items-center justify-between"
+                    >
+                      Loading...
+                    </div>
+                  ))}
             </div>
           ),
           key: `reference-${colName}`,
           label: (
             <span>
-              {entities.length} <span className="font-mono">{colName}</span>
+              {entIds.length} <span className="font-mono">{colName}</span>
             </span>
           ),
         };
       });
-  }, [refObject]);
+  }, [groupedRefIds, loadedEntities]);
   useEffect(() => {
     if (!hasUserInteracted) {
-      const keys = Object.entries(refObject)
-        .filter(([, entities]) => entities.length)
+      const keys = Object.entries(groupedRefIds)
+        .filter(([, entIds]) => entIds.length)
         .map(([colName]) => `reference-${colName}`);
       setReferenceExpandedKeys(keys);
     }
-  }, [refObject, hasUserInteracted]);
+  }, [groupedRefIds, hasUserInteracted]);
 
   const mentionCollections: CollapseProps["items"] = useMemo(() => {
     return Object.entries(mentions)
@@ -137,8 +177,20 @@ const CrudReferenceModal = ({
               {entities
                 .sort((ent1, ent2) => ent1.name.localeCompare(ent2.name))
                 .map((ent) => (
-                  <div key={`${colName}-${ent._id}`} className="my-0.5 pl-12">
-                    {ent.name}
+                  <div
+                    key={`${colName}-${ent._id}`}
+                    className="my-0.5 py-0.5 pl-12 flex items-center justify-between hover:bg-blue-50"
+                  >
+                    <span>{ent.name}</span>
+                    <div className="flex items-center gap-1">
+                      <EntityStatusUI.Tag
+                        entityId={ent._id}
+                        status={ent.status}
+                        editable={false}
+                      />
+                      <DeleteButton onDelete={() => {}} />
+                      <div className="pr-2" />
+                    </div>
                   </div>
                 ))}
             </div>
