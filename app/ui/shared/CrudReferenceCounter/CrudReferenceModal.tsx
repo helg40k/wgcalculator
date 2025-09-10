@@ -1,8 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CaretRightOutlined } from "@ant-design/icons";
 import { Collapse, CollapseProps, Divider, Modal, theme } from "antd";
 
-import { CollectionName, Mentions, References } from "@/app/lib/definitions";
+import {
+  CollectionName,
+  Entity,
+  Mentions,
+  References,
+} from "@/app/lib/definitions";
+import useLoadReferences from "@/app/lib/hooks/useLoadReferences";
 
 interface CrudReferenceModalProps {
   showModal: boolean;
@@ -35,6 +41,14 @@ const CrudReferenceModal = ({
     },
   } = theme.useToken();
   const [references, setReferences] = useState<References>(oldReferences);
+  const [refObject, setRefObject] = useState<
+    Partial<Record<CollectionName, Entity[]>>
+  >({});
+  const [referenceExpandedKeys, setReferenceExpandedKeys] = useState<string[]>(
+    [],
+  );
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const { loadReferences, loading } = useLoadReferences();
 
   const refNumber = useMemo(() => {
     return Object.keys(references).length;
@@ -47,70 +61,102 @@ const CrudReferenceModal = ({
     );
   }, [mentions]);
 
-  const refObject = useMemo(() => {
-    const result: Partial<Record<CollectionName, string[]>> = {};
-    allowedToRefer.forEach((colName) => (result[colName] = []));
+  const groupedRefIds = useMemo(() => {
+    const results: Partial<Record<CollectionName, string[]>> = {};
+    allowedToRefer.forEach((colName) => (results[colName] = []));
     Object.entries(references).forEach(([entId, colName]) => {
-      if (!result[colName]) {
-        result[colName] = [];
+      if (!results[colName]) {
+        results[colName] = [];
       }
-      result[colName]!.push(entId);
+      results[colName]!.push(entId);
     });
-    return result;
+    return results;
   }, [allowedToRefer, references]);
 
-  const referenceCollections: CollapseProps["items"] = Object.entries(refObject)
-    .sort(([colName1], [colName2]) => colName1.localeCompare(colName2))
-    .map(([colName, entIds]) => {
-      return {
-        children: (
-          <div className="-mt-5">
-            {entIds.map((id) => (
-              <div key={`${colName}-${id}`} className="my-0.5 pl-12">
-                {id}
-              </div>
-            ))}
-          </div>
-        ),
-        key: `reference-${colName}`,
-        label: (
-          <span>
-            {entIds.length} <span className="font-mono">{colName}</span>
-          </span>
-        ),
-      };
-    });
-  const referenceExpandedKeys = Object.entries(refObject)
-    .filter(([, entIds]) => entIds.length)
-    .map(([colName]) => `reference-${colName}`);
+  useEffect(() => {
+    const loadAllReferences = async () => {
+      const results: Partial<Record<CollectionName, Entity[]>> = {};
+      await Promise.all(
+        Object.entries(groupedRefIds).map(async ([colName, entIds]) => {
+          if (entIds.length) {
+            results[colName as CollectionName] = await loadReferences(
+              colName,
+              entIds,
+            );
+          } else {
+            results[colName as CollectionName] = [];
+          }
+        }),
+      );
+      setRefObject(results);
+    };
 
-  const mentionCollections: CollapseProps["items"] = Object.entries(mentions)
-    .filter(([, entities]) => entities.length)
-    .sort(([colName1], [colName2]) => colName1.localeCompare(colName2))
-    .map(([colName, entities]) => {
-      return {
-        children: (
-          <div className="-mt-5">
-            {entities
-              .sort((ent1, ent2) => ent1.name.localeCompare(ent2.name))
-              .map((ent) => (
+    loadAllReferences();
+  }, [groupedRefIds, loadReferences]);
+
+  const referenceCollections: CollapseProps["items"] = useMemo(() => {
+    return Object.entries(refObject)
+      .sort(([colName1], [colName2]) => colName1.localeCompare(colName2))
+      .map(([colName, entities]) => {
+        return {
+          children: (
+            <div className="-mt-5">
+              {entities.map((ent) => (
                 <div key={`${colName}-${ent._id}`} className="my-0.5 pl-12">
                   {ent.name}
                 </div>
               ))}
-          </div>
-        ),
-        key: `mention-${colName}`,
-        label: (
-          <span>
-            {entities.length} <span className="font-mono">{colName}</span>
-          </span>
-        ),
-      };
-    });
-  const mentionExpandedKeys = Object.entries(mentions)
-    .filter(([, entities]) => entities.length)
-    .map(([colName]) => `mention-${colName}`);
+            </div>
+          ),
+          key: `reference-${colName}`,
+          label: (
+            <span>
+              {entities.length} <span className="font-mono">{colName}</span>
+            </span>
+          ),
+        };
+      });
+  }, [refObject]);
+  useEffect(() => {
+    if (!hasUserInteracted) {
+      const keys = Object.entries(refObject)
+        .filter(([, entities]) => entities.length)
+        .map(([colName]) => `reference-${colName}`);
+      setReferenceExpandedKeys(keys);
+    }
+  }, [refObject, hasUserInteracted]);
+
+  const mentionCollections: CollapseProps["items"] = useMemo(() => {
+    return Object.entries(mentions)
+      .filter(([, entities]) => entities.length)
+      .sort(([colName1], [colName2]) => colName1.localeCompare(colName2))
+      .map(([colName, entities]) => {
+        return {
+          children: (
+            <div className="-mt-5">
+              {entities
+                .sort((ent1, ent2) => ent1.name.localeCompare(ent2.name))
+                .map((ent) => (
+                  <div key={`${colName}-${ent._id}`} className="my-0.5 pl-12">
+                    {ent.name}
+                  </div>
+                ))}
+            </div>
+          ),
+          key: `mention-${colName}`,
+          label: (
+            <span>
+              {entities.length} <span className="font-mono">{colName}</span>
+            </span>
+          ),
+        };
+      });
+  }, [mentions]);
+  const mentionExpandedKeys = useMemo(() => {
+    return Object.entries(mentions)
+      .filter(([, entities]) => entities.length)
+      .map(([colName]) => `mention-${colName}`);
+  }, [mentions]);
 
   return (
     <Modal
@@ -129,7 +175,11 @@ const CrudReferenceModal = ({
         expandIcon={({ isActive }) => (
           <CaretRightOutlined rotate={isActive ? 90 : 0} />
         )}
-        defaultActiveKey={referenceExpandedKeys}
+        activeKey={referenceExpandedKeys}
+        onChange={(keys) => {
+          setHasUserInteracted(true);
+          setReferenceExpandedKeys(Array.isArray(keys) ? keys : [keys]);
+        }}
       />
       <div className="h-6" />
       <div className="font-bold">Mentions ({mentNumber} found)</div>

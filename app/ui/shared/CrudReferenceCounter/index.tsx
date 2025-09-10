@@ -36,7 +36,7 @@ const ReferenceCounter = ({
     },
   } = theme.useToken();
   const [, utils] = useContext(GameSystemContext);
-  const { loadEntities, loading, saveEntity } = useEntities();
+  const { loadEntities } = useEntities();
   const [mentions, setMentions] = useState<Mentions>({});
 
   // Save the previous value in localStorage
