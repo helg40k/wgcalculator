@@ -67,6 +67,7 @@ export interface GameSystem extends Entity {
 export interface Playable extends Entity {
   systemId: string;
   references?: References;
+  description?: string;
 }
 
 export type Mentions = {
@@ -80,9 +81,10 @@ export interface Source extends Playable {
   type: SourceType;
   image?: string;
   urls?: string[];
-  description?: string;
 }
 
+/* eslint-disable @typescript-eslint/no-empty-object-type */
 export interface Keyword extends Playable {
-  description?: string;
+  // there is no fields yet
 }
+/* eslint-enable @typescript-eslint/no-empty-object-type */

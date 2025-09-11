@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { notification } from "antd";
 
-import { Entity } from "@/app/lib/definitions";
+import { Playable } from "@/app/lib/definitions";
 import getDocumentsByIds from "@/app/lib/services/firebase/helpers/getDocumentsByIds";
 
-const useLoadReferences = () => {
+const usePlayableReferences = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error>();
 
@@ -17,7 +17,7 @@ const useLoadReferences = () => {
     }
   }, [error]);
 
-  const loadReferences = async <T extends Entity>(
+  const loadReferences = async <T extends Playable>(
     dbRef: string | null | undefined,
     ids: string[],
   ): Promise<T[]> => {
@@ -41,4 +41,4 @@ const useLoadReferences = () => {
   return { loadReferences, loading };
 };
 
-export default useLoadReferences;
+export default usePlayableReferences;

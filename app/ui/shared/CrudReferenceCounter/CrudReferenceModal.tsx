@@ -1,34 +1,90 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { CaretRightOutlined } from "@ant-design/icons";
 import { TrashIcon } from "@heroicons/react/24/outline";
-import { Button, Collapse, CollapseProps, Divider, Modal, theme } from "antd";
+import {
+  Button,
+  Collapse,
+  CollapseProps,
+  Divider,
+  Modal,
+  theme,
+  Tooltip,
+} from "antd";
 
 import {
   CollectionName,
-  Entity,
   Mentions,
+  Playable,
   References,
 } from "@/app/lib/definitions";
-import useLoadReferences from "@/app/lib/hooks/useLoadReferences";
+import usePlayableReferences from "@/app/lib/hooks/usePlayableReferences";
 import EntityStatusUI from "@/app/ui/shared/EntityStatusUI";
 
 interface DeleteButtonProps {
   onDelete: () => void;
+  colorText: string;
+  name: string;
 }
 
-const DeleteButton = ({ onDelete }: DeleteButtonProps) => (
-  <Button
-    style={{
-      height: "22px",
-      width: "22px",
-    }}
-    onClick={onDelete}
-    icon={
-      <span className="text-black hover:text-red-900 transition-colors">
-        <TrashIcon className="w-3" />
-      </span>
+const DeleteButton = ({ onDelete, colorText, name }: DeleteButtonProps) => (
+  <Tooltip
+    title={<span style={{ color: colorText }}>Remove this {name}</span>}
+    color="white"
+    mouseEnterDelay={0.5}
+  >
+    <Button
+      style={{
+        height: "22px",
+        width: "22px",
+      }}
+      onClick={onDelete}
+      icon={
+        <span className="text-black hover:text-red-900 transition-colors">
+          <TrashIcon className="w-3" />
+        </span>
+      }
+    />
+  </Tooltip>
+);
+
+interface DescriptionTooltipProps {
+  content?: string;
+  colorText: string;
+  children: React.ReactNode;
+}
+
+const DescriptionTooltip = ({
+  content,
+  colorText,
+  children,
+}: DescriptionTooltipProps) => (
+  <Tooltip
+    title={
+      content ? (
+        <div
+          className="whitespace-pre-wrap"
+          style={{
+            color: colorText,
+            maxHeight: "200px",
+            maxWidth: "350px",
+            overflow: "auto",
+            padding: "8px",
+            scrollbarWidth: "thin",
+          }}
+        >
+          {content}
+        </div>
+      ) : undefined
     }
-  />
+    placement="right"
+    color="white"
+    mouseEnterDelay={1.5}
+    styles={{
+      root: { maxWidth: "none" },
+    }}
+  >
+    {children}
+  </Tooltip>
 );
 
 interface CrudReferenceModalProps {
@@ -67,9 +123,9 @@ const CrudReferenceModal = ({
   );
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [loadedEntities, setLoadedEntities] = useState<
-    Partial<Record<CollectionName, Entity[]>>
+    Partial<Record<CollectionName, Playable[]>>
   >({});
-  const { loadReferences } = useLoadReferences();
+  const { loadReferences } = usePlayableReferences();
   const loadingRef = useRef<Set<string>>(new Set());
 
   const refNumber = useMemo(() => {
@@ -126,14 +182,23 @@ const CrudReferenceModal = ({
                       key={`${colName}-${ent._id}`}
                       className="my-0.5 py-0.5 pl-12 flex items-center justify-between hover:bg-blue-50"
                     >
-                      <span>{ent.name}</span>
+                      <DescriptionTooltip
+                        content={ent.description}
+                        colorText={colorTextSecondary}
+                      >
+                        <span>{ent.name}</span>
+                      </DescriptionTooltip>
                       <div className="flex items-center gap-1">
                         <EntityStatusUI.Tag
                           entityId={ent._id}
                           status={ent.status}
                           editable={false}
                         />
-                        <DeleteButton onDelete={() => {}} />
+                        <DeleteButton
+                          onDelete={() => {}}
+                          colorText={colorText}
+                          name="reference"
+                        />
                         <div className="pr-2" />
                       </div>
                     </div>
@@ -146,6 +211,26 @@ const CrudReferenceModal = ({
                       Loading...
                     </div>
                   ))}
+              <div className="flex justify-end py-1 pr-3">
+                <Tooltip
+                  title={
+                    <span style={{ color: colorText }}>
+                      Add one more reference
+                    </span>
+                  }
+                  color="white"
+                  mouseEnterDelay={0.5}
+                >
+                  <Button
+                    style={{
+                      height: "22px",
+                    }}
+                    onClick={() => {}}
+                  >
+                    Add more
+                  </Button>
+                </Tooltip>
+              </div>
             </div>
           ),
           key: `reference-${colName}`,
@@ -181,14 +266,23 @@ const CrudReferenceModal = ({
                     key={`${colName}-${ent._id}`}
                     className="my-0.5 py-0.5 pl-12 flex items-center justify-between hover:bg-blue-50"
                   >
-                    <span>{ent.name}</span>
+                    <DescriptionTooltip
+                      content={ent.description}
+                      colorText={colorTextSecondary}
+                    >
+                      <span>{ent.name}</span>
+                    </DescriptionTooltip>
                     <div className="flex items-center gap-1">
                       <EntityStatusUI.Tag
                         entityId={ent._id}
                         status={ent.status}
                         editable={false}
                       />
-                      <DeleteButton onDelete={() => {}} />
+                      <DeleteButton
+                        onDelete={() => {}}
+                        colorText={colorText}
+                        name="mention"
+                      />
                       <div className="pr-2" />
                     </div>
                   </div>
