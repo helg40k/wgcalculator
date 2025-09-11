@@ -7,6 +7,7 @@ import {
   CollapseProps,
   Divider,
   Modal,
+  Spin,
   theme,
   Tooltip,
 } from "antd";
@@ -24,11 +25,21 @@ interface DeleteButtonProps {
   onDelete: () => void;
   colorText: string;
   name: string;
+  disabled: boolean;
 }
 
-const DeleteButton = ({ onDelete, colorText, name }: DeleteButtonProps) => (
+const DeleteButton = ({
+  onDelete,
+  colorText,
+  name,
+  disabled,
+}: DeleteButtonProps) => (
   <Tooltip
-    title={<span style={{ color: colorText }}>Remove this {name}</span>}
+    title={
+      !disabled ? (
+        <span style={{ color: colorText }}>Remove this {name}</span>
+      ) : undefined
+    }
     color="white"
     mouseEnterDelay={0.5}
   >
@@ -43,6 +54,7 @@ const DeleteButton = ({ onDelete, colorText, name }: DeleteButtonProps) => (
           <TrashIcon className="w-3" />
         </span>
       }
+      disabled={disabled}
     />
   </Tooltip>
 );
@@ -125,6 +137,7 @@ const CrudReferenceModal = ({
   const [loadedEntities, setLoadedEntities] = useState<
     Partial<Record<CollectionName, Playable[]>>
   >({});
+  const [loading, setLoading] = useState(false);
   const { loadReferences } = usePlayableReferences();
   const loadingRef = useRef<Set<string>>(new Set());
 
@@ -152,19 +165,33 @@ const CrudReferenceModal = ({
   }, [allowedToRefer, references]);
 
   useEffect(() => {
-    Object.entries(groupedRefIds).forEach(async ([colName, entIds]) => {
-      if (entIds.length > 0 && !loadingRef.current.has(colName)) {
-        loadingRef.current.add(colName);
-        try {
-          const entities = await loadReferences(colName, entIds);
-          setLoadedEntities((prev) => ({
-            ...prev,
-            [colName as CollectionName]: entities,
-          }));
-        } finally {
-          loadingRef.current.delete(colName);
-        }
+    const entriesToLoad = Object.entries(groupedRefIds).filter(
+      ([colName, entIds]) =>
+        entIds.length > 0 && !loadingRef.current.has(colName),
+    );
+
+    if (entriesToLoad.length === 0) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    const loadPromises = entriesToLoad.map(async ([colName, entIds]) => {
+      loadingRef.current.add(colName);
+      try {
+        const entities = await loadReferences(colName, entIds);
+        setLoadedEntities((prev) => ({
+          ...prev,
+          [colName as CollectionName]: entities,
+        }));
+      } finally {
+        loadingRef.current.delete(colName);
       }
+    });
+
+    Promise.all(loadPromises).finally(() => {
+      setLoading(false);
     });
   }, [JSON.stringify(groupedRefIds), loadReferences]);
 
@@ -198,6 +225,7 @@ const CrudReferenceModal = ({
                           onDelete={() => {}}
                           colorText={colorText}
                           name="reference"
+                          disabled={loading}
                         />
                         <div className="pr-2" />
                       </div>
@@ -214,9 +242,11 @@ const CrudReferenceModal = ({
               <div className="flex justify-end py-1 pr-3">
                 <Tooltip
                   title={
-                    <span style={{ color: colorText }}>
-                      Add one more reference
-                    </span>
+                    !loading ? (
+                      <span style={{ color: colorText }}>
+                        Add one more reference
+                      </span>
+                    ) : undefined
                   }
                   color="white"
                   mouseEnterDelay={0.5}
@@ -226,6 +256,7 @@ const CrudReferenceModal = ({
                       height: "22px",
                     }}
                     onClick={() => {}}
+                    disabled={loading}
                   >
                     Add more
                   </Button>
@@ -241,7 +272,7 @@ const CrudReferenceModal = ({
           ),
         };
       });
-  }, [groupedRefIds, loadedEntities]);
+  }, [groupedRefIds, loadedEntities, loading, colorText, colorTextSecondary]);
   useEffect(() => {
     if (!hasUserInteracted) {
       const keys = Object.entries(groupedRefIds)
@@ -282,6 +313,7 @@ const CrudReferenceModal = ({
                         onDelete={() => {}}
                         colorText={colorText}
                         name="mention"
+                        disabled={loading}
                       />
                       <div className="pr-2" />
                     </div>
@@ -297,7 +329,7 @@ const CrudReferenceModal = ({
           ),
         };
       });
-  }, [mentions]);
+  }, [mentions, loading, colorText, colorTextSecondary]);
   const mentionExpandedKeys = useMemo(() => {
     return Object.entries(mentions)
       .filter(([, entities]) => entities.length)
@@ -307,11 +339,17 @@ const CrudReferenceModal = ({
   return (
     <Modal
       open={showModal}
-      title={`'${entityName}' references`}
+      title={
+        <span>
+          {`'${entityName}' references `}
+          <Spin spinning={loading} />
+        </span>
+      }
       onOk={onOk}
       onCancel={onCancel}
       maskClosable={false}
       keyboard={false}
+      okButtonProps={{ disabled: loading }}
     >
       <Divider />
       <div className="font-bold">References ({refNumber} added)</div>

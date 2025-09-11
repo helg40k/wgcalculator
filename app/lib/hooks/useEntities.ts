@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { notification } from "antd";
 import {
   DocumentSnapshot,
@@ -57,100 +57,109 @@ const useEntities = () => {
     }
   };
 
-  const deleteEntity = async (
-    dbRef: string | null | undefined,
-    id: string | null | undefined,
-  ): Promise<void> => {
-    checkEmail();
-    if (!dbRef || !id) {
-      setError(
-        new Error(
-          !dbRef
-            ? "Document site to delete is unknown!"
-            : "Deleted document ID is empty!",
-        ),
-      );
-      return;
-    }
-    const type = dbRef as string;
-
-    try {
-      setLoading(true);
-      await deleteDocument(type, id);
-    } catch (err: any) {
-      console.error(err);
-      setError(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadEntities = async <T extends Entity>(
-    dbRef: string | null | undefined,
-    options?: EntityProps,
-  ): Promise<T[]> => {
-    if (!dbRef) {
-      return [];
-    }
-    const type = dbRef as string;
-
-    const opts: Props = {
-      filters: options?.filters,
-      limit: options?.limit,
-      pagination: options?.pagination,
-      sort: options?.sort,
-      withoutSort: options?.withoutSort,
-    };
-
-    try {
-      setLoading(true);
-      return (await getCollectionData(type, opts)) as T[];
-    } catch (err: any) {
-      console.error(err);
-      setError(err);
-    } finally {
-      setLoading(false);
-    }
-    return [];
-  };
-
-  const saveEntity = async <T extends Entity>(
-    dbRef: string | null | undefined,
-    entity: T,
-  ): Promise<T | null> => {
-    checkEmail();
-    if (!dbRef || !entity) {
-      setError(
-        new Error(
-          !dbRef
-            ? "Document save destination is unknown!"
-            : "Saved document is empty!",
-        ),
-      );
-      return null;
-    }
-    const type = dbRef as string;
-
-    try {
-      setLoading(true);
-      const id = entity._id;
-
-      entity._updatedBy = email as string;
-      prepareToSave(entity);
-      if (id && NEW_ENTITY_TEMP_ID !== id) {
-        return (await updateDocument(type, id, entity)) as T;
-      } else {
-        entity._createdBy = email as string;
-        return (await createDocument(type, entity)) as T;
+  const deleteEntity = useCallback(
+    async (
+      dbRef: string | null | undefined,
+      id: string | null | undefined,
+    ): Promise<void> => {
+      checkEmail();
+      if (!dbRef || !id) {
+        setError(
+          new Error(
+            !dbRef
+              ? "Document site to delete is unknown!"
+              : "Deleted document ID is empty!",
+          ),
+        );
+        return;
       }
-    } catch (err: any) {
-      console.error(err);
-      setError(err);
-    } finally {
-      setLoading(false);
-    }
-    return null;
-  };
+      const type = dbRef as string;
+
+      try {
+        setLoading(true);
+        await deleteDocument(type, id);
+      } catch (err: any) {
+        console.error(err);
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [email],
+  );
+
+  const loadEntities = useCallback(
+    async <T extends Entity>(
+      dbRef: string | null | undefined,
+      options?: EntityProps,
+    ): Promise<T[]> => {
+      if (!dbRef) {
+        return [];
+      }
+      const type = dbRef as string;
+
+      const opts: Props = {
+        filters: options?.filters,
+        limit: options?.limit,
+        pagination: options?.pagination,
+        sort: options?.sort,
+        withoutSort: options?.withoutSort,
+      };
+
+      try {
+        setLoading(true);
+        return (await getCollectionData(type, opts)) as T[];
+      } catch (err: any) {
+        console.error(err);
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
+      return [];
+    },
+    [],
+  );
+
+  const saveEntity = useCallback(
+    async <T extends Entity>(
+      dbRef: string | null | undefined,
+      entity: T,
+    ): Promise<T | null> => {
+      checkEmail();
+      if (!dbRef || !entity) {
+        setError(
+          new Error(
+            !dbRef
+              ? "Document save destination is unknown!"
+              : "Saved document is empty!",
+          ),
+        );
+        return null;
+      }
+      const type = dbRef as string;
+
+      try {
+        setLoading(true);
+        const id = entity._id;
+
+        entity._updatedBy = email as string;
+        prepareToSave(entity);
+        if (id && NEW_ENTITY_TEMP_ID !== id) {
+          return (await updateDocument(type, id, entity)) as T;
+        } else {
+          entity._createdBy = email as string;
+          return (await createDocument(type, entity)) as T;
+        }
+      } catch (err: any) {
+        console.error(err);
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
+      return null;
+    },
+    [email],
+  );
 
   return { deleteEntity, loadEntities, loading, saveEntity };
 };

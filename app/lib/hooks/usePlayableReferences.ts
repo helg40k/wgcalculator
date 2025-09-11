@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { notification } from "antd";
 
 import { Playable } from "@/app/lib/definitions";
@@ -17,26 +17,29 @@ const usePlayableReferences = () => {
     }
   }, [error]);
 
-  const loadReferences = async <T extends Playable>(
-    dbRef: string | null | undefined,
-    ids: string[],
-  ): Promise<T[]> => {
-    if (!dbRef) {
-      return [];
-    }
-    const type = dbRef as string;
+  const loadReferences = useCallback(
+    async <T extends Playable>(
+      dbRef: string | null | undefined,
+      ids: string[],
+    ): Promise<T[]> => {
+      if (!dbRef) {
+        return [];
+      }
+      const type = dbRef as string;
 
-    try {
-      setLoading(true);
-      return (await getDocumentsByIds(type, ids)) as T[];
-    } catch (err: any) {
-      console.error(err);
-      setError(err);
-    } finally {
-      setLoading(false);
-    }
-    return [];
-  };
+      try {
+        setLoading(true);
+        return (await getDocumentsByIds(type, ids)) as T[];
+      } catch (err: any) {
+        console.error(err);
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
+      return [];
+    },
+    [],
+  );
 
   return { loadReferences, loading };
 };
