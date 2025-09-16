@@ -142,13 +142,13 @@ const EditModeButtons = ({
   const style = disabled ? { color: colorTextDisabled } : undefined;
   return (
     <div>
-      <Tooltip title="Save" color="darkBlue" mouseEnterDelay={1}>
+      <Tooltip title="Save" color="darkGreen" mouseEnterDelay={1}>
         <Button
           style={hoverButtonStyle}
           onClick={onClickSave}
           disabled={disabled}
           icon={
-            <span className="text-black hover:text-blue-900 transition-colors">
+            <span className="text-black hover:text-green-900 transition-colors">
               <CheckIcon className="w-4" style={style} />
             </span>
           }

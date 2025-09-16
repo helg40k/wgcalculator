@@ -14,7 +14,12 @@ import {
 import { theme, Tooltip } from "antd";
 
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
-import { CollectionName, Mentions, Playable } from "@/app/lib/definitions";
+import {
+  CollectionName,
+  Mentions,
+  Playable,
+  References,
+} from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
 import CrudReferenceModal from "@/app/ui/shared/CrudReferenceCounter/CrudReferenceModal";
 
@@ -36,7 +41,7 @@ const ReferenceCounter = ({
     },
   } = theme.useToken();
   const [, utils] = useContext(GameSystemContext);
-  const { loadEntities } = useEntities();
+  const { getEntity, loadEntities, loading, saveEntity } = useEntities();
   const [mentions, setMentions] = useState<Mentions>({});
 
   // Save the previous value in localStorage
@@ -177,11 +182,18 @@ const ReferenceCounter = ({
       document.body.removeChild(modalContainer);
     };
 
+    const saveReferences = async (references: References) => {
+      // compare entity.references and references
+      // if they are not equal, save entity with the new references
+      // than replace the old entity by new one (maybe the entity should be in the state for it)
+      closeModal();
+    };
+
     root.render(
       <CrudReferenceModal
         showModal={true}
         entityName={entity.name}
-        onOk={closeModal}
+        onOk={saveReferences}
         onCancel={closeModal}
         references={entity.references || {}}
         mentions={mentions}

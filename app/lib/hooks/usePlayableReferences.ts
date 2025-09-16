@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { notification } from "antd";
 
 import { Playable } from "@/app/lib/definitions";
+import getDocumentsByExcludedIds from "@/app/lib/services/firebase/helpers/getDocumentsByExcludedIds";
 import getDocumentsByIds from "@/app/lib/services/firebase/helpers/getDocumentsByIds";
 
 const usePlayableReferences = () => {
@@ -41,7 +42,31 @@ const usePlayableReferences = () => {
     [],
   );
 
-  return { loadReferences, loading };
+  const loadEntitiesForReferences = useCallback(
+    async <T extends Playable>(
+      dbRef: string | null | undefined,
+      excludedIds: string[],
+    ): Promise<T[]> => {
+      if (!dbRef) {
+        return [];
+      }
+      const type = dbRef as string;
+
+      try {
+        setLoading(true);
+        return (await getDocumentsByExcludedIds(type, excludedIds)) as T[];
+      } catch (err: any) {
+        console.error(err);
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
+      return [];
+    },
+    [],
+  );
+
+  return { loadEntitiesForReferences, loadReferences, loading };
 };
 
 export default usePlayableReferences;

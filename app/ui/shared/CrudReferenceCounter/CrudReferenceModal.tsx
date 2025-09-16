@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { CaretRightOutlined } from "@ant-design/icons";
-import { TrashIcon } from "@heroicons/react/24/outline";
+import { CheckIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import {
   Button,
   Collapse,
   CollapseProps,
   Divider,
   Modal,
+  Select,
   Spin,
   theme,
   Tooltip,
@@ -23,24 +24,14 @@ import EntityStatusUI from "@/app/ui/shared/EntityStatusUI";
 
 interface DeleteButtonProps {
   onDelete: () => void;
-  colorText: string;
   name: string;
   disabled: boolean;
 }
 
-const DeleteButton = ({
-  onDelete,
-  colorText,
-  name,
-  disabled,
-}: DeleteButtonProps) => (
+const DeleteButton = ({ onDelete, name, disabled }: DeleteButtonProps) => (
   <Tooltip
-    title={
-      !disabled ? (
-        <span style={{ color: colorText }}>Remove this {name}</span>
-      ) : undefined
-    }
-    color="white"
+    color="darkRed"
+    title={!disabled ? `Remove this ${name}` : undefined}
     mouseEnterDelay={0.5}
   >
     <Button
@@ -102,7 +93,7 @@ const DescriptionTooltip = ({
 interface CrudReferenceModalProps {
   showModal: boolean;
   entityName: string;
-  onOk: () => void;
+  onOk: (references: References) => void;
   onCancel: () => void;
   references: References;
   mentions: Mentions;
@@ -138,7 +129,14 @@ const CrudReferenceModal = ({
     Partial<Record<CollectionName, Playable[]>>
   >({});
   const [loading, setLoading] = useState(false);
-  const { loadReferences } = usePlayableReferences();
+  const [showingSelect, setShowingSelect] = useState<CollectionName | null>(
+    null,
+  );
+  const [selectOptions, setSelectOptions] = useState<
+    Array<{ value: string; label: string }>
+  >([]);
+  const [availableEntities, setAvailableEntities] = useState<Playable[]>([]);
+  const { loadEntitiesForReferences, loadReferences } = usePlayableReferences();
   const loadingRef = useRef<Set<string>>(new Set());
 
   const refNumber = useMemo(() => {
@@ -223,7 +221,6 @@ const CrudReferenceModal = ({
                         />
                         <DeleteButton
                           onDelete={() => {}}
-                          colorText={colorText}
                           name="reference"
                           disabled={loading}
                         />
@@ -239,29 +236,151 @@ const CrudReferenceModal = ({
                       Loading...
                     </div>
                   ))}
-              <div className="flex justify-end py-1 pr-3">
-                <Tooltip
-                  title={
-                    !loading ? (
-                      <span style={{ color: colorText }}>
-                        Add one more reference
-                      </span>
-                    ) : undefined
-                  }
-                  color="white"
-                  mouseEnterDelay={0.5}
-                >
-                  <Button
-                    style={{
-                      height: "22px",
+              {showingSelect === colName ? (
+                <div className="flex justify-start py-1 pr-3 w-full gap-1">
+                  <Select
+                    placeholder="Select a new reference..."
+                    options={selectOptions}
+                    style={{ flex: "1", minWidth: "0" }}
+                    showSearch
+                    filterOption={(input, option) =>
+                      (option?.label ?? "")
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                    }
+                    optionRender={(option) => {
+                      const entity = availableEntities.find(
+                        (ent) => ent._id === option.value,
+                      );
+                      return (
+                        <div className="relative w-full">
+                          <span>{option.label}</span>
+                          {entity && (
+                            <div
+                              className="absolute -right-1"
+                              style={{ top: -1 }}
+                            >
+                              <EntityStatusUI.Tag
+                                entityId={entity._id}
+                                status={entity.status}
+                                editable={false}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
                     }}
-                    onClick={() => {}}
-                    disabled={loading}
+                    labelRender={(props) => {
+                      const entity = availableEntities.find(
+                        (ent) => ent._id === props.value,
+                      );
+                      return (
+                        <div className="relative w-full">
+                          <span className="block truncate pr-16">
+                            {props.label}
+                          </span>
+                          {entity && (
+                            <div
+                              className="absolute -right-2"
+                              style={{ top: -1 }}
+                            >
+                              <EntityStatusUI.Tag
+                                entityId={entity._id}
+                                status={entity.status}
+                                editable={false}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }}
+                    autoFocus
+                  />
+                  <Tooltip
+                    color="darkGreen"
+                    title="Confirm selection"
+                    mouseEnterDelay={0.5}
                   >
-                    Add more
-                  </Button>
-                </Tooltip>
-              </div>
+                    <Button
+                      className="flex-shrink-0"
+                      style={{
+                        height: "32px",
+                        width: "32px",
+                      }}
+                      onClick={() => {}}
+                      icon={
+                        <span className="text-gray-500 hover:text-green-900 transition-colors">
+                          <CheckIcon className="w-5" />
+                        </span>
+                      }
+                    />
+                  </Tooltip>
+                  <Tooltip
+                    color="darkRed"
+                    title="Cancel selection"
+                    mouseEnterDelay={0.5}
+                  >
+                    <Button
+                      className="flex-shrink-0"
+                      style={{
+                        height: "32px",
+                        width: "32px",
+                      }}
+                      onClick={() => {
+                        setShowingSelect(null);
+                        setSelectOptions([]);
+                        setAvailableEntities([]);
+                      }}
+                      icon={
+                        <span className="text-gray-500 hover:text-red-900 transition-colors">
+                          <XMarkIcon className="w-5" />
+                        </span>
+                      }
+                    />
+                  </Tooltip>
+                </div>
+              ) : (
+                <div className="flex justify-start py-1 pr-3">
+                  <Tooltip
+                    color="white"
+                    title={
+                      !loading ? (
+                        <span style={{ color: colorText }}>
+                          Add one more reference
+                        </span>
+                      ) : undefined
+                    }
+                    mouseEnterDelay={0.5}
+                  >
+                    <Button
+                      // style={{
+                      //   height: "22px",
+                      // }}
+                      onClick={async () => {
+                        const colNameTyped = colName as CollectionName;
+                        const existingIds = groupedRefIds[colNameTyped] || [];
+                        const entToRefs = await loadEntitiesForReferences(
+                          colNameTyped,
+                          existingIds,
+                        );
+                        const sortedEntities = entToRefs.sort((ent1, ent2) =>
+                          ent1.name.localeCompare(ent2.name),
+                        );
+                        const options = sortedEntities.map((ent) => ({
+                          label: ent.name,
+                          value: ent._id,
+                        }));
+                        setAvailableEntities(sortedEntities);
+                        setSelectOptions(options);
+                        setShowingSelect(colNameTyped);
+                      }}
+                      disabled={loading}
+                    >
+                      Add more
+                    </Button>
+                  </Tooltip>
+                </div>
+              )}
             </div>
           ),
           key: `reference-${colName}`,
@@ -272,7 +391,16 @@ const CrudReferenceModal = ({
           ),
         };
       });
-  }, [groupedRefIds, loadedEntities, loading, colorText, colorTextSecondary]);
+  }, [
+    groupedRefIds,
+    loadedEntities,
+    loading,
+    colorText,
+    colorTextSecondary,
+    showingSelect,
+    selectOptions,
+    availableEntities,
+  ]);
   useEffect(() => {
     if (!hasUserInteracted) {
       const keys = Object.entries(groupedRefIds)
@@ -311,7 +439,6 @@ const CrudReferenceModal = ({
                       />
                       <DeleteButton
                         onDelete={() => {}}
-                        colorText={colorText}
                         name="mention"
                         disabled={loading}
                       />
@@ -345,7 +472,7 @@ const CrudReferenceModal = ({
           <Spin spinning={loading} />
         </span>
       }
-      onOk={onOk}
+      onOk={() => onOk(references)}
       onCancel={onCancel}
       maskClosable={false}
       keyboard={false}

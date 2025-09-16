@@ -13,6 +13,7 @@ import deleteDocument from "@/app/lib/services/firebase/helpers/deleteDocument";
 import getCollectionData, {
   Props,
 } from "@/app/lib/services/firebase/helpers/getCollectionData";
+import getDocument from "@/app/lib/services/firebase/helpers/getDocument";
 import { NEW_ENTITY_TEMP_ID } from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
 import updateDocument from "@/app/lib/services/firebase/helpers/updateDocument";
 
@@ -120,6 +121,30 @@ const useEntities = () => {
     [],
   );
 
+  const getEntity = useCallback(
+    async <T extends Entity>(
+      dbRef: string | null | undefined,
+      id: string,
+    ): Promise<T | null> => {
+      if (!dbRef) {
+        return null;
+      }
+      const type = dbRef as string;
+
+      try {
+        setLoading(true);
+        return (await getDocument(type, id)) as T;
+      } catch (err: any) {
+        console.error(err);
+        setError(err);
+      } finally {
+        setLoading(false);
+      }
+      return null;
+    },
+    [],
+  );
+
   const saveEntity = useCallback(
     async <T extends Entity>(
       dbRef: string | null | undefined,
@@ -161,7 +186,7 @@ const useEntities = () => {
     [email],
   );
 
-  return { deleteEntity, loadEntities, loading, saveEntity };
+  return { deleteEntity, getEntity, loadEntities, loading, saveEntity };
 };
 
 export default useEntities;
