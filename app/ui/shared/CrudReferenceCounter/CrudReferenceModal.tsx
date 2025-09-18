@@ -120,6 +120,7 @@ const CrudReferenceModal = ({
       colorBgBase,
     },
   } = theme.useToken();
+  const [disableModal, setDisableModal] = useState<boolean>(false);
   const [references, setReferences] = useState<References>(oldReferences);
   const [referenceExpandedKeys, setReferenceExpandedKeys] = useState<string[]>(
     [],
@@ -222,7 +223,7 @@ const CrudReferenceModal = ({
                         <DeleteButton
                           onDelete={() => {}}
                           name="reference"
-                          disabled={loading}
+                          disabled={loading || disableModal}
                         />
                         <div className="pr-2" />
                       </div>
@@ -307,7 +308,9 @@ const CrudReferenceModal = ({
                         height: "32px",
                         width: "32px",
                       }}
-                      onClick={() => {}}
+                      onClick={() => {
+                        setDisableModal(false);
+                      }}
                       icon={
                         <span className="text-gray-500 hover:text-green-900 transition-colors">
                           <CheckIcon className="w-5" />
@@ -330,6 +333,7 @@ const CrudReferenceModal = ({
                         setShowingSelect(null);
                         setSelectOptions([]);
                         setAvailableEntities([]);
+                        setDisableModal(false);
                       }}
                       icon={
                         <span className="text-gray-500 hover:text-red-900 transition-colors">
@@ -373,8 +377,9 @@ const CrudReferenceModal = ({
                         setAvailableEntities(sortedEntities);
                         setSelectOptions(options);
                         setShowingSelect(colNameTyped);
+                        setDisableModal(true);
                       }}
-                      disabled={loading}
+                      disabled={loading || disableModal}
                     >
                       Add more
                     </Button>
@@ -440,7 +445,7 @@ const CrudReferenceModal = ({
                       <DeleteButton
                         onDelete={() => {}}
                         name="mention"
-                        disabled={loading}
+                        disabled={loading || disableModal}
                       />
                       <div className="pr-2" />
                     </div>
@@ -476,7 +481,7 @@ const CrudReferenceModal = ({
       onCancel={onCancel}
       maskClosable={false}
       keyboard={false}
-      okButtonProps={{ disabled: loading }}
+      okButtonProps={{ disabled: loading || disableModal }}
     >
       <Divider />
       <div className="font-bold">References ({refNumber} added)</div>
