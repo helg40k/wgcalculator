@@ -6,7 +6,7 @@ import getDocument from "./getDocument";
  * @param id - The id of the document you want to get.
  * @returns A boolean value
  */
-const isDocumentExists = async (
+const isDocumentExisted = async (
   collection: string,
   id: string,
 ): Promise<boolean> => {
@@ -14,4 +14,4 @@ const isDocumentExists = async (
   return !!document?._id;
 };
 
-export default isDocumentExists;
+export default isDocumentExisted;

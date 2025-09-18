@@ -1,5 +1,5 @@
 import getDocument from "../getDocument";
-import isDocumentExists from "../isDocumentExists";
+import isDocumentExisted from "../isDocumentExisted";
 
 // Mock the firestore instance and app
 jest.mock("../../../firebase/utils/firestore", () => ({
@@ -33,7 +33,7 @@ describe("isDocumentExists", () => {
 
     mockGetDocument.mockResolvedValueOnce(mockDocument);
 
-    const result = await isDocumentExists(collection, id);
+    const result = await isDocumentExisted(collection, id);
 
     expect(mockGetDocument).toHaveBeenCalledWith(collection, id);
     expect(result).toBe(true);
@@ -45,7 +45,7 @@ describe("isDocumentExists", () => {
 
     mockGetDocument.mockResolvedValueOnce(undefined);
 
-    const result = await isDocumentExists(collection, id);
+    const result = await isDocumentExisted(collection, id);
 
     expect(mockGetDocument).toHaveBeenCalledWith(collection, id);
     expect(result).toBe(false);
@@ -62,7 +62,7 @@ describe("isDocumentExists", () => {
 
     mockGetDocument.mockResolvedValueOnce(mockDocument);
 
-    const result = await isDocumentExists(collection, id);
+    const result = await isDocumentExisted(collection, id);
 
     expect(mockGetDocument).toHaveBeenCalledWith(collection, id);
     expect(result).toBe(false);
@@ -79,7 +79,7 @@ describe("isDocumentExists", () => {
 
     mockGetDocument.mockResolvedValueOnce(mockDocument);
 
-    const result = await isDocumentExists(collection, id);
+    const result = await isDocumentExisted(collection, id);
 
     expect(result).toBe(false);
   });
@@ -95,7 +95,7 @@ describe("isDocumentExists", () => {
 
     mockGetDocument.mockResolvedValueOnce(mockDocument);
 
-    const result = await isDocumentExists(collection, id);
+    const result = await isDocumentExisted(collection, id);
 
     expect(result).toBe(false);
   });
@@ -111,7 +111,7 @@ describe("isDocumentExists", () => {
 
     mockGetDocument.mockResolvedValueOnce(mockDocument);
 
-    const result = await isDocumentExists(collection, id);
+    const result = await isDocumentExisted(collection, id);
 
     expect(result).toBe(false);
   });
@@ -127,7 +127,7 @@ describe("isDocumentExists", () => {
 
     mockGetDocument.mockResolvedValueOnce(mockDocument);
 
-    const result = await isDocumentExists(collection, id);
+    const result = await isDocumentExisted(collection, id);
 
     expect(result).toBe(true);
   });
@@ -143,7 +143,7 @@ describe("isDocumentExists", () => {
 
     mockGetDocument.mockResolvedValueOnce(mockDocument);
 
-    const result = await isDocumentExists(collection, id);
+    const result = await isDocumentExisted(collection, id);
 
     expect(result).toBe(false);
   });
@@ -164,7 +164,7 @@ describe("isDocumentExists", () => {
 
       mockGetDocument.mockResolvedValueOnce(mockDocument);
 
-      const result = await isDocumentExists(testCase.collection, testCase.id);
+      const result = await isDocumentExisted(testCase.collection, testCase.id);
 
       expect(mockGetDocument).toHaveBeenCalledWith(
         testCase.collection,
@@ -195,7 +195,7 @@ describe("isDocumentExists", () => {
 
       mockGetDocument.mockResolvedValueOnce(mockDocument);
 
-      const result = await isDocumentExists(collection, docId);
+      const result = await isDocumentExisted(collection, docId);
 
       expect(mockGetDocument).toHaveBeenCalledWith(collection, docId);
       expect(result).toBe(true);
@@ -212,7 +212,7 @@ describe("isDocumentExists", () => {
 
     mockGetDocument.mockResolvedValueOnce(mockDocument);
 
-    const result = await isDocumentExists("", "");
+    const result = await isDocumentExisted("", "");
 
     expect(mockGetDocument).toHaveBeenCalledWith("", "");
     expect(result).toBe(true);
@@ -225,7 +225,7 @@ describe("isDocumentExists", () => {
 
     mockGetDocument.mockRejectedValueOnce(error);
 
-    await expect(isDocumentExists(collection, id)).rejects.toThrow(
+    await expect(isDocumentExisted(collection, id)).rejects.toThrow(
       "Failed to get document",
     );
 
@@ -240,7 +240,7 @@ describe("isDocumentExists", () => {
 
     mockGetDocument.mockRejectedValueOnce(permissionError);
 
-    await expect(isDocumentExists(collection, id)).rejects.toThrow(
+    await expect(isDocumentExisted(collection, id)).rejects.toThrow(
       "Permission denied",
     );
   });
@@ -251,7 +251,7 @@ describe("isDocumentExists", () => {
 
     mockGetDocument.mockResolvedValueOnce(undefined);
 
-    const result = await isDocumentExists(collection, id);
+    const result = await isDocumentExisted(collection, id);
 
     expect(result).toBe(false);
   });
@@ -277,7 +277,7 @@ describe("isDocumentExists", () => {
 
     mockGetDocument.mockResolvedValueOnce(complexDocument);
 
-    const result = await isDocumentExists(collection, id);
+    const result = await isDocumentExisted(collection, id);
 
     expect(result).toBe(true);
   });
@@ -291,7 +291,7 @@ describe("isDocumentExists", () => {
       const mockDocument = { _id: truthyId };
       mockGetDocument.mockResolvedValueOnce(mockDocument);
 
-      const result = await isDocumentExists("test", "test");
+      const result = await isDocumentExisted("test", "test");
       expect(result).toBe(true);
 
       jest.clearAllMocks();
@@ -302,7 +302,7 @@ describe("isDocumentExists", () => {
       const mockDocument = { _id: falsyId };
       mockGetDocument.mockResolvedValueOnce(mockDocument);
 
-      const result = await isDocumentExists("test", "test");
+      const result = await isDocumentExisted("test", "test");
       expect(result).toBe(false);
 
       jest.clearAllMocks();
