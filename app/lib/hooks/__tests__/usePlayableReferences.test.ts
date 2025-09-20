@@ -1,5 +1,4 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { notification } from "antd";
 
 import { Playable } from "../../definitions";
 import getDocumentsByExcludedIds from "../../services/firebase/helpers/getDocumentsByExcludedIds";
@@ -23,11 +22,16 @@ jest.mock("../../services/firebase/utils/app", () => ({
 // Mock dependencies
 jest.mock("../../services/firebase/helpers/getDocumentsByExcludedIds");
 jest.mock("../../services/firebase/helpers/getDocumentsByIds");
-jest.mock("antd", () => ({
-  notification: {
-    error: jest.fn(),
-  },
+// Mock errorMessage
+jest.mock("../../errorMessage", () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
+
+import errorMessage from "../../errorMessage";
+const mockErrorMessage = errorMessage as jest.MockedFunction<
+  typeof errorMessage
+>;
 
 const mockGetDocumentsByIds = getDocumentsByIds as jest.MockedFunction<
   typeof getDocumentsByIds
@@ -36,9 +40,6 @@ const mockGetDocumentsByExcludedIds =
   getDocumentsByExcludedIds as jest.MockedFunction<
     typeof getDocumentsByExcludedIds
   >;
-const mockNotification = notification.error as jest.MockedFunction<
-  typeof notification.error
->;
 
 const mockPlayableEntity: Playable = {
   _createdAt: { nanoseconds: 0, seconds: 1234567890 } as any,
@@ -189,10 +190,7 @@ describe("usePlayableReferences", () => {
       expect(result.current.loading).toBe(false);
 
       await waitFor(() => {
-        expect(mockNotification).toHaveBeenCalledWith({
-          description: error.message,
-          message: "Error",
-        });
+        expect(mockErrorMessage).toHaveBeenCalledWith(error.message);
       });
     });
 
@@ -207,10 +205,9 @@ describe("usePlayableReferences", () => {
       });
 
       await waitFor(() => {
-        expect(mockNotification).toHaveBeenCalledWith({
-          description: "Something in useLoadReferences()",
-          message: "Error",
-        });
+        expect(mockErrorMessage).toHaveBeenCalledWith(
+          "Something in useLoadReferences()",
+        );
       });
     });
 
@@ -360,10 +357,7 @@ describe("usePlayableReferences", () => {
       expect(result.current.loading).toBe(false);
 
       await waitFor(() => {
-        expect(mockNotification).toHaveBeenCalledWith({
-          description: error.message,
-          message: "Error",
-        });
+        expect(mockErrorMessage).toHaveBeenCalledWith(error.message);
       });
     });
 
@@ -380,10 +374,9 @@ describe("usePlayableReferences", () => {
       });
 
       await waitFor(() => {
-        expect(mockNotification).toHaveBeenCalledWith({
-          description: "Something in useLoadReferences()",
-          message: "Error",
-        });
+        expect(mockErrorMessage).toHaveBeenCalledWith(
+          "Something in useLoadReferences()",
+        );
       });
     });
 

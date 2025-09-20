@@ -21,8 +21,8 @@ import {
 import { redirect, usePathname } from "next/navigation";
 import { signIn, signOut } from "next-auth/react";
 
+import errorMessage from "@/app/lib/errorMessage";
 import useUser from "@/app/lib/hooks/useUser";
-import errorMessage from "@/app/ui/errorMessage";
 import Logo from "@/app/ui/Logo";
 import { getMenuItems, MenuItemConst } from "@/app/ui/shared";
 import { MenuInfo } from "@/app/ui/TemplatePageLayout";

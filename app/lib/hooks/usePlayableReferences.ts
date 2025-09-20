@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { notification } from "antd";
 
 import { Playable } from "@/app/lib/definitions";
+import errorMessage from "@/app/lib/errorMessage";
 import getDocumentsByExcludedIds from "@/app/lib/services/firebase/helpers/getDocumentsByExcludedIds";
 import getDocumentsByIds from "@/app/lib/services/firebase/helpers/getDocumentsByIds";
 
@@ -11,10 +11,7 @@ const usePlayableReferences = () => {
 
   useEffect(() => {
     if (error) {
-      notification.error({
-        description: error.message || "Something in useLoadReferences()",
-        message: "Error",
-      });
+      errorMessage(error?.message || "Something in useLoadReferences()");
     }
   }, [error]);
 

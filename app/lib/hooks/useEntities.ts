@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { notification } from "antd";
 import {
   DocumentSnapshot,
   OrderByDirection,
@@ -7,6 +6,7 @@ import {
 } from "firebase/firestore";
 
 import { Entity } from "@/app/lib/definitions";
+import errorMessage from "@/app/lib/errorMessage";
 import useUser from "@/app/lib/hooks/useUser";
 import createDocument from "@/app/lib/services/firebase/helpers/createDocument";
 import deleteDocument from "@/app/lib/services/firebase/helpers/deleteDocument";
@@ -35,10 +35,7 @@ const useEntities = () => {
 
   useEffect(() => {
     if (error) {
-      notification.error({
-        description: error.message || "Something in useEntities()",
-        message: "Error",
-      });
+      errorMessage(error?.message || "Something in useEntities()");
     }
   }, [error]);
 

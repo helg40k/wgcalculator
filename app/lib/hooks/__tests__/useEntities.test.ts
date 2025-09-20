@@ -1,5 +1,4 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { notification } from "antd";
 
 import { Entity } from "../../definitions";
 import createDocument from "../../services/firebase/helpers/createDocument";
@@ -32,11 +31,16 @@ jest.mock("../../services/firebase/helpers/deleteDocument");
 jest.mock("../../services/firebase/helpers/getCollectionData");
 jest.mock("../../services/firebase/helpers/getDocument");
 jest.mock("../../services/firebase/helpers/updateDocument");
-jest.mock("antd", () => ({
-  notification: {
-    error: jest.fn(),
-  },
+// Mock errorMessage
+jest.mock("../../errorMessage", () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
+
+import errorMessage from "../../errorMessage";
+const mockErrorMessage = errorMessage as jest.MockedFunction<
+  typeof errorMessage
+>;
 
 const mockUseUser = useUser as jest.MockedFunction<typeof useUser>;
 const mockCreateDocument = createDocument as jest.MockedFunction<
@@ -51,9 +55,6 @@ const mockGetCollectionData = getCollectionData as jest.MockedFunction<
 const mockGetDocument = getDocument as jest.MockedFunction<typeof getDocument>;
 const mockUpdateDocument = updateDocument as jest.MockedFunction<
   typeof updateDocument
->;
-const mockNotification = notification.error as jest.MockedFunction<
-  typeof notification.error
 >;
 
 const mockEntity: Entity = {
@@ -475,10 +476,7 @@ describe("useEntities", () => {
       });
 
       await waitFor(() => {
-        expect(mockNotification).toHaveBeenCalledWith({
-          description: "Test error",
-          message: "Error",
-        });
+        expect(mockErrorMessage).toHaveBeenCalledWith("Test error");
       });
     });
 
@@ -493,10 +491,9 @@ describe("useEntities", () => {
       });
 
       await waitFor(() => {
-        expect(mockNotification).toHaveBeenCalledWith({
-          description: "Something in useEntities()",
-          message: "Error",
-        });
+        expect(mockErrorMessage).toHaveBeenCalledWith(
+          "Something in useEntities()",
+        );
       });
     });
   });

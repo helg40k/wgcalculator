@@ -1,5 +1,4 @@
 import { renderHook, waitFor } from "@testing-library/react";
-import { notification } from "antd";
 import { usePathname } from "next/navigation";
 
 import {
@@ -27,18 +26,20 @@ jest.mock("../../services/firebase/utils/app", () => ({
 // Mock dependencies
 jest.mock("next/navigation");
 jest.mock("../../services/firebase/helpers/getDocuments");
-jest.mock("antd", () => ({
-  notification: {
-    error: jest.fn(),
-  },
+// Mock errorMessage
+jest.mock("../../errorMessage", () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
+
+import errorMessage from "../../errorMessage";
+const mockErrorMessage = errorMessage as jest.MockedFunction<
+  typeof errorMessage
+>;
 
 const mockUsePathname = usePathname as jest.MockedFunction<typeof usePathname>;
 const mockGetDocuments = getDocuments as jest.MockedFunction<
   typeof getDocuments
->;
-const mockNotification = notification.error as jest.MockedFunction<
-  typeof notification.error
 >;
 
 const mockGameSystem: GameSystem = {
@@ -150,10 +151,9 @@ describe("useGameSystem", () => {
       renderHook(() => useGameSystem());
 
       await waitFor(() => {
-        expect(mockNotification).toHaveBeenCalledWith({
-          description: error,
-          message: "Error",
-        });
+        expect(mockErrorMessage).toHaveBeenCalledWith(
+          error.message || "Something in useGameSystem()",
+        );
       });
     });
   });
@@ -472,10 +472,9 @@ describe("useGameSystem", () => {
       renderHook(() => useGameSystem());
 
       await waitFor(() => {
-        expect(mockNotification).toHaveBeenCalledWith({
-          description: error,
-          message: "Error",
-        });
+        expect(mockErrorMessage).toHaveBeenCalledWith(
+          error.message || "Something in useGameSystem()",
+        );
       });
     });
   });

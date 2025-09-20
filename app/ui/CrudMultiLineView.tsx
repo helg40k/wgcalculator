@@ -30,8 +30,8 @@ import clsx from "clsx";
 
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { EntityStatus, Playable } from "@/app/lib/definitions";
+import errorMessage from "@/app/lib/errorMessage";
 import { NEW_ENTITY_TEMP_ID } from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
-import errorMessage from "@/app/ui/errorMessage";
 import {
   equalDeep,
   getNewEntity,
