@@ -45,7 +45,7 @@ export const getMenuItems = (
   }
   return Object.values(menuItemsObject)
     .filter((item) => item.label)
-    .sort((item) => item.index)
+    .sort((a, b) => a.index - b.index)
     .map((item) =>
       getItem(item.label, item.key, item.icon, getMenuItems(item.children)),
     );
