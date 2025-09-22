@@ -26,11 +26,13 @@ import CrudReferenceModal from "@/app/ui/shared/CrudReferenceCounter/CrudReferen
 interface ReferenceCounterProps<T extends Playable = Playable> {
   entity: T;
   collectionName: CollectionName;
+  viewOnly?: boolean;
 }
 
 const ReferenceCounter = ({
   entity,
   collectionName,
+  viewOnly = false,
 }: ReferenceCounterProps) => {
   const {
     token: {
@@ -154,9 +156,11 @@ const ReferenceCounter = ({
           renderTooltipCollectionList(
             Object.keys(mentions || {}) as CollectionName[],
           )}
-        <div className="mt-2 text-xs" style={{ color: colorTextDisabled }}>
-          *Click to manage or get know more
-        </div>
+        {!viewOnly && (
+          <div className="mt-2 text-xs" style={{ color: colorTextDisabled }}>
+            *Click to manage or get know more
+          </div>
+        )}
       </div>
     ),
     [
@@ -172,6 +176,11 @@ const ReferenceCounter = ({
   );
 
   const onClick = () => {
+    // Don't open modal if in viewOnly mode
+    if (viewOnly) {
+      return;
+    }
+
     const modalContainer = document.createElement("div");
     document.body.appendChild(modalContainer);
 
@@ -206,7 +215,7 @@ const ReferenceCounter = ({
   return (
     <>
       <div
-        className="flex p-0.5 text-nowrap justify-start cursor-pointer"
+        className={`flex p-0.5 text-nowrap justify-start ${viewOnly ? "cursor-default" : "cursor-pointer"}`}
         style={{ color: colorTextSecondary }}
         onClick={onClick}
       >

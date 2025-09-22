@@ -224,7 +224,7 @@ interface TableProps<T extends Playable = Playable>
   extends BaseMultiLineViewProps<T> {
   sortableStatus?: boolean;
   table: TableColumnConfig<T>[];
-  rowFooter?: (record: T) => React.ReactNode;
+  rowFooter?: (record: T, editMode: boolean) => React.ReactNode;
 }
 
 // Shared logic hook
@@ -1349,7 +1349,7 @@ const CrudMultiLineViewTable = <T extends Playable>({
                       padding: "8px 8px",
                     }}
                   >
-                    {rowFooter(record)}
+                    {rowFooter(record, !!edit)}
                   </div>
                 ),
                 showExpandColumn: false, // Hide expand column

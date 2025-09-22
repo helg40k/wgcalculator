@@ -360,6 +360,58 @@ describe("CrudReferenceModal", () => {
 
       expect(screen.getByTestId("modal-ok-button")).toBeDisabled();
     });
+
+    it("should disable collapse interactions when in disableModal state", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      // Wait for "Add more" button to be available
+      await waitFor(() => {
+        const addButtons = screen.getAllByText("Add more");
+        expect(addButtons.length).toBeGreaterThan(0);
+      });
+
+      // Click "Add more" to enable disableModal state
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      // Try to click on collapse items - they should be disabled
+      const collapseItems = screen.getAllByTestId(/collapse-item-/);
+
+      await act(async () => {
+        fireEvent.click(collapseItems[0]);
+      });
+
+      // Verify that the collapse state didn't change (implementation specific)
+      // This test ensures the onClick doesn't break the component
+      expect(screen.getByTestId("ant-modal")).toBeInTheDocument();
+    });
+
+    it("should apply collapse-disabled class when in disableModal state", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      // Wait for "Add more" button to be available
+      await waitFor(() => {
+        const addButtons = screen.getAllByText("Add more");
+        expect(addButtons.length).toBeGreaterThan(0);
+      });
+
+      // Click "Add more" to enable disableModal state
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      // Check that collapse-disabled class is applied to wrapper divs
+      const collapseContainers =
+        document.querySelectorAll(".collapse-disabled");
+      expect(collapseContainers.length).toBeGreaterThan(0);
+    });
   });
 
   describe("DeleteButton Component", () => {

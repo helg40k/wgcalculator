@@ -102,7 +102,11 @@ const SourceEdit = ({
             style={{ color: colorTextPlaceholder }}
           />
           <div className="pl-1">
-            <ReferenceCounter entity={entity} collectionName={collectionName} />
+            <ReferenceCounter
+              entity={entity}
+              collectionName={collectionName}
+              viewOnly={true}
+            />
           </div>
         </Flex>
         <Flex vertical style={{ padding: "0 8px 0 8px" }} className="w-full">

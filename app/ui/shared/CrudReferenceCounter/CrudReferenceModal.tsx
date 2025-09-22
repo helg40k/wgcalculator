@@ -22,6 +22,29 @@ import {
 import usePlayableReferences from "@/app/lib/hooks/usePlayableReferences";
 import EntityStatusUI from "@/app/ui/shared/EntityStatusUI";
 
+// CSS styles for disabling collapse headers but keeping content interactive
+if (
+  typeof document !== "undefined" &&
+  !document.getElementById("collapse-disabled-styles")
+) {
+  const style = document.createElement("style");
+  style.id = "collapse-disabled-styles";
+  style.innerHTML = `
+    .collapse-disabled .ant-collapse-header {
+      cursor: default !important;
+      pointer-events: none !important;
+    }
+    .collapse-disabled .ant-collapse-content {
+      pointer-events: auto !important;
+    }
+    .collapse-disabled .ant-collapse-expand-icon {
+      cursor: default !important;
+      pointer-events: none !important;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 interface DeleteButtonProps {
   onDelete: () => void;
   name: string;
@@ -485,28 +508,35 @@ const CrudReferenceModal = ({
     >
       <Divider />
       <div className="font-bold">References ({refNumber} added)</div>
-      <Collapse
-        ghost
-        items={referenceCollections}
-        expandIcon={({ isActive }) => (
-          <CaretRightOutlined rotate={isActive ? 90 : 0} />
-        )}
-        activeKey={referenceExpandedKeys}
-        onChange={(keys) => {
-          setHasUserInteracted(true);
-          setReferenceExpandedKeys(Array.isArray(keys) ? keys : [keys]);
-        }}
-      />
+      <div className={disableModal ? "collapse-disabled" : ""}>
+        <Collapse
+          ghost
+          items={referenceCollections}
+          expandIcon={({ isActive }) => (
+            <CaretRightOutlined rotate={isActive ? 90 : 0} />
+          )}
+          activeKey={referenceExpandedKeys}
+          onChange={(keys) => {
+            if (!disableModal) {
+              setHasUserInteracted(true);
+              setReferenceExpandedKeys(Array.isArray(keys) ? keys : [keys]);
+            }
+          }}
+        />
+      </div>
       <div className="h-6" />
       <div className="font-bold">Mentions ({mentNumber} found)</div>
-      <Collapse
-        ghost
-        items={mentionCollections}
-        expandIcon={({ isActive }) => (
-          <CaretRightOutlined rotate={isActive ? 90 : 0} />
-        )}
-        defaultActiveKey={mentionExpandedKeys}
-      />
+      <div className={disableModal ? "collapse-disabled" : ""}>
+        <Collapse
+          ghost
+          items={mentionCollections}
+          expandIcon={({ isActive }) => (
+            <CaretRightOutlined rotate={isActive ? 90 : 0} />
+          )}
+          defaultActiveKey={mentionExpandedKeys}
+          onChange={disableModal ? () => {} : undefined}
+        />
+      </div>
       <Divider />
     </Modal>
   );

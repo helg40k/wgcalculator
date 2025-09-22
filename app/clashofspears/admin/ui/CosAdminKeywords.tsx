@@ -65,8 +65,12 @@ const CosAdminKeywords = () => {
         pluralNames={"keywords"}
         singleToolbarUntil={10}
         entities={keywords}
-        rowFooter={(record: Keyword) => (
-          <ReferenceCounter entity={record} collectionName={collectionName} />
+        rowFooter={(record: Keyword, editMode: boolean) => (
+          <ReferenceCounter
+            entity={record}
+            collectionName={collectionName}
+            viewOnly={editMode}
+          />
         )}
         setEntities={setKeywords}
         sortableStatus={true}

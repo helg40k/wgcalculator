@@ -1,9 +1,9 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import "@testing-library/jest-dom";
 
-// Спочатку протестуємо мінімальний мок компонента
+// First test the minimal mock component
 const MockReferenceCounter = ({ entity, collectionName }: any) => {
   const refCount = entity?.references
     ? Object.values(entity.references).flat().length
@@ -86,10 +86,25 @@ describe("CrudReferenceCounter Mock Tests", () => {
   });
 });
 
-// Тепер тести для справжнього компонента
+// Mocks for collections
+const mockCollectionName = {
+  ARMORS: "ARMORS",
+  PROFILES: "PROFILES",
+  WEAPONS: "WEAPONS",
+};
+
+// Now tests for the real component
 describe("CrudReferenceCounter Real Component", () => {
-  // Mock всі залежності
+  let ReferenceCounter: any;
+  let createRoot: jest.Mock;
+
+  // Mock all dependencies
   beforeAll(() => {
+    // Mock definitions
+    jest.doMock("../../../../lib/definitions", () => ({
+      CollectionName: mockCollectionName,
+    }));
+
     // Mock CrudReferenceModal
     jest.doMock("../CrudReferenceModal", () => {
       const MockCrudReferenceModal = () => {
@@ -105,9 +120,11 @@ describe("CrudReferenceCounter Real Component", () => {
       GameSystemContext: React.createContext([
         {}, // gameSystem
         {
-          // utils
           allowedToRefer: () => ["profiles"],
+
           canBeMentionedBy: () => ["weapons"],
+          // utils
+          getAllowedToRefer: () => ["PROFILES"],
         },
       ]),
     }));
@@ -148,17 +165,105 @@ describe("CrudReferenceCounter Real Component", () => {
     }));
 
     // Mock react-dom/client
-    jest.doMock("react-dom/client", () => ({
-      createRoot: jest.fn(() => ({
-        render: jest.fn(),
-        unmount: jest.fn(),
-      })),
+    createRoot = jest.fn(() => ({
+      render: jest.fn(),
+      unmount: jest.fn(),
     }));
+
+    jest.doMock("react-dom/client", () => ({
+      createRoot,
+    }));
+  });
+
+  beforeAll(async () => {
+    // Import the component after all mocks
+    const componentModule = await import("../index");
+    ReferenceCounter = componentModule.default;
   });
 
   it("should import without crashing", async () => {
     await expect(async () => {
       await import("../index");
     }).not.toThrow();
+  });
+
+  describe("ViewOnly Mode", () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it("should not open modal when viewOnly is true", () => {
+      const TestReferenceCounter = () => {
+        const mockEntity = {
+          _id: "test-id",
+          name: "Test Entity",
+          references: { ref1: "PROFILES" },
+        };
+
+        return React.createElement(ReferenceCounter, {
+          collectionName: mockCollectionName.PROFILES,
+          entity: mockEntity,
+          viewOnly: true,
+        });
+      };
+
+      render(React.createElement(TestReferenceCounter));
+
+      const component = screen
+        .getByText("1 reference")
+        .closest('div[class*="cursor-"]');
+      fireEvent.click(component!);
+
+      // Verify that createRoot was not called (modal not opened)
+      expect(createRoot).not.toHaveBeenCalled();
+    });
+
+    it("should apply default cursor when viewOnly is true", () => {
+      const TestReferenceCounter = () => {
+        const mockEntity = {
+          _id: "test-id",
+          name: "Test Entity",
+          references: {},
+        };
+
+        return React.createElement(ReferenceCounter, {
+          collectionName: mockCollectionName.PROFILES,
+          entity: mockEntity,
+          viewOnly: true,
+        });
+      };
+
+      render(React.createElement(TestReferenceCounter));
+
+      const component = screen
+        .getByText("0 references")
+        .closest('div[class*="cursor-"]');
+      expect(component).toHaveClass("cursor-default");
+      expect(component).not.toHaveClass("cursor-pointer");
+    });
+
+    it("should apply pointer cursor when viewOnly is false", () => {
+      const TestReferenceCounter = () => {
+        const mockEntity = {
+          _id: "test-id",
+          name: "Test Entity",
+          references: {},
+        };
+
+        return React.createElement(ReferenceCounter, {
+          collectionName: mockCollectionName.PROFILES,
+          entity: mockEntity,
+          viewOnly: false,
+        });
+      };
+
+      render(React.createElement(TestReferenceCounter));
+
+      const component = screen
+        .getByText("0 references")
+        .closest('div[class*="cursor-"]');
+      expect(component).toHaveClass("cursor-pointer");
+      expect(component).not.toHaveClass("cursor-default");
+    });
   });
 });
