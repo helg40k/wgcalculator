@@ -9,6 +9,8 @@ import {
 
 import firestore from "@/app/lib/services/firebase/utils/firestore";
 
+const BATCH_SIZE = 10; // Firestore 'in' operator limit
+
 /**
  * Retrieves several (alone?) documents from a Firestore collection based by their ID array.
  * @param collectionPath - The path to the collection you want to get the document from.
@@ -24,8 +26,8 @@ const getDocumentsByIds = async (
   }
 
   const chunks: string[][] = [];
-  for (let i = 0; i < ids.length; i += 10) {
-    chunks.push(ids.slice(i, i + 10));
+  for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+    chunks.push(ids.slice(i, i + BATCH_SIZE));
   }
 
   const queries = chunks.map((chunk) =>

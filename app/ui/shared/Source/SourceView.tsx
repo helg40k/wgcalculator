@@ -10,9 +10,10 @@ const collectionName = CollectionRegistry.Source;
 
 interface SourceViewProps {
   entity: Source;
+  editMode?: boolean;
 }
 
-const SourceView = ({ entity }: SourceViewProps) => {
+const SourceView = ({ entity, editMode = false }: SourceViewProps) => {
   const {
     token: {
       colorTextPlaceholder,
@@ -46,7 +47,11 @@ const SourceView = ({ entity }: SourceViewProps) => {
             style={{ color: themeTokens.colorTextPlaceholder }}
           />
           <div className="pl-1">
-            <ReferenceCounter entity={entity} collectionName={collectionName} />
+            <ReferenceCounter
+              entity={entity}
+              collectionName={collectionName}
+              viewOnly={editMode}
+            />
           </div>
         </Flex>
         <Flex vertical style={{ padding: "0 8px 0 8px" }} className="w-full">

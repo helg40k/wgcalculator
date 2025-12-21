@@ -191,7 +191,7 @@ interface ListProps<T extends Playable = Playable>
     setValid: Dispatch<SetStateAction<boolean>>;
     setIsNew: Dispatch<SetStateAction<boolean>>;
   }>;
-  view: React.ComponentType<{ entity: T }>;
+  view: React.ComponentType<{ entity: T; editMode?: boolean }>;
   sortableFields?: SortableField<T>[];
 }
 
@@ -206,6 +206,7 @@ interface TableColumnConfig<T extends Playable = Playable> {
     entity: T;
     field: keyof T | string;
     value: any;
+    editMode?: boolean;
   }>;
   // Edit component is optional - if not provided, view component is used
   edit?: React.ComponentType<{
@@ -839,7 +840,7 @@ const CrudMultiLineViewList = <T extends Playable>({
                   show={false}
                   onChange={onChangeStatus}
                 >
-                  <ViewComponent entity={entity} />
+                  <ViewComponent entity={entity} editMode={false} />
                 </EntityStatusUI.Badge>
               )}
               {edit && edit !== entity._id && (
@@ -850,7 +851,7 @@ const CrudMultiLineViewList = <T extends Playable>({
                   show={false}
                   onChange={onChangeStatus}
                 >
-                  <ViewComponent entity={entity} />
+                  <ViewComponent entity={entity} editMode={true} />
                 </EntityStatusUI.Badge>
               )}
               {edit === entity._id && EditComponent && (
@@ -1177,6 +1178,7 @@ const CrudMultiLineViewTable = <T extends Playable>({
             entity={record}
             field={colConfig.field}
             value={value}
+            editMode={!!edit && edit !== record._id}
           />
         );
       },
