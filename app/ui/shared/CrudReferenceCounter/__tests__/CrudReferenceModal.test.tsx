@@ -944,6 +944,122 @@ describe("CrudReferenceModal", () => {
       const alphaIdx = allText.indexOf("Alpha New");
       expect(zebraIdx).toBeLessThan(alphaIdx);
     });
+
+    it("should preserve insertion order of multiple unsaved entities after useEffect re-fires", async () => {
+      const allEntities: Record<string, any> = {
+        new1: {
+          _id: "new1",
+          description: "",
+          name: "Zulu Added First",
+          status: "active",
+        },
+        new2: {
+          _id: "new2",
+          description: "",
+          name: "Alpha Added Second",
+          status: "active",
+        },
+        ref1: {
+          _id: "ref1",
+          description: "",
+          name: "Saved One",
+          status: "active",
+        },
+      };
+
+      mockLoadReferences.mockImplementation((colName, entIds) => {
+        if (colName === "PROFILES") {
+          return Promise.resolve(
+            entIds.map((id: string) => allEntities[id]).filter(Boolean),
+          );
+        }
+        return Promise.resolve([]);
+      });
+
+      let addMoreCallCount = 0;
+      mockLoadEntitiesForReferences.mockImplementation(() => {
+        addMoreCallCount++;
+        if (addMoreCallCount === 1) {
+          return Promise.resolve([allEntities.new1, allEntities.new2]);
+        }
+        return Promise.resolve([allEntities.new2]);
+      });
+
+      const props = {
+        ...defaultProps,
+        references: {
+          ref1: mockCollectionName.PROFILES as CollectionName,
+        },
+      };
+
+      await act(async () => {
+        render(<CrudReferenceModal {...props} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Saved One")).toBeInTheDocument();
+      });
+
+      // Add first unsaved entity (Zulu Added First)
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "new1" },
+        });
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Zulu Added First")).toBeInTheDocument();
+      });
+
+      // Add second unsaved entity (Alpha Added Second)
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "new2" },
+        });
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Alpha Added Second")).toBeInTheDocument();
+      });
+
+      // Zulu should appear BEFORE Alpha (insertion order), despite Alpha being first alphabetically
+      const allText = document.body.textContent || "";
+      const zuluIdx = allText.indexOf("Zulu Added First");
+      const alphaIdx = allText.indexOf("Alpha Added Second");
+      expect(zuluIdx).toBeLessThan(alphaIdx);
+
+      // Saved entity should still be before both unsaved
+      const savedIdx = allText.indexOf("Saved One");
+      expect(savedIdx).toBeLessThan(zuluIdx);
+    });
   });
 
   describe("Unsaved Highlighting", () => {

@@ -215,10 +215,20 @@ const CrudReferenceModal = ({
       loadingRef.current.add(colName);
       try {
         const entities = await loadReferences(colName, entIds);
-        setLoadedEntities((prev) => ({
-          ...prev,
-          [colName as CollectionName]: entities,
-        }));
+        setLoadedEntities((prev) => {
+          const colKey = colName as CollectionName;
+          const prevList = prev[colKey] || [];
+          const entById = new Map(entities.map((e) => [e._id, e]));
+          const existingUpdated = prevList
+            .map((e) => entById.get(e._id))
+            .filter((e): e is Playable => e != null);
+          const existingIds = new Set(prevList.map((e) => e._id));
+          const brandNew = entities.filter((e) => !existingIds.has(e._id));
+          return {
+            ...prev,
+            [colKey]: [...existingUpdated, ...brandNew],
+          };
+        });
       } finally {
         loadingRef.current.delete(colName);
       }
