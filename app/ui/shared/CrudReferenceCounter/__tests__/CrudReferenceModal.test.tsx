@@ -1307,7 +1307,7 @@ describe("CrudReferenceModal", () => {
   });
 
   describe("Scroll Wrapper", () => {
-    it("should wrap reference entity rows in a scrollable div", async () => {
+    it("should wrap reference collapse in a scrollable div", async () => {
       await act(async () => {
         render(<CrudReferenceModal {...defaultProps} />);
       });
@@ -1316,22 +1316,20 @@ describe("CrudReferenceModal", () => {
         expect(screen.getByText("Test Profile")).toBeInTheDocument();
       });
 
-      const profileRow = screen
-        .getByText("Test Profile")
-        .closest('div[class*="pl-12"]')!;
-      const scrollWrapper = profileRow.parentElement!;
-      expect(scrollWrapper.style.maxHeight).toBe("192px");
+      const collapses = screen.getAllByTestId("ant-collapse");
+      const referencesCollapse = collapses[0];
+      const scrollWrapper = referencesCollapse.parentElement!.parentElement!;
+      expect(scrollWrapper.style.maxHeight).toBe("224px");
       expect(scrollWrapper.style.overflowY).toBe("auto");
     });
 
-    it("should wrap mention entity rows in a scrollable div", () => {
+    it("should wrap mention collapse in a scrollable div", () => {
       render(<CrudReferenceModal {...defaultProps} />);
 
-      const mentionRow = screen
-        .getByText("Mention Profile 1")
-        .closest('div[class*="pl-12"]')!;
-      const scrollWrapper = mentionRow.parentElement!;
-      expect(scrollWrapper.style.maxHeight).toBe("192px");
+      const collapses = screen.getAllByTestId("ant-collapse");
+      const mentionsCollapse = collapses[1];
+      const scrollWrapper = mentionsCollapse.parentElement!.parentElement!;
+      expect(scrollWrapper.style.maxHeight).toBe("224px");
       expect(scrollWrapper.style.overflowY).toBe("auto");
     });
 
@@ -1344,10 +1342,9 @@ describe("CrudReferenceModal", () => {
         expect(screen.getByText("Test Profile")).toBeInTheDocument();
       });
 
-      const profileRow = screen
-        .getByText("Test Profile")
-        .closest('div[class*="pl-12"]')!;
-      const scrollWrapper = profileRow.parentElement!;
+      const collapses = screen.getAllByTestId("ant-collapse");
+      const referencesCollapse = collapses[0];
+      const scrollWrapper = referencesCollapse.parentElement!.parentElement!;
 
       Object.defineProperty(scrollWrapper, "scrollHeight", {
         configurable: true,

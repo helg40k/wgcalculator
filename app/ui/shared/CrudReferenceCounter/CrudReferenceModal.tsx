@@ -166,11 +166,11 @@ const CrudReferenceModal = ({
   const [exhaustedCollections, setExhaustedCollections] = useState<
     Set<CollectionName>
   >(new Set());
-  const [scrollToBottom, setScrollToBottom] = useState<string | null>(null);
+  const [scrollToBottom, setScrollToBottom] = useState(false);
   const { loadEntitiesForReferences, loadReferences, saveReferences } =
     usePlayableReferences();
   const loadingRef = useRef<Set<string>>(new Set());
-  const scrollRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const referencesScrollRef = useRef<HTMLDivElement | null>(null);
 
   const refNumber = useMemo(() => {
     return Object.keys(references).filter((id) => oldReferences[id]).length;
@@ -248,11 +248,11 @@ const CrudReferenceModal = ({
 
   useEffect(() => {
     if (scrollToBottom) {
-      const el = scrollRefs.current[scrollToBottom];
+      const el = referencesScrollRef.current;
       if (el) {
         el.scrollTop = el.scrollHeight;
       }
-      setScrollToBottom(null);
+      setScrollToBottom(false);
     }
   }, [scrollToBottom]);
 
@@ -271,69 +271,62 @@ const CrudReferenceModal = ({
         return {
           children: (
             <div className="-mt-5">
-              <div
-                ref={(el) => {
-                  scrollRefs.current[colName] = el;
-                }}
-                style={{ maxHeight: "192px", overflowY: "auto" }}
-              >
-                {sortedEntities.length > 0
-                  ? sortedEntities.map((ent) => {
-                      const isUnsaved = !oldReferences[ent._id];
-                      return (
-                        <div
-                          key={`${colName}-${ent._id}`}
-                          className={`my-0.5 py-0.5 pl-12 flex items-center justify-between hover:bg-blue-50 ${isUnsaved ? "bg-red-50" : ""}`}
-                        >
-                          <DescriptionTooltip
-                            content={ent.description}
-                            colorText={colorTextSecondary}
-                          >
-                            <span>{ent.name}</span>
-                          </DescriptionTooltip>
-                          <div className="flex items-center gap-1">
-                            <EntityStatusUI.Tag
-                              entityId={ent._id}
-                              status={ent.status}
-                              editable={false}
-                            />
-                            <DeleteButton
-                              onDelete={() => {
-                                const colNameTyped = colName as CollectionName;
-                                setReferences((prev) => {
-                                  const updated = { ...prev };
-                                  delete updated[ent._id];
-                                  return updated;
-                                });
-                                setLoadedEntities((prev) => ({
-                                  ...prev,
-                                  [colNameTyped]: (
-                                    prev[colNameTyped] || []
-                                  ).filter((e) => e._id !== ent._id),
-                                }));
-                                setExhaustedCollections((prev) => {
-                                  const updated = new Set(prev);
-                                  updated.delete(colNameTyped);
-                                  return updated;
-                                });
-                              }}
-                              name="reference"
-                              disabled={loading || disableModal}
-                            />
-                            <div className="pr-2" />
-                          </div>
-                        </div>
-                      );
-                    })
-                  : entIds.map((id) => (
+              {sortedEntities.length > 0
+                ? sortedEntities.map((ent) => {
+                    const isUnsaved = !oldReferences[ent._id];
+                    return (
                       <div
-                        key={`${colName}-${id}`}
-                        className="my-0.5 py-0.5 pl-12 flex items-center justify-between"
+                        key={`${colName}-${ent._id}`}
+                        className={`my-0.5 py-0.5 pl-12 flex items-center justify-between hover:bg-blue-50 ${isUnsaved ? "bg-red-50" : ""}`}
                       >
-                        Loading...
+                        <DescriptionTooltip
+                          content={ent.description}
+                          colorText={colorTextSecondary}
+                        >
+                          <span>{ent.name}</span>
+                        </DescriptionTooltip>
+                        <div className="flex items-center gap-1">
+                          <EntityStatusUI.Tag
+                            entityId={ent._id}
+                            status={ent.status}
+                            editable={false}
+                          />
+                          <DeleteButton
+                            onDelete={() => {
+                              const colNameTyped = colName as CollectionName;
+                              setReferences((prev) => {
+                                const updated = { ...prev };
+                                delete updated[ent._id];
+                                return updated;
+                              });
+                              setLoadedEntities((prev) => ({
+                                ...prev,
+                                [colNameTyped]: (
+                                  prev[colNameTyped] || []
+                                ).filter((e) => e._id !== ent._id),
+                              }));
+                              setExhaustedCollections((prev) => {
+                                const updated = new Set(prev);
+                                updated.delete(colNameTyped);
+                                return updated;
+                              });
+                            }}
+                            name="reference"
+                            disabled={loading || disableModal}
+                          />
+                          <div className="pr-2" />
+                        </div>
                       </div>
-                    ))}
-              </div>
+                    );
+                  })
+                : entIds.map((id) => (
+                    <div
+                      key={`${colName}-${id}`}
+                      className="my-0.5 py-0.5 pl-12 flex items-center justify-between"
+                    >
+                      Loading...
+                    </div>
+                  ))}
               {showingSelect === colName ? (
                 <div className="flex justify-start py-1 pr-3 w-full gap-1">
                   <Select
@@ -434,7 +427,7 @@ const CrudReferenceModal = ({
                               new Set(prev).add(colNameTyped),
                             );
                           }
-                          setScrollToBottom(colName);
+                          setScrollToBottom(true);
                         }
                         setSelectedEntityId(null);
                         setShowingSelect(null);
@@ -566,36 +559,34 @@ const CrudReferenceModal = ({
         return {
           children: (
             <div className="-mt-5">
-              <div style={{ maxHeight: "192px", overflowY: "auto" }}>
-                {entities
-                  .sort((ent1, ent2) => ent1.name.localeCompare(ent2.name))
-                  .map((ent) => (
-                    <div
-                      key={`${colName}-${ent._id}`}
-                      className="my-0.5 py-0.5 pl-12 flex items-center justify-between hover:bg-blue-50"
+              {entities
+                .sort((ent1, ent2) => ent1.name.localeCompare(ent2.name))
+                .map((ent) => (
+                  <div
+                    key={`${colName}-${ent._id}`}
+                    className="my-0.5 py-0.5 pl-12 flex items-center justify-between hover:bg-blue-50"
+                  >
+                    <DescriptionTooltip
+                      content={ent.description}
+                      colorText={colorTextSecondary}
                     >
-                      <DescriptionTooltip
-                        content={ent.description}
-                        colorText={colorTextSecondary}
-                      >
-                        <span>{ent.name}</span>
-                      </DescriptionTooltip>
-                      <div className="flex items-center gap-1">
-                        <EntityStatusUI.Tag
-                          entityId={ent._id}
-                          status={ent.status}
-                          editable={false}
-                        />
-                        <DeleteButton
-                          onDelete={() => {}}
-                          name="mention"
-                          disabled={loading || disableModal}
-                        />
-                        <div className="pr-2" />
-                      </div>
+                      <span>{ent.name}</span>
+                    </DescriptionTooltip>
+                    <div className="flex items-center gap-1">
+                      <EntityStatusUI.Tag
+                        entityId={ent._id}
+                        status={ent.status}
+                        editable={false}
+                      />
+                      <DeleteButton
+                        onDelete={() => {}}
+                        name="mention"
+                        disabled={loading || disableModal}
+                      />
+                      <div className="pr-2" />
                     </div>
-                  ))}
-              </div>
+                  </div>
+                ))}
             </div>
           ),
           key: `mention-${colName}`,
@@ -671,34 +662,41 @@ const CrudReferenceModal = ({
         {unsavedCount > 0 && `, ${unsavedCount} unsaved`}
         {removedCount > 0 && `, ${removedCount} removed`})
       </div>
-      <div className={disableModal ? "collapse-disabled" : ""}>
-        <Collapse
-          ghost
-          items={referenceCollections}
-          expandIcon={({ isActive }) => (
-            <CaretRightOutlined rotate={isActive ? 90 : 0} />
-          )}
-          activeKey={referenceExpandedKeys}
-          onChange={(keys) => {
-            if (!disableModal) {
-              setHasUserInteracted(true);
-              setReferenceExpandedKeys(Array.isArray(keys) ? keys : [keys]);
-            }
-          }}
-        />
+      <div
+        ref={referencesScrollRef}
+        style={{ maxHeight: "224px", overflowY: "auto" }}
+      >
+        <div className={disableModal ? "collapse-disabled" : ""}>
+          <Collapse
+            ghost
+            items={referenceCollections}
+            expandIcon={({ isActive }) => (
+              <CaretRightOutlined rotate={isActive ? 90 : 0} />
+            )}
+            activeKey={referenceExpandedKeys}
+            onChange={(keys) => {
+              if (!disableModal) {
+                setHasUserInteracted(true);
+                setReferenceExpandedKeys(Array.isArray(keys) ? keys : [keys]);
+              }
+            }}
+          />
+        </div>
       </div>
       <div className="h-6" />
       <div className="font-bold">Mentions ({mentNumber} found)</div>
-      <div className={disableModal ? "collapse-disabled" : ""}>
-        <Collapse
-          ghost
-          items={mentionCollections}
-          expandIcon={({ isActive }) => (
-            <CaretRightOutlined rotate={isActive ? 90 : 0} />
-          )}
-          defaultActiveKey={mentionExpandedKeys}
-          onChange={disableModal ? () => {} : undefined}
-        />
+      <div style={{ maxHeight: "224px", overflowY: "auto" }}>
+        <div className={disableModal ? "collapse-disabled" : ""}>
+          <Collapse
+            ghost
+            items={mentionCollections}
+            expandIcon={({ isActive }) => (
+              <CaretRightOutlined rotate={isActive ? 90 : 0} />
+            )}
+            defaultActiveKey={mentionExpandedKeys}
+            onChange={disableModal ? () => {} : undefined}
+          />
+        </div>
       </div>
       <Divider />
     </Modal>
