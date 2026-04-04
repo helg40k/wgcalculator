@@ -552,7 +552,12 @@ describe("CrudReferenceModal", () => {
         fireEvent.click(checkButton);
       });
 
-      expect(screen.getByText("References (3 added)")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          (content) =>
+            content.includes("3 added") && content.includes("1 unsaved"),
+        ),
+      ).toBeInTheDocument();
       expect(screen.queryByTestId("ant-select")).not.toBeInTheDocument();
     });
 
@@ -719,7 +724,12 @@ describe("CrudReferenceModal", () => {
         fireEvent.click(referenceTrashButton);
       });
 
-      expect(screen.getByText("References (1 added)")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          (content) =>
+            content.includes("1 added") && content.includes("1 removed"),
+        ),
+      ).toBeInTheDocument();
     });
 
     it("should pass updated references to onOk after deleting", async () => {
@@ -857,6 +867,295 @@ describe("CrudReferenceModal", () => {
       await waitFor(() => {
         expect(screen.queryAllByText("Add more").length).toBe(initialCount);
       });
+    });
+  });
+
+  describe("Sorting", () => {
+    it("should display DB-loaded entities alphabetically and unsaved ones at end", async () => {
+      const allEntities: Record<string, any> = {
+        new1: {
+          _id: "new1",
+          description: "",
+          name: "Alpha New",
+          status: "active",
+        },
+        ref1: {
+          _id: "ref1",
+          description: "",
+          name: "Zebra Profile",
+          status: "active",
+        },
+      };
+
+      mockLoadReferences.mockImplementation((colName, entIds) => {
+        if (colName === "PROFILES") {
+          return Promise.resolve(
+            entIds.map((id: string) => allEntities[id]).filter(Boolean),
+          );
+        }
+        return Promise.resolve([]);
+      });
+
+      mockLoadEntitiesForReferences.mockResolvedValue([allEntities.new1]);
+
+      const props = {
+        ...defaultProps,
+        references: {
+          ref1: mockCollectionName.PROFILES as CollectionName,
+        },
+      };
+
+      await act(async () => {
+        render(<CrudReferenceModal {...props} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Zebra Profile")).toBeInTheDocument();
+      });
+
+      // Add a new entity
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "new1" },
+        });
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Alpha New")).toBeInTheDocument();
+      });
+
+      // Both should be visible; Zebra Profile (saved) first, Alpha New (unsaved) second
+      const allText = document.body.textContent || "";
+      const zebraIdx = allText.indexOf("Zebra Profile");
+      const alphaIdx = allText.indexOf("Alpha New");
+      expect(zebraIdx).toBeLessThan(alphaIdx);
+    });
+  });
+
+  describe("Unsaved Highlighting", () => {
+    it("should apply bg-red-50 to unsaved entity rows", async () => {
+      const allEntities: Record<string, any> = {
+        new1: {
+          _id: "new1",
+          description: "",
+          name: "New Entity",
+          status: "active",
+        },
+        ref1: {
+          _id: "ref1",
+          description: "",
+          name: "Saved Profile",
+          status: "active",
+        },
+      };
+
+      mockLoadReferences.mockImplementation((colName, entIds) => {
+        if (colName === "PROFILES") {
+          return Promise.resolve(
+            entIds.map((id: string) => allEntities[id]).filter(Boolean),
+          );
+        }
+        return Promise.resolve([]);
+      });
+
+      mockLoadEntitiesForReferences.mockResolvedValue([allEntities.new1]);
+
+      const props = {
+        ...defaultProps,
+        references: {
+          ref1: mockCollectionName.PROFILES as CollectionName,
+        },
+      };
+
+      await act(async () => {
+        render(<CrudReferenceModal {...props} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Saved Profile")).toBeInTheDocument();
+      });
+
+      // Saved entity should have hover:bg-blue-50
+      const savedRow = screen
+        .getByText("Saved Profile")
+        .closest('div[class*="pl-12"]')!;
+      expect(savedRow.className).toContain("hover:bg-blue-50");
+      expect(savedRow.className).not.toContain("bg-red-50");
+
+      // Add a new entity
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "new1" },
+        });
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("New Entity")).toBeInTheDocument();
+      });
+
+      // New entity should have bg-red-50
+      const newRow = screen
+        .getByText("New Entity")
+        .closest('div[class*="pl-12"]')!;
+      expect(newRow.className).toContain("bg-red-50");
+      expect(newRow.className).not.toContain("hover:bg-blue-50");
+    });
+  });
+
+  describe("Header Counters", () => {
+    it("should show only 'added' when no changes made", () => {
+      render(<CrudReferenceModal {...defaultProps} />);
+
+      expect(screen.getByText("References (2 added)")).toBeInTheDocument();
+    });
+
+    it("should show 'unsaved' count after adding a new reference", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(() => {
+        const addButtons = screen.getAllByText("Add more");
+        expect(addButtons.length).toBeGreaterThan(0);
+      });
+
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "available1" },
+        });
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      expect(
+        screen.getByText(
+          (content) =>
+            content.includes("3 added") && content.includes("1 unsaved"),
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("should show 'removed' count after deleting a saved reference", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Test Profile")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      const trashButtons = screen.getAllByTestId("trash-icon");
+      const referenceTrashButton = trashButtons[0].closest("button")!;
+
+      await act(async () => {
+        fireEvent.click(referenceTrashButton);
+      });
+
+      expect(
+        screen.getByText(
+          (content) =>
+            content.includes("1 added") && content.includes("1 removed"),
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("should show both 'unsaved' and 'removed' when applicable", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Test Profile")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      // Delete a saved reference
+      const trashButtons = screen.getAllByTestId("trash-icon");
+      const referenceTrashButton = trashButtons[0].closest("button")!;
+
+      await act(async () => {
+        fireEvent.click(referenceTrashButton);
+      });
+
+      // Add a new reference
+      await waitFor(() => {
+        const addButtons = screen.getAllByText("Add more");
+        expect(addButtons.length).toBeGreaterThan(0);
+      });
+
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "available1" },
+        });
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      expect(
+        screen.getByText(
+          (content) =>
+            content.includes("2 added") &&
+            content.includes("1 unsaved") &&
+            content.includes("1 removed"),
+        ),
+      ).toBeInTheDocument();
     });
   });
 

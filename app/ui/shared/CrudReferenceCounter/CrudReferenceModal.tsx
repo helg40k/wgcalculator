@@ -171,6 +171,14 @@ const CrudReferenceModal = ({
     return Object.keys(references).length;
   }, [references]);
 
+  const unsavedCount = useMemo(() => {
+    return Object.keys(references).filter((id) => !oldReferences[id]).length;
+  }, [references, oldReferences]);
+
+  const removedCount = useMemo(() => {
+    return Object.keys(oldReferences).filter((id) => !references[id]).length;
+  }, [references, oldReferences]);
+
   const mentNumber = useMemo(() => {
     return Object.values(mentions).reduce(
       (total, array) => total + array.length,
@@ -226,54 +234,64 @@ const CrudReferenceModal = ({
       .sort(([colName1], [colName2]) => colName1.localeCompare(colName2))
       .map(([colName, entIds]) => {
         const entities = loadedEntities[colName as CollectionName] || [];
+        const savedEntities = entities
+          .filter((ent) => oldReferences[ent._id])
+          .sort((a, b) => a.name.localeCompare(b.name));
+        const unsavedEntities = entities.filter(
+          (ent) => !oldReferences[ent._id],
+        );
+        const sortedEntities = [...savedEntities, ...unsavedEntities];
         return {
           children: (
             <div className="-mt-5">
-              {entities.length > 0
-                ? entities.map((ent) => (
-                    <div
-                      key={`${colName}-${ent._id}`}
-                      className="my-0.5 py-0.5 pl-12 flex items-center justify-between hover:bg-blue-50"
-                    >
-                      <DescriptionTooltip
-                        content={ent.description}
-                        colorText={colorTextSecondary}
+              {sortedEntities.length > 0
+                ? sortedEntities.map((ent) => {
+                    const isUnsaved = !oldReferences[ent._id];
+                    return (
+                      <div
+                        key={`${colName}-${ent._id}`}
+                        className={`my-0.5 py-0.5 pl-12 flex items-center justify-between ${isUnsaved ? "bg-red-50" : "hover:bg-blue-50"}`}
                       >
-                        <span>{ent.name}</span>
-                      </DescriptionTooltip>
-                      <div className="flex items-center gap-1">
-                        <EntityStatusUI.Tag
-                          entityId={ent._id}
-                          status={ent.status}
-                          editable={false}
-                        />
-                        <DeleteButton
-                          onDelete={() => {
-                            const colNameTyped = colName as CollectionName;
-                            setReferences((prev) => {
-                              const updated = { ...prev };
-                              delete updated[ent._id];
-                              return updated;
-                            });
-                            setLoadedEntities((prev) => ({
-                              ...prev,
-                              [colNameTyped]: (prev[colNameTyped] || []).filter(
-                                (e) => e._id !== ent._id,
-                              ),
-                            }));
-                            setExhaustedCollections((prev) => {
-                              const updated = new Set(prev);
-                              updated.delete(colNameTyped);
-                              return updated;
-                            });
-                          }}
-                          name="reference"
-                          disabled={loading || disableModal}
-                        />
-                        <div className="pr-2" />
+                        <DescriptionTooltip
+                          content={ent.description}
+                          colorText={colorTextSecondary}
+                        >
+                          <span>{ent.name}</span>
+                        </DescriptionTooltip>
+                        <div className="flex items-center gap-1">
+                          <EntityStatusUI.Tag
+                            entityId={ent._id}
+                            status={ent.status}
+                            editable={false}
+                          />
+                          <DeleteButton
+                            onDelete={() => {
+                              const colNameTyped = colName as CollectionName;
+                              setReferences((prev) => {
+                                const updated = { ...prev };
+                                delete updated[ent._id];
+                                return updated;
+                              });
+                              setLoadedEntities((prev) => ({
+                                ...prev,
+                                [colNameTyped]: (
+                                  prev[colNameTyped] || []
+                                ).filter((e) => e._id !== ent._id),
+                              }));
+                              setExhaustedCollections((prev) => {
+                                const updated = new Set(prev);
+                                updated.delete(colNameTyped);
+                                return updated;
+                              });
+                            }}
+                            name="reference"
+                            disabled={loading || disableModal}
+                          />
+                          <div className="pr-2" />
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 : entIds.map((id) => (
                     <div
                       key={`${colName}-${id}`}
@@ -574,7 +592,11 @@ const CrudReferenceModal = ({
       okButtonProps={{ disabled: loading || disableModal }}
     >
       <Divider />
-      <div className="font-bold">References ({refNumber} added)</div>
+      <div className="font-bold">
+        References ({refNumber} added
+        {unsavedCount > 0 && `, ${unsavedCount} unsaved`}
+        {removedCount > 0 && `, ${removedCount} removed`})
+      </div>
       <div className={disableModal ? "collapse-disabled" : ""}>
         <Collapse
           ghost
