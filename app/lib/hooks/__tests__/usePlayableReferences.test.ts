@@ -1,7 +1,8 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { deleteField } from "firebase/firestore";
 import { useSession } from "next-auth/react";
 
-import { Playable } from "../../definitions";
+import { CollectionName, Playable } from "../../definitions";
 import getDocumentsByExcludedIds from "../../services/firebase/helpers/getDocumentsByExcludedIds";
 import getDocumentsByIds from "../../services/firebase/helpers/getDocumentsByIds";
 import updateDocument from "../../services/firebase/helpers/updateDocument";
@@ -96,6 +97,7 @@ describe("usePlayableReferences", () => {
       expect(typeof result.current.loadReferences).toBe("function");
       expect(typeof result.current.loadEntitiesForReferences).toBe("function");
       expect(typeof result.current.saveReferences).toBe("function");
+      expect(typeof result.current.removeIncomingReferences).toBe("function");
     });
   });
 
@@ -664,6 +666,109 @@ describe("usePlayableReferences", () => {
     });
   });
 
+  describe("removeIncomingReferences", () => {
+    it("should return true without calling updateDocument when removals is empty", async () => {
+      const { result } = renderHook(() => usePlayableReferences());
+
+      let ok = false;
+      await act(async () => {
+        ok = await result.current.removeIncomingReferences("target-id", []);
+      });
+
+      expect(ok).toBe(true);
+      expect(mockUpdateDocument).not.toHaveBeenCalled();
+    });
+
+    it("should remove references field on each mentioner document", async () => {
+      mockUpdateDocument.mockResolvedValue({});
+
+      const { result } = renderHook(() => usePlayableReferences());
+
+      const removals: Array<{
+        collectionName: CollectionName;
+        documentId: string;
+      }> = [
+        { collectionName: "keywords" as CollectionName, documentId: "kw1" },
+        { collectionName: "sources" as CollectionName, documentId: "src1" },
+      ];
+
+      let ok = false;
+      await act(async () => {
+        ok = await result.current.removeIncomingReferences(
+          "entity-xyz",
+          removals,
+        );
+      });
+
+      expect(ok).toBe(true);
+      expect(mockUpdateDocument).toHaveBeenCalledTimes(2);
+      expect(mockUpdateDocument).toHaveBeenNthCalledWith(1, "keywords", "kw1", {
+        _updatedBy: "test@example.com",
+        "references.entity-xyz": deleteField(),
+      });
+      expect(mockUpdateDocument).toHaveBeenNthCalledWith(2, "sources", "src1", {
+        _updatedBy: "test@example.com",
+        "references.entity-xyz": deleteField(),
+      });
+    });
+
+    it("should return false and set error when referencedEntityId is empty", async () => {
+      const { result } = renderHook(() => usePlayableReferences());
+
+      let ok = true;
+      await act(async () => {
+        ok = await result.current.removeIncomingReferences("", [
+          { collectionName: "sources" as CollectionName, documentId: "a" },
+        ]);
+      });
+
+      expect(ok).toBe(false);
+      expect(mockUpdateDocument).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockErrorMessage).toHaveBeenCalledWith(
+          "Saved document ID is unknown!",
+        );
+      });
+    });
+
+    it("should return false when updateDocument throws", async () => {
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+      const error = new Error("update failed");
+      mockUpdateDocument.mockRejectedValueOnce(error);
+
+      const { result } = renderHook(() => usePlayableReferences());
+
+      let ok = true;
+      await act(async () => {
+        ok = await result.current.removeIncomingReferences("e1", [
+          { collectionName: "sources" as CollectionName, documentId: "x" },
+        ]);
+      });
+
+      expect(ok).toBe(false);
+      expect(consoleSpy).toHaveBeenCalledWith(error);
+      await waitFor(() => {
+        expect(mockErrorMessage).toHaveBeenCalledWith("update failed");
+      });
+      consoleSpy.mockRestore();
+    });
+
+    it("should reject when user is not authenticated", async () => {
+      (useSession as jest.Mock).mockReturnValueOnce({
+        data: null,
+        status: "unauthenticated",
+      });
+
+      const { result } = renderHook(() => usePlayableReferences());
+
+      await expect(
+        result.current.removeIncomingReferences("e1", [
+          { collectionName: "sources" as CollectionName, documentId: "x" },
+        ]),
+      ).rejects.toThrow("Unauthorized modifying!");
+    });
+  });
+
   describe("function stability", () => {
     it("should maintain function references across renders", () => {
       const { result, rerender } = renderHook(() => usePlayableReferences());
@@ -672,6 +777,8 @@ describe("usePlayableReferences", () => {
       const initialLoadEntitiesForReferences =
         result.current.loadEntitiesForReferences;
       const initialSaveReferences = result.current.saveReferences;
+      const initialRemoveIncomingReferences =
+        result.current.removeIncomingReferences;
 
       rerender();
 
@@ -680,6 +787,9 @@ describe("usePlayableReferences", () => {
         initialLoadEntitiesForReferences,
       );
       expect(result.current.saveReferences).toBe(initialSaveReferences);
+      expect(result.current.removeIncomingReferences).toBe(
+        initialRemoveIncomingReferences,
+      );
     });
   });
 
@@ -690,13 +800,15 @@ describe("usePlayableReferences", () => {
       expect(result.current).toHaveProperty("loadReferences");
       expect(result.current).toHaveProperty("loadEntitiesForReferences");
       expect(result.current).toHaveProperty("saveReferences");
+      expect(result.current).toHaveProperty("removeIncomingReferences");
       expect(result.current).toHaveProperty("loading");
 
-      expect(Object.keys(result.current)).toHaveLength(4);
+      expect(Object.keys(result.current)).toHaveLength(5);
 
       expect(typeof result.current.loadReferences).toBe("function");
       expect(typeof result.current.loadEntitiesForReferences).toBe("function");
       expect(typeof result.current.saveReferences).toBe("function");
+      expect(typeof result.current.removeIncomingReferences).toBe("function");
       expect(typeof result.current.loading).toBe("boolean");
     });
   });

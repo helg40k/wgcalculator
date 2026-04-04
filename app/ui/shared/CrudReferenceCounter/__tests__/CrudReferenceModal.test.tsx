@@ -162,6 +162,7 @@ jest.mock("../../../../lib/definitions", () => ({
 // Mock usePlayableReferences hook
 const mockLoadEntitiesForReferences = jest.fn();
 const mockLoadReferences = jest.fn();
+const mockRemoveIncomingReferences = jest.fn();
 const mockSaveReferences = jest.fn();
 
 jest.mock("../../../../lib/hooks/usePlayableReferences", () => ({
@@ -169,6 +170,7 @@ jest.mock("../../../../lib/hooks/usePlayableReferences", () => ({
   default: () => ({
     loadEntitiesForReferences: mockLoadEntitiesForReferences,
     loadReferences: mockLoadReferences,
+    removeIncomingReferences: mockRemoveIncomingReferences,
     saveReferences: mockSaveReferences,
   }),
 }));
@@ -255,6 +257,8 @@ describe("CrudReferenceModal", () => {
       _id: "entity-123",
       name: "Test Entity",
     });
+
+    mockRemoveIncomingReferences.mockResolvedValue(true);
 
     mockLoadEntitiesForReferences.mockResolvedValue([
       {
@@ -1648,7 +1652,78 @@ describe("CrudReferenceModal", () => {
         "entity-123",
         { ref2: mockCollectionName.WEAPONS },
       );
+      expect(mockRemoveIncomingReferences).toHaveBeenCalledWith("entity-123", []);
       expect(onOk).toHaveBeenCalled();
+    });
+
+    it("should call removeIncomingReferences with removed mentions then onOk", async () => {
+      const onOk = jest.fn();
+
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} onOk={onOk} />);
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Mention Profile 1")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      const mentionRow = screen
+        .getByText("Mention Profile 1")
+        .closest('div[class*="pl-12"]')!;
+      await act(async () => {
+        fireEvent.click(
+          mentionRow.querySelector('[data-testid="trash-icon"]')!.closest("button")!,
+        );
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("modal-ok-button"));
+      });
+
+      expect(mockSaveReferences).toHaveBeenCalled();
+      expect(mockRemoveIncomingReferences).toHaveBeenCalledWith("entity-123", [
+        {
+          collectionName: mockCollectionName.PROFILES,
+          documentId: "mention1",
+        },
+      ]);
+      expect(onOk).toHaveBeenCalled();
+    });
+
+    it("should not call onOk when removeIncomingReferences fails", async () => {
+      const onOk = jest.fn();
+      mockRemoveIncomingReferences.mockResolvedValueOnce(false);
+
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} onOk={onOk} />);
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Mention Profile 1")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      const mentionRow = screen
+        .getByText("Mention Profile 1")
+        .closest('div[class*="pl-12"]')!;
+      await act(async () => {
+        fireEvent.click(
+          mentionRow.querySelector('[data-testid="trash-icon"]')!.closest("button")!,
+        );
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("modal-ok-button"));
+      });
+
+      expect(mockSaveReferences).toHaveBeenCalled();
+      expect(mockRemoveIncomingReferences).toHaveBeenCalled();
+      expect(onOk).not.toHaveBeenCalled();
     });
 
     it("should not call onOk when save fails", async () => {

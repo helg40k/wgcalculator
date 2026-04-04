@@ -24,6 +24,7 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
 }));
 
 // Mock Firebase functions
+const mockDeleteFieldValue = {};
 jest.mock('firebase/firestore', () => ({
   collection: jest.fn(),
   doc: jest.fn(),
@@ -32,6 +33,7 @@ jest.mock('firebase/firestore', () => ({
   setDoc: jest.fn(),
   updateDoc: jest.fn(),
   deleteDoc: jest.fn(),
+  deleteField: jest.fn(() => mockDeleteFieldValue),
   query: jest.fn(),
   where: jest.fn(),
   orderBy: jest.fn(),

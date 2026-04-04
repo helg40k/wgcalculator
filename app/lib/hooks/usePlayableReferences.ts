@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
+import { deleteField } from "firebase/firestore";
 
-import { Playable, References } from "@/app/lib/definitions";
+import { CollectionName, Playable, References } from "@/app/lib/definitions";
 import errorMessage from "@/app/lib/errorMessage";
 import useUser from "@/app/lib/hooks/useUser";
 import getDocumentsByExcludedIds from "@/app/lib/services/firebase/helpers/getDocumentsByExcludedIds";
@@ -111,7 +112,47 @@ const usePlayableReferences = () => {
     [email],
   );
 
-  return { loadEntitiesForReferences, loadReferences, loading, saveReferences };
+  const removeIncomingReferences = useCallback(
+    async (
+      referencedEntityId: string,
+      removals: Array<{ collectionName: CollectionName; documentId: string }>,
+    ): Promise<boolean> => {
+      checkEmail();
+      if (!referencedEntityId) {
+        setError(new Error("Saved document ID is unknown!"));
+        return false;
+      }
+      if (removals.length === 0) {
+        return true;
+      }
+
+      try {
+        setLoading(true);
+        for (const { collectionName, documentId } of removals) {
+          await updateDocument(collectionName, documentId, {
+            _updatedBy: email as string,
+            [`references.${referencedEntityId}`]: deleteField(),
+          });
+        }
+        return true;
+      } catch (err: any) {
+        console.error(err);
+        setError(err);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [email],
+  );
+
+  return {
+    loadEntitiesForReferences,
+    loadReferences,
+    loading,
+    removeIncomingReferences,
+    saveReferences,
+  };
 };
 
 export default usePlayableReferences;

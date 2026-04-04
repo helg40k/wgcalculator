@@ -204,8 +204,12 @@ const CrudReferenceModal = ({
     new Set(),
   );
   const [scrollToBottom, setScrollToBottom] = useState(false);
-  const { loadEntitiesForReferences, loadReferences, saveReferences } =
-    usePlayableReferences();
+  const {
+    loadEntitiesForReferences,
+    loadReferences,
+    removeIncomingReferences,
+    saveReferences,
+  } = usePlayableReferences();
   const loadingRef = useRef<Set<string>>(new Set());
   const referencesScrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -235,6 +239,23 @@ const CrudReferenceModal = ({
 
   const hasChanges =
     unsavedCount > 0 || removedCount > 0 || removedMentionCount > 0;
+
+  const removedMentionUpdates = useMemo(() => {
+    const list: Array<{ collectionName: CollectionName; documentId: string }> =
+      [];
+    for (const [colName, entities] of Object.entries(mentions)) {
+      if (!entities?.length) continue;
+      for (const ent of entities) {
+        if (removedMentionIds.has(ent._id)) {
+          list.push({
+            collectionName: colName as CollectionName,
+            documentId: ent._id,
+          });
+        }
+      }
+    }
+    return list;
+  }, [mentions, removedMentionIds]);
 
   const groupedRefIds = useMemo(() => {
     const results: Partial<Record<CollectionName, string[]>> = {};
@@ -718,9 +739,17 @@ const CrudReferenceModal = ({
             entityId,
             references,
           );
-          if (result) {
-            onOk(references);
+          if (!result) {
+            return;
           }
+          const removalsOk = await removeIncomingReferences(
+            entityId,
+            removedMentionUpdates,
+          );
+          if (!removalsOk) {
+            return;
+          }
+          onOk(references);
         } finally {
           setLoading(false);
         }

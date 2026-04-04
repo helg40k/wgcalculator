@@ -63,25 +63,24 @@ const ReferenceCounter = ({
     localStorage.setItem(key, value.toString());
   };
 
-  // Only run once when component mounts
-  useEffect(() => {
-    const loadMentions = async () => {
-      const canBeMentionedBy = utils.canBeMentionedBy(collectionName);
-      const loadedMentions = {} as Mentions;
-      for (const mentionCollectionName of canBeMentionedBy) {
-        loadedMentions[mentionCollectionName] = await loadEntities<Playable>(
-          mentionCollectionName,
-          {
-            filters: [[`references.${entity._id}`, "==", collectionName]],
-            withoutSort: true,
-          },
-        );
-      }
-      setMentions(loadedMentions);
-    };
+  const loadMentions = useCallback(async () => {
+    const canBeMentionedBy = utils.canBeMentionedBy(collectionName);
+    const loadedMentions = {} as Mentions;
+    for (const mentionCollectionName of canBeMentionedBy) {
+      loadedMentions[mentionCollectionName] = await loadEntities<Playable>(
+        mentionCollectionName,
+        {
+          filters: [[`references.${entity._id}`, "==", collectionName]],
+          withoutSort: true,
+        },
+      );
+    }
+    setMentions(loadedMentions);
+  }, [collectionName, entity._id, loadEntities, utils]);
 
+  useEffect(() => {
     loadMentions();
-  }, []); // Empty dependency array - only run once
+  }, [loadMentions]);
 
   const allowedToRefer = useMemo(() => {
     return utils.getAllowedToRefer(collectionName);
@@ -198,6 +197,7 @@ const ReferenceCounter = ({
 
     const handleSaved = (references: References) => {
       setCurrentReferences(references);
+      void loadMentions();
       closeModal();
     };
 
