@@ -164,12 +164,14 @@ const CrudReferenceModal = ({
   const [exhaustedCollections, setExhaustedCollections] = useState<
     Set<CollectionName>
   >(new Set());
+  const [scrollToBottom, setScrollToBottom] = useState<string | null>(null);
   const { loadEntitiesForReferences, loadReferences } = usePlayableReferences();
   const loadingRef = useRef<Set<string>>(new Set());
+  const scrollRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const refNumber = useMemo(() => {
-    return Object.keys(references).length;
-  }, [references]);
+    return Object.keys(references).filter((id) => oldReferences[id]).length;
+  }, [references, oldReferences]);
 
   const unsavedCount = useMemo(() => {
     return Object.keys(references).filter((id) => !oldReferences[id]).length;
@@ -178,6 +180,8 @@ const CrudReferenceModal = ({
   const removedCount = useMemo(() => {
     return Object.keys(oldReferences).filter((id) => !references[id]).length;
   }, [references, oldReferences]);
+
+  const hasChanges = unsavedCount > 0 || removedCount > 0;
 
   const mentNumber = useMemo(() => {
     return Object.values(mentions).reduce(
@@ -239,6 +243,16 @@ const CrudReferenceModal = ({
     });
   }, [JSON.stringify(groupedRefIds), loadReferences]);
 
+  useEffect(() => {
+    if (scrollToBottom) {
+      const el = scrollRefs.current[scrollToBottom];
+      if (el) {
+        el.scrollTop = el.scrollHeight;
+      }
+      setScrollToBottom(null);
+    }
+  }, [scrollToBottom]);
+
   const referenceCollections: CollapseProps["items"] = useMemo(() => {
     return Object.entries(groupedRefIds)
       .sort(([colName1], [colName2]) => colName1.localeCompare(colName2))
@@ -254,62 +268,69 @@ const CrudReferenceModal = ({
         return {
           children: (
             <div className="-mt-5">
-              {sortedEntities.length > 0
-                ? sortedEntities.map((ent) => {
-                    const isUnsaved = !oldReferences[ent._id];
-                    return (
-                      <div
-                        key={`${colName}-${ent._id}`}
-                        className={`my-0.5 py-0.5 pl-12 flex items-center justify-between hover:bg-blue-50 ${isUnsaved ? "bg-red-50" : ""}`}
-                      >
-                        <DescriptionTooltip
-                          content={ent.description}
-                          colorText={colorTextSecondary}
+              <div
+                ref={(el) => {
+                  scrollRefs.current[colName] = el;
+                }}
+                style={{ maxHeight: "192px", overflowY: "auto" }}
+              >
+                {sortedEntities.length > 0
+                  ? sortedEntities.map((ent) => {
+                      const isUnsaved = !oldReferences[ent._id];
+                      return (
+                        <div
+                          key={`${colName}-${ent._id}`}
+                          className={`my-0.5 py-0.5 pl-12 flex items-center justify-between hover:bg-blue-50 ${isUnsaved ? "bg-red-50" : ""}`}
                         >
-                          <span>{ent.name}</span>
-                        </DescriptionTooltip>
-                        <div className="flex items-center gap-1">
-                          <EntityStatusUI.Tag
-                            entityId={ent._id}
-                            status={ent.status}
-                            editable={false}
-                          />
-                          <DeleteButton
-                            onDelete={() => {
-                              const colNameTyped = colName as CollectionName;
-                              setReferences((prev) => {
-                                const updated = { ...prev };
-                                delete updated[ent._id];
-                                return updated;
-                              });
-                              setLoadedEntities((prev) => ({
-                                ...prev,
-                                [colNameTyped]: (
-                                  prev[colNameTyped] || []
-                                ).filter((e) => e._id !== ent._id),
-                              }));
-                              setExhaustedCollections((prev) => {
-                                const updated = new Set(prev);
-                                updated.delete(colNameTyped);
-                                return updated;
-                              });
-                            }}
-                            name="reference"
-                            disabled={loading || disableModal}
-                          />
-                          <div className="pr-2" />
+                          <DescriptionTooltip
+                            content={ent.description}
+                            colorText={colorTextSecondary}
+                          >
+                            <span>{ent.name}</span>
+                          </DescriptionTooltip>
+                          <div className="flex items-center gap-1">
+                            <EntityStatusUI.Tag
+                              entityId={ent._id}
+                              status={ent.status}
+                              editable={false}
+                            />
+                            <DeleteButton
+                              onDelete={() => {
+                                const colNameTyped = colName as CollectionName;
+                                setReferences((prev) => {
+                                  const updated = { ...prev };
+                                  delete updated[ent._id];
+                                  return updated;
+                                });
+                                setLoadedEntities((prev) => ({
+                                  ...prev,
+                                  [colNameTyped]: (
+                                    prev[colNameTyped] || []
+                                  ).filter((e) => e._id !== ent._id),
+                                }));
+                                setExhaustedCollections((prev) => {
+                                  const updated = new Set(prev);
+                                  updated.delete(colNameTyped);
+                                  return updated;
+                                });
+                              }}
+                              name="reference"
+                              disabled={loading || disableModal}
+                            />
+                            <div className="pr-2" />
+                          </div>
                         </div>
+                      );
+                    })
+                  : entIds.map((id) => (
+                      <div
+                        key={`${colName}-${id}`}
+                        className="my-0.5 py-0.5 pl-12 flex items-center justify-between"
+                      >
+                        Loading...
                       </div>
-                    );
-                  })
-                : entIds.map((id) => (
-                    <div
-                      key={`${colName}-${id}`}
-                      className="my-0.5 py-0.5 pl-12 flex items-center justify-between"
-                    >
-                      Loading...
-                    </div>
-                  ))}
+                    ))}
+              </div>
               {showingSelect === colName ? (
                 <div className="flex justify-start py-1 pr-3 w-full gap-1">
                   <Select
@@ -410,6 +431,7 @@ const CrudReferenceModal = ({
                               new Set(prev).add(colNameTyped),
                             );
                           }
+                          setScrollToBottom(colName);
                         }
                         setSelectedEntityId(null);
                         setShowingSelect(null);
@@ -481,14 +503,14 @@ const CrudReferenceModal = ({
                             );
                             return;
                           }
-                          const sortedEntities = filtered.sort((ent1, ent2) =>
+                          const sortedOptions = filtered.sort((ent1, ent2) =>
                             ent1.name.localeCompare(ent2.name),
                           );
-                          const options = sortedEntities.map((ent) => ({
+                          const options = sortedOptions.map((ent) => ({
                             label: ent.name,
                             value: ent._id,
                           }));
-                          setAvailableEntities(sortedEntities);
+                          setAvailableEntities(sortedOptions);
                           setSelectOptions(options);
                           setShowingSelect(colNameTyped);
                           setDisableModal(true);
@@ -541,34 +563,36 @@ const CrudReferenceModal = ({
         return {
           children: (
             <div className="-mt-5">
-              {entities
-                .sort((ent1, ent2) => ent1.name.localeCompare(ent2.name))
-                .map((ent) => (
-                  <div
-                    key={`${colName}-${ent._id}`}
-                    className="my-0.5 py-0.5 pl-12 flex items-center justify-between hover:bg-blue-50"
-                  >
-                    <DescriptionTooltip
-                      content={ent.description}
-                      colorText={colorTextSecondary}
+              <div style={{ maxHeight: "192px", overflowY: "auto" }}>
+                {entities
+                  .sort((ent1, ent2) => ent1.name.localeCompare(ent2.name))
+                  .map((ent) => (
+                    <div
+                      key={`${colName}-${ent._id}`}
+                      className="my-0.5 py-0.5 pl-12 flex items-center justify-between hover:bg-blue-50"
                     >
-                      <span>{ent.name}</span>
-                    </DescriptionTooltip>
-                    <div className="flex items-center gap-1">
-                      <EntityStatusUI.Tag
-                        entityId={ent._id}
-                        status={ent.status}
-                        editable={false}
-                      />
-                      <DeleteButton
-                        onDelete={() => {}}
-                        name="mention"
-                        disabled={loading || disableModal}
-                      />
-                      <div className="pr-2" />
+                      <DescriptionTooltip
+                        content={ent.description}
+                        colorText={colorTextSecondary}
+                      >
+                        <span>{ent.name}</span>
+                      </DescriptionTooltip>
+                      <div className="flex items-center gap-1">
+                        <EntityStatusUI.Tag
+                          entityId={ent._id}
+                          status={ent.status}
+                          editable={false}
+                        />
+                        <DeleteButton
+                          onDelete={() => {}}
+                          name="mention"
+                          disabled={loading || disableModal}
+                        />
+                        <div className="pr-2" />
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+              </div>
             </div>
           ),
           key: `mention-${colName}`,
@@ -586,6 +610,29 @@ const CrudReferenceModal = ({
       .map(([colName]) => `mention-${colName}`);
   }, [mentions]);
 
+  const handleCancel = () => {
+    if (!hasChanges) {
+      onCancel();
+      return;
+    }
+    const parts: string[] = [];
+    if (unsavedCount > 0) parts.push(`${unsavedCount} added`);
+    if (removedCount > 0) parts.push(`${removedCount} removed`);
+    Modal.confirm({
+      cancelText: "Cancel",
+      content: (
+        <>
+          References were changed: {parts.join(", ")}.
+          <br />
+          Would you like to ignore changes?
+        </>
+      ),
+      okText: "Ignore",
+      onOk: onCancel,
+      title: "Ignore changes",
+    });
+  };
+
   return (
     <Modal
       open={showModal}
@@ -596,10 +643,10 @@ const CrudReferenceModal = ({
         </span>
       }
       onOk={() => onOk(references)}
-      onCancel={onCancel}
+      onCancel={handleCancel}
       maskClosable={false}
       keyboard={false}
-      okButtonProps={{ disabled: loading || disableModal }}
+      okButtonProps={{ disabled: loading || disableModal || !hasChanges }}
     >
       <Divider />
       <div className="font-bold">

@@ -65,44 +65,47 @@ jest.mock("antd", () => ({
       ),
     ),
   Divider: () => React.createElement("hr", { "data-testid": "ant-divider" }),
-  Modal: ({
-    open,
-    title,
-    children,
-    onOk,
-    onCancel,
-    okButtonProps,
-    ...props
-  }: any) =>
-    open
-      ? React.createElement(
-          "div",
-          { "data-testid": "ant-modal", ...props },
-          React.createElement("div", { "data-testid": "modal-title" }, title),
-          children,
-          React.createElement(
+  Modal: Object.assign(
+    ({
+      open,
+      title,
+      children,
+      onOk,
+      onCancel,
+      okButtonProps,
+      ...props
+    }: any) =>
+      open
+        ? React.createElement(
             "div",
-            { "data-testid": "modal-footer" },
+            { "data-testid": "ant-modal", ...props },
+            React.createElement("div", { "data-testid": "modal-title" }, title),
+            children,
             React.createElement(
-              "button",
-              {
-                "data-testid": "modal-ok-button",
-                disabled: okButtonProps?.disabled,
-                onClick: () => onOk && onOk(),
-              },
-              "OK",
+              "div",
+              { "data-testid": "modal-footer" },
+              React.createElement(
+                "button",
+                {
+                  "data-testid": "modal-ok-button",
+                  disabled: okButtonProps?.disabled,
+                  onClick: () => onOk && onOk(),
+                },
+                "OK",
+              ),
+              React.createElement(
+                "button",
+                {
+                  "data-testid": "modal-cancel-button",
+                  onClick: () => onCancel && onCancel(),
+                },
+                "Cancel",
+              ),
             ),
-            React.createElement(
-              "button",
-              {
-                "data-testid": "modal-cancel-button",
-                onClick: () => onCancel && onCancel(),
-              },
-              "Cancel",
-            ),
-          ),
-        )
-      : null,
+          )
+        : null,
+    { confirm: jest.fn() },
+  ),
   Select: ({ options, placeholder, onChange, ...props }: any) =>
     React.createElement(
       "select",
@@ -180,8 +183,12 @@ jest.mock("../../EntityStatusUI", () => ({
 }));
 
 // Import the component after all mocks are set up
+import { Modal as AntModal } from "antd";
+
 import { CollectionName } from "../../../../lib/definitions";
 import CrudReferenceModal from "../CrudReferenceModal";
+
+const mockModalConfirm = AntModal.confirm as jest.Mock;
 
 describe("CrudReferenceModal", () => {
   const defaultProps = {
@@ -330,18 +337,34 @@ describe("CrudReferenceModal", () => {
   });
 
   describe("Modal Interactions", () => {
-    it("should call onOk with references when OK button is clicked", async () => {
+    it("should call onOk with references when OK button is clicked after changes", async () => {
       const onOk = jest.fn();
 
       await act(async () => {
         render(<CrudReferenceModal {...defaultProps} onOk={onOk} />);
       });
 
+      await waitFor(
+        () => {
+          expect(screen.getByText("Test Profile")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      const trashButtons = screen.getAllByTestId("trash-icon");
+      const referenceTrashButton = trashButtons[0].closest("button")!;
+
+      await act(async () => {
+        fireEvent.click(referenceTrashButton);
+      });
+
       await act(async () => {
         fireEvent.click(screen.getByTestId("modal-ok-button"));
       });
 
-      expect(onOk).toHaveBeenCalledWith(defaultProps.references);
+      expect(onOk).toHaveBeenCalledWith({
+        ref2: mockCollectionName.WEAPONS,
+      });
     });
 
     it("should call onCancel when Cancel button is clicked", () => {
@@ -555,7 +578,7 @@ describe("CrudReferenceModal", () => {
       expect(
         screen.getByText(
           (content) =>
-            content.includes("3 added") && content.includes("1 unsaved"),
+            content.includes("2 added") && content.includes("1 unsaved"),
         ),
       ).toBeInTheDocument();
       expect(screen.queryByTestId("ant-select")).not.toBeInTheDocument();
@@ -1186,7 +1209,7 @@ describe("CrudReferenceModal", () => {
       expect(
         screen.getByText(
           (content) =>
-            content.includes("3 added") && content.includes("1 unsaved"),
+            content.includes("2 added") && content.includes("1 unsaved"),
         ),
       ).toBeInTheDocument();
     });
@@ -1267,11 +1290,276 @@ describe("CrudReferenceModal", () => {
       expect(
         screen.getByText(
           (content) =>
-            content.includes("2 added") &&
+            content.includes("1 added") &&
             content.includes("1 unsaved") &&
             content.includes("1 removed"),
         ),
       ).toBeInTheDocument();
+    });
+  });
+
+  describe("Scroll Wrapper", () => {
+    it("should wrap reference entity rows in a scrollable div", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Profile")).toBeInTheDocument();
+      });
+
+      const profileRow = screen
+        .getByText("Test Profile")
+        .closest('div[class*="pl-12"]')!;
+      const scrollWrapper = profileRow.parentElement!;
+      expect(scrollWrapper.style.maxHeight).toBe("192px");
+      expect(scrollWrapper.style.overflowY).toBe("auto");
+    });
+
+    it("should wrap mention entity rows in a scrollable div", () => {
+      render(<CrudReferenceModal {...defaultProps} />);
+
+      const mentionRow = screen
+        .getByText("Mention Profile 1")
+        .closest('div[class*="pl-12"]')!;
+      const scrollWrapper = mentionRow.parentElement!;
+      expect(scrollWrapper.style.maxHeight).toBe("192px");
+      expect(scrollWrapper.style.overflowY).toBe("auto");
+    });
+
+    it("should auto-scroll to bottom after adding an entity", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Profile")).toBeInTheDocument();
+      });
+
+      const profileRow = screen
+        .getByText("Test Profile")
+        .closest('div[class*="pl-12"]')!;
+      const scrollWrapper = profileRow.parentElement!;
+
+      Object.defineProperty(scrollWrapper, "scrollHeight", {
+        configurable: true,
+        value: 500,
+      });
+
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "available1" },
+        });
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      await waitFor(() => {
+        expect(scrollWrapper.scrollTop).toBe(500);
+      });
+    });
+  });
+
+  describe("Disable OK Button", () => {
+    it("should disable OK button when no changes have been made", () => {
+      render(<CrudReferenceModal {...defaultProps} />);
+
+      expect(screen.getByTestId("modal-ok-button")).toBeDisabled();
+    });
+
+    it("should enable OK button after adding a reference", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(() => {
+        const addButtons = screen.getAllByText("Add more");
+        expect(addButtons.length).toBeGreaterThan(0);
+      });
+
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "available1" },
+        });
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      expect(screen.getByTestId("modal-ok-button")).not.toBeDisabled();
+    });
+
+    it("should enable OK button after deleting a reference", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Test Profile")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      const trashButtons = screen.getAllByTestId("trash-icon");
+      const referenceTrashButton = trashButtons[0].closest("button")!;
+
+      await act(async () => {
+        fireEvent.click(referenceTrashButton);
+      });
+
+      expect(screen.getByTestId("modal-ok-button")).not.toBeDisabled();
+    });
+  });
+
+  describe("Confirm Cancel", () => {
+    it("should call onCancel directly when no changes exist", () => {
+      const onCancel = jest.fn();
+      render(<CrudReferenceModal {...defaultProps} onCancel={onCancel} />);
+
+      fireEvent.click(screen.getByTestId("modal-cancel-button"));
+
+      expect(onCancel).toHaveBeenCalled();
+      expect(mockModalConfirm).not.toHaveBeenCalled();
+    });
+
+    it("should show confirmation modal when cancelling with unsaved additions", async () => {
+      const onCancel = jest.fn();
+
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} onCancel={onCancel} />);
+      });
+
+      await waitFor(() => {
+        const addButtons = screen.getAllByText("Add more");
+        expect(addButtons.length).toBeGreaterThan(0);
+      });
+
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "available1" },
+        });
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      fireEvent.click(screen.getByTestId("modal-cancel-button"));
+
+      expect(onCancel).not.toHaveBeenCalled();
+      expect(mockModalConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cancelText: "Cancel",
+          okText: "Ignore",
+          title: "Ignore changes",
+        }),
+      );
+      const { container } = render(mockModalConfirm.mock.calls[0][0].content);
+      expect(container.textContent).toContain("1 added");
+      expect(container.textContent).toContain(
+        "Would you like to ignore changes?",
+      );
+    });
+
+    it("should show confirmation modal when cancelling with removed references", async () => {
+      const onCancel = jest.fn();
+
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} onCancel={onCancel} />);
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Test Profile")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      const trashButtons = screen.getAllByTestId("trash-icon");
+      const referenceTrashButton = trashButtons[0].closest("button")!;
+
+      await act(async () => {
+        fireEvent.click(referenceTrashButton);
+      });
+
+      fireEvent.click(screen.getByTestId("modal-cancel-button"));
+
+      expect(onCancel).not.toHaveBeenCalled();
+      expect(mockModalConfirm).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cancelText: "Cancel",
+          okText: "Ignore",
+          title: "Ignore changes",
+        }),
+      );
+      const { container } = render(mockModalConfirm.mock.calls[0][0].content);
+      expect(container.textContent).toContain("1 removed");
+      expect(container.textContent).toContain(
+        "Would you like to ignore changes?",
+      );
+    });
+
+    it("should call onCancel when 'Ignore' is clicked in confirmation modal", async () => {
+      const onCancel = jest.fn();
+      mockModalConfirm.mockImplementation(({ onOk }: any) => {
+        onOk();
+      });
+
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} onCancel={onCancel} />);
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Test Profile")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      const trashButtons = screen.getAllByTestId("trash-icon");
+      const referenceTrashButton = trashButtons[0].closest("button")!;
+
+      await act(async () => {
+        fireEvent.click(referenceTrashButton);
+      });
+
+      fireEvent.click(screen.getByTestId("modal-cancel-button"));
+
+      expect(onCancel).toHaveBeenCalled();
     });
   });
 
