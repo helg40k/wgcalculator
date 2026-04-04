@@ -521,6 +521,345 @@ describe("CrudReferenceModal", () => {
     });
   });
 
+  describe("Confirm Selection (Save Button)", () => {
+    it("should add a selected entity to references when confirmed", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(() => {
+        const addButtons = screen.getAllByText("Add more");
+        expect(addButtons.length).toBeGreaterThan(0);
+      });
+
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "available1" },
+        });
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      expect(screen.getByText("References (3 added)")).toBeInTheDocument();
+      expect(screen.queryByTestId("ant-select")).not.toBeInTheDocument();
+    });
+
+    it("should close select without adding when nothing is selected", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(() => {
+        const addButtons = screen.getAllByText("Add more");
+        expect(addButtons.length).toBeGreaterThan(0);
+      });
+
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      expect(screen.getByText("References (2 added)")).toBeInTheDocument();
+      expect(screen.queryByTestId("ant-select")).not.toBeInTheDocument();
+    });
+
+    it("should pass updated references to onOk after adding", async () => {
+      const onOk = jest.fn();
+
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} onOk={onOk} />);
+      });
+
+      await waitFor(() => {
+        const addButtons = screen.getAllByText("Add more");
+        expect(addButtons.length).toBeGreaterThan(0);
+      });
+
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "available1" },
+        });
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("modal-ok-button"));
+      });
+
+      expect(onOk).toHaveBeenCalledWith({
+        ...defaultProps.references,
+        available1: mockCollectionName.PROFILES,
+      });
+    });
+
+    it("should exclude already-added entity from selector on next 'Add more' click", async () => {
+      mockLoadEntitiesForReferences.mockResolvedValue([
+        {
+          _id: "available1",
+          description: "Available 1",
+          name: "Available Entity 1",
+          status: "active",
+        },
+        {
+          _id: "available2",
+          description: "Available 2",
+          name: "Available Entity 2",
+          status: "active",
+        },
+      ]);
+
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(() => {
+        const addButtons = screen.getAllByText("Add more");
+        expect(addButtons.length).toBeGreaterThan(0);
+      });
+
+      // First "Add more" click — select available1
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      // Verify both options are present
+      const options = screen
+        .getByTestId("ant-select")
+        .querySelectorAll("option");
+      const optionValues = Array.from(options).map((o: any) => o.value);
+      expect(optionValues).toContain("available1");
+      expect(optionValues).toContain("available2");
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "available1" },
+        });
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      // Second "Add more" click — available1 should be excluded
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      const options2 = screen
+        .getByTestId("ant-select")
+        .querySelectorAll("option");
+      const optionValues2 = Array.from(options2).map((o: any) => o.value);
+      expect(optionValues2).not.toContain("available1");
+      expect(optionValues2).toContain("available2");
+    });
+  });
+
+  describe("Delete Reference", () => {
+    it("should remove a reference when delete button is clicked", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Test Profile")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      const trashButtons = screen.getAllByTestId("trash-icon");
+      const referenceTrashButton = trashButtons[0].closest("button")!;
+
+      await act(async () => {
+        fireEvent.click(referenceTrashButton);
+      });
+
+      expect(screen.getByText("References (1 added)")).toBeInTheDocument();
+    });
+
+    it("should pass updated references to onOk after deleting", async () => {
+      const onOk = jest.fn();
+
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} onOk={onOk} />);
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Test Profile")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      const trashButtons = screen.getAllByTestId("trash-icon");
+      const referenceTrashButton = trashButtons[0].closest("button")!;
+
+      await act(async () => {
+        fireEvent.click(referenceTrashButton);
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("modal-ok-button"));
+      });
+
+      const calledWith = onOk.mock.calls[0][0];
+      expect(calledWith).not.toHaveProperty("ref1");
+      expect(calledWith).toHaveProperty("ref2", mockCollectionName.WEAPONS);
+    });
+  });
+
+  describe("Hide Add Button When Exhausted", () => {
+    it("should hide 'Add more' when loadEntitiesForReferences returns empty", async () => {
+      mockLoadEntitiesForReferences.mockResolvedValue([]);
+
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(() => {
+        const addButtons = screen.getAllByText("Add more");
+        expect(addButtons.length).toBeGreaterThan(0);
+      });
+
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        const addButtons = screen.queryAllByText("Add more");
+        expect(addButtons.length).toBe(1);
+      });
+    });
+
+    it("should hide 'Add more' after adding the last available entity", async () => {
+      mockLoadEntitiesForReferences.mockResolvedValue([
+        {
+          _id: "only-one",
+          description: "The only entity",
+          name: "Only Entity",
+          status: "active",
+        },
+      ]);
+
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(() => {
+        const addButtons = screen.getAllByText("Add more");
+        expect(addButtons.length).toBeGreaterThan(0);
+      });
+
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "only-one" },
+        });
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      await waitFor(() => {
+        const addButtons = screen.queryAllByText("Add more");
+        expect(addButtons.length).toBe(1);
+      });
+    });
+
+    it("should show 'Add more' again after deleting a reference from exhausted collection", async () => {
+      mockLoadEntitiesForReferences.mockResolvedValue([]);
+
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Test Profile")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      const addButtons = screen.getAllByText("Add more");
+      const initialCount = addButtons.length;
+
+      await act(async () => {
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.queryAllByText("Add more").length).toBe(initialCount - 1);
+      });
+
+      const trashButtons = screen.getAllByTestId("trash-icon");
+      const profileTrashButton = trashButtons[0].closest("button")!;
+
+      await act(async () => {
+        fireEvent.click(profileTrashButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.queryAllByText("Add more").length).toBe(initialCount);
+      });
+    });
+  });
+
   describe("Component Import", () => {
     it("should import without crashing", async () => {
       await expect(async () => {

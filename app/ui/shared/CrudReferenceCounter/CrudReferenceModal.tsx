@@ -160,6 +160,10 @@ const CrudReferenceModal = ({
     Array<{ value: string; label: string }>
   >([]);
   const [availableEntities, setAvailableEntities] = useState<Playable[]>([]);
+  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  const [exhaustedCollections, setExhaustedCollections] = useState<
+    Set<CollectionName>
+  >(new Set());
   const { loadEntitiesForReferences, loadReferences } = usePlayableReferences();
   const loadingRef = useRef<Set<string>>(new Set());
 
@@ -244,7 +248,25 @@ const CrudReferenceModal = ({
                           editable={false}
                         />
                         <DeleteButton
-                          onDelete={() => {}}
+                          onDelete={() => {
+                            const colNameTyped = colName as CollectionName;
+                            setReferences((prev) => {
+                              const updated = { ...prev };
+                              delete updated[ent._id];
+                              return updated;
+                            });
+                            setLoadedEntities((prev) => ({
+                              ...prev,
+                              [colNameTyped]: (prev[colNameTyped] || []).filter(
+                                (e) => e._id !== ent._id,
+                              ),
+                            }));
+                            setExhaustedCollections((prev) => {
+                              const updated = new Set(prev);
+                              updated.delete(colNameTyped);
+                              return updated;
+                            });
+                          }}
                           name="reference"
                           disabled={loading || disableModal}
                         />
@@ -265,6 +287,8 @@ const CrudReferenceModal = ({
                   <Select
                     placeholder="Select a new reference..."
                     options={selectOptions}
+                    value={selectedEntityId}
+                    onChange={(value) => setSelectedEntityId(value)}
                     style={{ flex: "1", minWidth: "0" }}
                     showSearch
                     filterOption={(input, option) =>
@@ -332,6 +356,37 @@ const CrudReferenceModal = ({
                         width: "32px",
                       }}
                       onClick={() => {
+                        if (selectedEntityId) {
+                          const colNameTyped = colName as CollectionName;
+                          setReferences((prev) => ({
+                            ...prev,
+                            [selectedEntityId]: colNameTyped,
+                          }));
+                          const selectedEntity = availableEntities.find(
+                            (ent) => ent._id === selectedEntityId,
+                          );
+                          if (selectedEntity) {
+                            setLoadedEntities((prev) => ({
+                              ...prev,
+                              [colNameTyped]: [
+                                ...(prev[colNameTyped] || []),
+                                selectedEntity,
+                              ],
+                            }));
+                          }
+                          const remaining = availableEntities.filter(
+                            (ent) => ent._id !== selectedEntityId,
+                          );
+                          if (remaining.length === 0) {
+                            setExhaustedCollections((prev) =>
+                              new Set(prev).add(colNameTyped),
+                            );
+                          }
+                        }
+                        setSelectedEntityId(null);
+                        setShowingSelect(null);
+                        setSelectOptions([]);
+                        setAvailableEntities([]);
                         setDisableModal(false);
                       }}
                       icon={
@@ -353,6 +408,7 @@ const CrudReferenceModal = ({
                         width: "32px",
                       }}
                       onClick={() => {
+                        setSelectedEntityId(null);
                         setShowingSelect(null);
                         setSelectOptions([]);
                         setAvailableEntities([]);
@@ -367,47 +423,55 @@ const CrudReferenceModal = ({
                   </Tooltip>
                 </div>
               ) : (
-                <div className="flex justify-start py-1 pr-3">
-                  <Tooltip
-                    color="white"
-                    title={
-                      !loading ? (
-                        <span style={{ color: colorText }}>
-                          Add one more reference
-                        </span>
-                      ) : undefined
-                    }
-                    mouseEnterDelay={0.5}
-                  >
-                    <Button
-                      // style={{
-                      //   height: "22px",
-                      // }}
-                      onClick={async () => {
-                        const colNameTyped = colName as CollectionName;
-                        const existingIds = groupedRefIds[colNameTyped] || [];
-                        const entToRefs = await loadEntitiesForReferences(
-                          colNameTyped,
-                          existingIds,
-                        );
-                        const sortedEntities = entToRefs.sort((ent1, ent2) =>
-                          ent1.name.localeCompare(ent2.name),
-                        );
-                        const options = sortedEntities.map((ent) => ({
-                          label: ent.name,
-                          value: ent._id,
-                        }));
-                        setAvailableEntities(sortedEntities);
-                        setSelectOptions(options);
-                        setShowingSelect(colNameTyped);
-                        setDisableModal(true);
-                      }}
-                      disabled={loading || disableModal}
+                !exhaustedCollections.has(colName as CollectionName) && (
+                  <div className="flex justify-start py-1 pr-3">
+                    <Tooltip
+                      color="white"
+                      title={
+                        !loading ? (
+                          <span style={{ color: colorText }}>
+                            Add one more reference
+                          </span>
+                        ) : undefined
+                      }
+                      mouseEnterDelay={0.5}
                     >
-                      Add more
-                    </Button>
-                  </Tooltip>
-                </div>
+                      <Button
+                        onClick={async () => {
+                          const colNameTyped = colName as CollectionName;
+                          const existingIds = groupedRefIds[colNameTyped] || [];
+                          const entToRefs = await loadEntitiesForReferences(
+                            colNameTyped,
+                            existingIds,
+                          );
+                          const filtered = entToRefs.filter(
+                            (ent) => !references[ent._id],
+                          );
+                          if (filtered.length === 0) {
+                            setExhaustedCollections((prev) =>
+                              new Set(prev).add(colNameTyped),
+                            );
+                            return;
+                          }
+                          const sortedEntities = filtered.sort((ent1, ent2) =>
+                            ent1.name.localeCompare(ent2.name),
+                          );
+                          const options = sortedEntities.map((ent) => ({
+                            label: ent.name,
+                            value: ent._id,
+                          }));
+                          setAvailableEntities(sortedEntities);
+                          setSelectOptions(options);
+                          setShowingSelect(colNameTyped);
+                          setDisableModal(true);
+                        }}
+                        disabled={loading || disableModal}
+                      >
+                        Add more
+                      </Button>
+                    </Tooltip>
+                  </div>
+                )
               )}
             </div>
           ),
@@ -423,11 +487,14 @@ const CrudReferenceModal = ({
     groupedRefIds,
     loadedEntities,
     loading,
+    disableModal,
     colorText,
     colorTextSecondary,
     showingSelect,
     selectOptions,
     availableEntities,
+    selectedEntityId,
+    exhaustedCollections,
   ]);
   useEffect(() => {
     if (!hasUserInteracted) {
