@@ -250,7 +250,7 @@ const CrudReferenceModal = ({
                     return (
                       <div
                         key={`${colName}-${ent._id}`}
-                        className={`my-0.5 py-0.5 pl-12 flex items-center justify-between ${isUnsaved ? "bg-red-50" : "hover:bg-blue-50"}`}
+                        className={`my-0.5 py-0.5 pl-12 flex items-center justify-between hover:bg-blue-50 ${isUnsaved ? "bg-red-50" : ""}`}
                       >
                         <DescriptionTooltip
                           content={ent.description}

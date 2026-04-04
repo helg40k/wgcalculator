@@ -1026,7 +1026,7 @@ describe("CrudReferenceModal", () => {
         .getByText("New Entity")
         .closest('div[class*="pl-12"]')!;
       expect(newRow.className).toContain("bg-red-50");
-      expect(newRow.className).not.toContain("hover:bg-blue-50");
+      expect(newRow.className).toContain("hover:bg-blue-50");
     });
   });
 
