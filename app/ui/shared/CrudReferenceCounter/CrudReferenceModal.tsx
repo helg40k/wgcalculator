@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { CaretRightOutlined } from "@ant-design/icons";
-import { CheckIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowPathIcon,
+  CheckIcon,
+  TrashIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 import {
   Button,
   Collapse,
@@ -66,6 +71,35 @@ const DeleteButton = ({ onDelete, name, disabled }: DeleteButtonProps) => (
       icon={
         <span className="text-black hover:text-red-900 transition-colors">
           <TrashIcon className="w-3" />
+        </span>
+      }
+      disabled={disabled}
+    />
+  </Tooltip>
+);
+
+interface RestoreButtonProps {
+  onRestore: () => void;
+  name: string;
+  disabled: boolean;
+}
+
+const RestoreButton = ({ onRestore, name, disabled }: RestoreButtonProps) => (
+  <Tooltip
+    color="darkGreen"
+    title={!disabled ? `Restore this ${name}` : undefined}
+    mouseEnterDelay={0.5}
+  >
+    <Button
+      className="restore-btn"
+      style={{
+        height: "22px",
+        width: "22px",
+      }}
+      onClick={onRestore}
+      icon={
+        <span className="text-black hover:text-green-900 transition-colors">
+          <ArrowPathIcon className="w-3" />
         </span>
       }
       disabled={disabled}
@@ -166,6 +200,9 @@ const CrudReferenceModal = ({
   const [exhaustedCollections, setExhaustedCollections] = useState<
     Set<CollectionName>
   >(new Set());
+  const [removedMentionIds, setRemovedMentionIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [scrollToBottom, setScrollToBottom] = useState(false);
   const { loadEntitiesForReferences, loadReferences, saveReferences } =
     usePlayableReferences();
@@ -184,14 +221,20 @@ const CrudReferenceModal = ({
     return Object.keys(oldReferences).filter((id) => !references[id]).length;
   }, [references, oldReferences]);
 
-  const hasChanges = unsavedCount > 0 || removedCount > 0;
-
   const mentNumber = useMemo(() => {
     return Object.values(mentions).reduce(
       (total, array) => total + array.length,
       0,
     );
   }, [mentions]);
+
+  const removedMentionCount = useMemo(
+    () => removedMentionIds.size,
+    [removedMentionIds],
+  );
+
+  const hasChanges =
+    unsavedCount > 0 || removedCount > 0 || removedMentionCount > 0;
 
   const groupedRefIds = useMemo(() => {
     const results: Partial<Record<CollectionName, string[]>> = {};
@@ -561,32 +604,53 @@ const CrudReferenceModal = ({
             <div className="-mt-5">
               {entities
                 .sort((ent1, ent2) => ent1.name.localeCompare(ent2.name))
-                .map((ent) => (
-                  <div
-                    key={`${colName}-${ent._id}`}
-                    className="my-0.5 py-0.5 pl-12 flex items-center justify-between hover:bg-blue-50"
-                  >
-                    <DescriptionTooltip
-                      content={ent.description}
-                      colorText={colorTextSecondary}
+                .map((ent) => {
+                  const isRemoved = removedMentionIds.has(ent._id);
+                  return (
+                    <div
+                      key={`${colName}-${ent._id}`}
+                      className={`my-0.5 py-0.5 pl-12 flex items-center justify-between ${isRemoved ? "bg-red-200 hover:bg-red-100 has-[.restore-btn:hover]:bg-green-100" : "hover:bg-blue-50"}`}
                     >
-                      <span>{ent.name}</span>
-                    </DescriptionTooltip>
-                    <div className="flex items-center gap-1">
-                      <EntityStatusUI.Tag
-                        entityId={ent._id}
-                        status={ent.status}
-                        editable={false}
-                      />
-                      <DeleteButton
-                        onDelete={() => {}}
-                        name="mention"
-                        disabled={loading || disableModal}
-                      />
-                      <div className="pr-2" />
+                      <DescriptionTooltip
+                        content={ent.description}
+                        colorText={colorTextSecondary}
+                      >
+                        <span>{ent.name}</span>
+                      </DescriptionTooltip>
+                      <div className="flex items-center gap-1">
+                        <EntityStatusUI.Tag
+                          entityId={ent._id}
+                          status={ent.status}
+                          editable={false}
+                        />
+                        {isRemoved ? (
+                          <RestoreButton
+                            onRestore={() => {
+                              setRemovedMentionIds((prev) => {
+                                const updated = new Set(prev);
+                                updated.delete(ent._id);
+                                return updated;
+                              });
+                            }}
+                            name="mention"
+                            disabled={loading || disableModal}
+                          />
+                        ) : (
+                          <DeleteButton
+                            onDelete={() => {
+                              setRemovedMentionIds((prev) =>
+                                new Set(prev).add(ent._id),
+                              );
+                            }}
+                            name="mention"
+                            disabled={loading || disableModal}
+                          />
+                        )}
+                        <div className="pr-2" />
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           ),
           key: `mention-${colName}`,
@@ -597,7 +661,7 @@ const CrudReferenceModal = ({
           ),
         };
       });
-  }, [mentions, loading, colorText, colorTextSecondary]);
+  }, [mentions, loading, colorText, colorTextSecondary, removedMentionIds]);
   const mentionExpandedKeys = useMemo(() => {
     return Object.entries(mentions)
       .filter(([, entities]) => entities.length)
@@ -609,15 +673,25 @@ const CrudReferenceModal = ({
       onCancel();
       return;
     }
-    const parts: string[] = [];
-    if (unsavedCount > 0) parts.push(`${unsavedCount} added`);
-    if (removedCount > 0) parts.push(`${removedCount} removed`);
+    const refParts: string[] = [];
+    if (unsavedCount > 0) refParts.push(`${unsavedCount} added`);
+    if (removedCount > 0) refParts.push(`${removedCount} removed`);
     Modal.confirm({
       cancelText: "Cancel",
       content: (
         <>
-          References were changed: {parts.join(", ")}.
-          <br />
+          {refParts.length > 0 && (
+            <>
+              References were changed: {refParts.join(", ")}.
+              <br />
+            </>
+          )}
+          {removedMentionCount > 0 && (
+            <>
+              Mentions were changed: {removedMentionCount} removed.
+              <br />
+            </>
+          )}
           Would you like to ignore changes?
         </>
       ),
@@ -684,7 +758,10 @@ const CrudReferenceModal = ({
         </div>
       </div>
       <div className="h-6" />
-      <div className="font-bold">Mentions ({mentNumber} found)</div>
+      <div className="font-bold">
+        Mentions ({mentNumber} found
+        {removedMentionCount > 0 && `, ${removedMentionCount} removed`})
+      </div>
       <div style={{ maxHeight: "224px", overflowY: "auto" }}>
         <div className={disableModal ? "collapse-disabled" : ""}>
           <Collapse

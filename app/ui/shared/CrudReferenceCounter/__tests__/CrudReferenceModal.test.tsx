@@ -19,6 +19,8 @@ jest.mock("@ant-design/icons", () => ({
 }));
 
 jest.mock("@heroicons/react/24/outline", () => ({
+  ArrowPathIcon: ({ className }: { className?: string }) =>
+    React.createElement("div", { className, "data-testid": "arrow-path-icon" }),
   CheckIcon: ({ className }: { className?: string }) =>
     React.createElement("div", { className, "data-testid": "check-icon" }),
   TrashIcon: ({ className }: { className?: string }) =>
@@ -1494,7 +1496,10 @@ describe("CrudReferenceModal", () => {
         }),
       );
       const { container } = render(mockModalConfirm.mock.calls[0][0].content);
-      expect(container.textContent).toContain("1 added");
+      expect(container.textContent).toContain(
+        "References were changed: 1 added.",
+      );
+      expect(container.textContent).not.toContain("Mentions were changed");
       expect(container.textContent).toContain(
         "Would you like to ignore changes?",
       );
@@ -1532,7 +1537,10 @@ describe("CrudReferenceModal", () => {
         }),
       );
       const { container } = render(mockModalConfirm.mock.calls[0][0].content);
-      expect(container.textContent).toContain("1 removed");
+      expect(container.textContent).toContain(
+        "References were changed: 1 removed.",
+      );
+      expect(container.textContent).not.toContain("Mentions were changed");
       expect(container.textContent).toContain(
         "Would you like to ignore changes?",
       );
@@ -1565,6 +1573,47 @@ describe("CrudReferenceModal", () => {
       fireEvent.click(screen.getByTestId("modal-cancel-button"));
 
       expect(onCancel).toHaveBeenCalled();
+    });
+
+    it("should show both References and Mentions lines when both changed", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Test Profile")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      const trashButtons = screen.getAllByTestId("trash-icon");
+      const referenceTrashButton = trashButtons[0].closest("button")!;
+      await act(async () => {
+        fireEvent.click(referenceTrashButton);
+      });
+
+      const mentionRow = screen
+        .getByText("Mention Profile 1")
+        .closest('div[class*="pl-12"]')!;
+      const mentionTrashButton = mentionRow
+        .querySelector('[data-testid="trash-icon"]')!
+        .closest("button")!;
+      fireEvent.click(mentionTrashButton);
+
+      fireEvent.click(screen.getByTestId("modal-cancel-button"));
+
+      expect(mockModalConfirm).toHaveBeenCalled();
+      const { container } = render(mockModalConfirm.mock.calls[0][0].content);
+      expect(container.textContent).toContain(
+        "References were changed: 1 removed.",
+      );
+      expect(container.textContent).toContain(
+        "Mentions were changed: 1 removed.",
+      );
+      expect(container.textContent).toContain(
+        "Would you like to ignore changes?",
+      );
     });
   });
 
@@ -1631,6 +1680,189 @@ describe("CrudReferenceModal", () => {
       expect(mockSaveReferences).toHaveBeenCalled();
       expect(onOk).not.toHaveBeenCalled();
       expect(screen.getByTestId("ant-modal")).toBeInTheDocument();
+    });
+  });
+
+  describe("Mention Soft Delete", () => {
+    it("should apply bg-red-200 and show restore button when mention is deleted", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      const mentionRow = screen
+        .getByText("Mention Profile 1")
+        .closest('div[class*="pl-12"]')!;
+      expect(mentionRow.className).not.toContain("bg-red-200");
+      expect(mentionRow.className).toContain("hover:bg-blue-50");
+
+      const trashButton = mentionRow
+        .querySelector('[data-testid="trash-icon"]')!
+        .closest("button")!;
+      fireEvent.click(trashButton);
+
+      const updatedRow = screen
+        .getByText("Mention Profile 1")
+        .closest('div[class*="pl-12"]')!;
+      expect(updatedRow.className).toContain("bg-red-200");
+      expect(updatedRow.className).toContain("hover:bg-red-100");
+      expect(updatedRow.className).toContain(
+        "has-[.restore-btn:hover]:bg-green-100",
+      );
+      expect(updatedRow.className).not.toContain("hover:bg-blue-50");
+      const restoreBtn = updatedRow
+        .querySelector('[data-testid="arrow-path-icon"]')!
+        .closest("button")!;
+      expect(restoreBtn).toBeInTheDocument();
+      expect(restoreBtn.className).toContain("restore-btn");
+      expect(updatedRow.querySelector('[data-testid="trash-icon"]')).toBeNull();
+    });
+
+    it("should show removed count in mentions header after delete", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      expect(
+        screen.getByText(
+          (content) =>
+            content.includes("1 found") && !content.includes("removed"),
+        ),
+      ).toBeInTheDocument();
+
+      const mentionRow = screen
+        .getByText("Mention Profile 1")
+        .closest('div[class*="pl-12"]')!;
+      const trashButton = mentionRow
+        .querySelector('[data-testid="trash-icon"]')!
+        .closest("button")!;
+      fireEvent.click(trashButton);
+
+      expect(
+        screen.getByText(
+          (content) =>
+            content.includes("1 found") && content.includes("1 removed"),
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("should restore mention when restore button is clicked", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      const mentionRow = screen
+        .getByText("Mention Profile 1")
+        .closest('div[class*="pl-12"]')!;
+      const trashButton = mentionRow
+        .querySelector('[data-testid="trash-icon"]')!
+        .closest("button")!;
+      fireEvent.click(trashButton);
+
+      const deletedRow = screen
+        .getByText("Mention Profile 1")
+        .closest('div[class*="pl-12"]')!;
+      expect(deletedRow.className).toContain("bg-red-200");
+      expect(deletedRow.className).toContain("hover:bg-red-100");
+
+      const restoreButton = deletedRow
+        .querySelector('[data-testid="arrow-path-icon"]')!
+        .closest("button")!;
+      fireEvent.click(restoreButton);
+
+      const restoredRow = screen
+        .getByText("Mention Profile 1")
+        .closest('div[class*="pl-12"]')!;
+      expect(restoredRow.className).not.toContain("bg-red-200");
+      expect(restoredRow.className).not.toContain("hover:bg-red-100");
+      expect(restoredRow.className).toContain("hover:bg-blue-50");
+      expect(
+        restoredRow.querySelector('[data-testid="trash-icon"]'),
+      ).toBeInTheDocument();
+      expect(
+        restoredRow.querySelector('[data-testid="arrow-path-icon"]'),
+      ).toBeNull();
+    });
+
+    it("should update header back after restoring a deleted mention", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      const mentionRow = screen
+        .getByText("Mention Profile 1")
+        .closest('div[class*="pl-12"]')!;
+      const trashButton = mentionRow
+        .querySelector('[data-testid="trash-icon"]')!
+        .closest("button")!;
+      fireEvent.click(trashButton);
+
+      expect(
+        screen.getByText(
+          (content) =>
+            content.includes("1 found") && content.includes("1 removed"),
+        ),
+      ).toBeInTheDocument();
+
+      const deletedRow = screen
+        .getByText("Mention Profile 1")
+        .closest('div[class*="pl-12"]')!;
+      const restoreButton = deletedRow
+        .querySelector('[data-testid="arrow-path-icon"]')!
+        .closest("button")!;
+      fireEvent.click(restoreButton);
+
+      expect(
+        screen.getByText(
+          (content) =>
+            content.includes("1 found") && !content.includes("removed"),
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("should enable OK button when a mention is soft-deleted", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      const okButton = screen.getByText("OK").closest("button")!;
+      expect(okButton).toBeDisabled();
+
+      const mentionRow = screen
+        .getByText("Mention Profile 1")
+        .closest('div[class*="pl-12"]')!;
+      const trashButton = mentionRow
+        .querySelector('[data-testid="trash-icon"]')!
+        .closest("button")!;
+      fireEvent.click(trashButton);
+
+      expect(okButton).not.toBeDisabled();
+    });
+
+    it("should trigger cancel confirmation when mention is soft-deleted", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      const mentionRow = screen
+        .getByText("Mention Profile 1")
+        .closest('div[class*="pl-12"]')!;
+      const trashButton = mentionRow
+        .querySelector('[data-testid="trash-icon"]')!
+        .closest("button")!;
+      fireEvent.click(trashButton);
+
+      const cancelButton = screen.getByText("Cancel").closest("button")!;
+      fireEvent.click(cancelButton);
+
+      expect(mockModalConfirm).toHaveBeenCalled();
+      const { container } = render(mockModalConfirm.mock.calls[0][0].content);
+      expect(container.textContent).toContain(
+        "Mentions were changed: 1 removed.",
+      );
+      expect(container.textContent).not.toContain("References were changed");
+      expect(container.textContent).toContain(
+        "Would you like to ignore changes?",
+      );
     });
   });
 
