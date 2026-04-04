@@ -12,6 +12,7 @@ import {
   PaperClipIcon,
 } from "@heroicons/react/24/outline";
 import { theme, Tooltip } from "antd";
+import { SessionProvider, useSession } from "next-auth/react";
 
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import {
@@ -43,7 +44,11 @@ const ReferenceCounter = ({
     },
   } = theme.useToken();
   const [, utils] = useContext(GameSystemContext);
+  const { data: session } = useSession();
   const { getEntity, loadEntities, loading, saveEntity } = useEntities();
+  const [currentReferences, setCurrentReferences] = useState<References>(
+    entity.references || {},
+  );
   const [mentions, setMentions] = useState<Mentions>({});
 
   // Save the previous value in localStorage
@@ -83,8 +88,8 @@ const ReferenceCounter = ({
   }, [collectionName, utils]);
 
   const refNumber = useMemo(() => {
-    return !entity.references ? 0 : Object.keys(entity.references).length;
-  }, [entity]);
+    return Object.keys(currentReferences).length;
+  }, [currentReferences]);
 
   const mentNumber = useMemo(() => {
     // Calculate the total number of elements in all arrays, not the number of keys
@@ -150,7 +155,7 @@ const ReferenceCounter = ({
       <div style={{ color: colorText }}>
         <div className="ml-4">{refMessage} added</div>
         {0 < refNumber &&
-          renderTooltipCollectionList(Object.values(entity.references || {}))}
+          renderTooltipCollectionList(Object.values(currentReferences))}
         <div className="ml-4">{mentMessage} found</div>
         {0 < mentNumber &&
           renderTooltipCollectionList(
@@ -169,7 +174,7 @@ const ReferenceCounter = ({
       refNumber,
       mentMessage,
       mentNumber,
-      entity.references,
+      currentReferences,
       mentions,
       getCalculatedCollections,
     ],
@@ -191,24 +196,25 @@ const ReferenceCounter = ({
       document.body.removeChild(modalContainer);
     };
 
-    const saveReferences = async (references: References) => {
-      // compare entity.references and references
-      // if they are not equal, save entity with the new references
-      // than replace the old entity by new one (maybe the entity should be in the state for it)
+    const handleSaved = (references: References) => {
+      setCurrentReferences(references);
       closeModal();
     };
 
     root.render(
-      <CrudReferenceModal
-        showModal={true}
-        entityName={entity.name}
-        onOk={saveReferences}
-        onCancel={closeModal}
-        references={entity.references || {}}
-        mentions={mentions}
-        collectionName={collectionName}
-        allowedToRefer={allowedToRefer}
-      />,
+      <SessionProvider session={session}>
+        <CrudReferenceModal
+          showModal={true}
+          entityId={entity._id}
+          entityName={entity.name}
+          onOk={handleSaved}
+          onCancel={closeModal}
+          references={currentReferences}
+          mentions={mentions}
+          collectionName={collectionName}
+          allowedToRefer={allowedToRefer}
+        />
+      </SessionProvider>,
     );
   };
 

@@ -160,12 +160,14 @@ jest.mock("../../../../lib/definitions", () => ({
 // Mock usePlayableReferences hook
 const mockLoadEntitiesForReferences = jest.fn();
 const mockLoadReferences = jest.fn();
+const mockSaveReferences = jest.fn();
 
 jest.mock("../../../../lib/hooks/usePlayableReferences", () => ({
   __esModule: true,
   default: () => ({
     loadEntitiesForReferences: mockLoadEntitiesForReferences,
     loadReferences: mockLoadReferences,
+    saveReferences: mockSaveReferences,
   }),
 }));
 
@@ -197,6 +199,7 @@ describe("CrudReferenceModal", () => {
       mockCollectionName.WEAPONS,
     ] as CollectionName[],
     collectionName: mockCollectionName.PROFILES as CollectionName,
+    entityId: "entity-123",
     entityName: "Test Entity",
     mentions: {
       [mockCollectionName.PROFILES]: [
@@ -244,6 +247,11 @@ describe("CrudReferenceModal", () => {
         ]);
       }
       return Promise.resolve([]);
+    });
+
+    mockSaveReferences.mockResolvedValue({
+      _id: "entity-123",
+      name: "Test Entity",
     });
 
     mockLoadEntitiesForReferences.mockResolvedValue([
@@ -1560,6 +1568,72 @@ describe("CrudReferenceModal", () => {
       fireEvent.click(screen.getByTestId("modal-cancel-button"));
 
       expect(onCancel).toHaveBeenCalled();
+    });
+  });
+
+  describe("Save References", () => {
+    it("should call saveReferences and onOk on successful save", async () => {
+      const onOk = jest.fn();
+
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} onOk={onOk} />);
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Test Profile")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      const trashButtons = screen.getAllByTestId("trash-icon");
+      const referenceTrashButton = trashButtons[0].closest("button")!;
+
+      await act(async () => {
+        fireEvent.click(referenceTrashButton);
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("modal-ok-button"));
+      });
+
+      expect(mockSaveReferences).toHaveBeenCalledWith(
+        mockCollectionName.PROFILES,
+        "entity-123",
+        { ref2: mockCollectionName.WEAPONS },
+      );
+      expect(onOk).toHaveBeenCalled();
+    });
+
+    it("should not call onOk when save fails", async () => {
+      const onOk = jest.fn();
+      mockSaveReferences.mockResolvedValue(null);
+
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} onOk={onOk} />);
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Test Profile")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      const trashButtons = screen.getAllByTestId("trash-icon");
+      const referenceTrashButton = trashButtons[0].closest("button")!;
+
+      await act(async () => {
+        fireEvent.click(referenceTrashButton);
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("modal-ok-button"));
+      });
+
+      expect(mockSaveReferences).toHaveBeenCalled();
+      expect(onOk).not.toHaveBeenCalled();
+      expect(screen.getByTestId("ant-modal")).toBeInTheDocument();
     });
   });
 

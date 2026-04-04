@@ -115,6 +115,7 @@ const DescriptionTooltip = ({
 
 interface CrudReferenceModalProps {
   showModal: boolean;
+  entityId: string;
   entityName: string;
   onOk: (references: References) => void;
   onCancel: () => void;
@@ -126,6 +127,7 @@ interface CrudReferenceModalProps {
 
 const CrudReferenceModal = ({
   showModal,
+  entityId,
   entityName,
   onOk,
   onCancel,
@@ -165,7 +167,8 @@ const CrudReferenceModal = ({
     Set<CollectionName>
   >(new Set());
   const [scrollToBottom, setScrollToBottom] = useState<string | null>(null);
-  const { loadEntitiesForReferences, loadReferences } = usePlayableReferences();
+  const { loadEntitiesForReferences, loadReferences, saveReferences } =
+    usePlayableReferences();
   const loadingRef = useRef<Set<string>>(new Set());
   const scrollRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -642,7 +645,21 @@ const CrudReferenceModal = ({
           <Spin spinning={loading} />
         </span>
       }
-      onOk={() => onOk(references)}
+      onOk={async () => {
+        setLoading(true);
+        try {
+          const result = await saveReferences(
+            collectionName,
+            entityId,
+            references,
+          );
+          if (result) {
+            onOk(references);
+          }
+        } finally {
+          setLoading(false);
+        }
+      }}
       onCancel={handleCancel}
       maskClosable={false}
       keyboard={false}

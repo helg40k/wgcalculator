@@ -1,8 +1,10 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { useSession } from "next-auth/react";
 
 import { Playable } from "../../definitions";
 import getDocumentsByExcludedIds from "../../services/firebase/helpers/getDocumentsByExcludedIds";
 import getDocumentsByIds from "../../services/firebase/helpers/getDocumentsByIds";
+import updateDocument from "../../services/firebase/helpers/updateDocument";
 import usePlayableReferences from "../usePlayableReferences";
 
 // Mock Ant Design patch
@@ -19,9 +21,20 @@ jest.mock("../../services/firebase/utils/app", () => ({
   default: "mock-app-instance",
 }));
 
+// Mock next-auth
+jest.mock("next-auth/react", () => ({
+  useSession: jest.fn(() => ({
+    data: {
+      user: { email: "test@example.com", name: "Test User" },
+    },
+    status: "authenticated",
+  })),
+}));
+
 // Mock dependencies
 jest.mock("../../services/firebase/helpers/getDocumentsByExcludedIds");
 jest.mock("../../services/firebase/helpers/getDocumentsByIds");
+jest.mock("../../services/firebase/helpers/updateDocument");
 // Mock errorMessage
 jest.mock("../../errorMessage", () => ({
   __esModule: true,
@@ -40,6 +53,9 @@ const mockGetDocumentsByExcludedIds =
   getDocumentsByExcludedIds as jest.MockedFunction<
     typeof getDocumentsByExcludedIds
   >;
+const mockUpdateDocument = updateDocument as jest.MockedFunction<
+  typeof updateDocument
+>;
 
 const mockPlayableEntity: Playable = {
   _createdAt: { nanoseconds: 0, seconds: 1234567890 } as any,
@@ -79,6 +95,7 @@ describe("usePlayableReferences", () => {
       expect(result.current.loading).toBe(false);
       expect(typeof result.current.loadReferences).toBe("function");
       expect(typeof result.current.loadEntitiesForReferences).toBe("function");
+      expect(typeof result.current.saveReferences).toBe("function");
     });
   });
 
@@ -206,7 +223,7 @@ describe("usePlayableReferences", () => {
 
       await waitFor(() => {
         expect(mockErrorMessage).toHaveBeenCalledWith(
-          "Something in useLoadReferences()",
+          "Something in usePlayableReferences()",
         );
       });
     });
@@ -375,7 +392,7 @@ describe("usePlayableReferences", () => {
 
       await waitFor(() => {
         expect(mockErrorMessage).toHaveBeenCalledWith(
-          "Something in useLoadReferences()",
+          "Something in usePlayableReferences()",
         );
       });
     });
@@ -418,6 +435,235 @@ describe("usePlayableReferences", () => {
     });
   });
 
+  describe("saveReferences", () => {
+    it("should save references successfully", async () => {
+      const updatedEntity = {
+        ...mockPlayableEntity,
+        references: { ref1: "sources" as const },
+      };
+      mockUpdateDocument.mockResolvedValueOnce(updatedEntity);
+
+      const { result } = renderHook(() => usePlayableReferences());
+
+      let savedEntity: Playable | null = null;
+      await act(async () => {
+        savedEntity = await result.current.saveReferences(
+          "test-collection",
+          "entity123",
+          { ref1: "sources" },
+        );
+      });
+
+      expect(mockUpdateDocument).toHaveBeenCalledWith(
+        "test-collection",
+        "entity123",
+        {
+          _updatedBy: "test@example.com",
+          references: { ref1: "sources" },
+        },
+      );
+      expect(savedEntity).toEqual(updatedEntity);
+      expect(result.current.loading).toBe(false);
+    });
+
+    it("should return null and set error when dbRef is null", async () => {
+      const { result } = renderHook(() => usePlayableReferences());
+
+      let savedEntity: Playable | null = null;
+      await act(async () => {
+        savedEntity = await result.current.saveReferences(null, "entity123", {
+          ref1: "sources",
+        });
+      });
+
+      expect(mockUpdateDocument).not.toHaveBeenCalled();
+      expect(savedEntity).toBeNull();
+
+      await waitFor(() => {
+        expect(mockErrorMessage).toHaveBeenCalledWith(
+          "Document save destination is unknown!",
+        );
+      });
+    });
+
+    it("should return null and set error when dbRef is undefined", async () => {
+      const { result } = renderHook(() => usePlayableReferences());
+
+      let savedEntity: Playable | null = null;
+      await act(async () => {
+        savedEntity = await result.current.saveReferences(
+          undefined,
+          "entity123",
+          { ref1: "sources" },
+        );
+      });
+
+      expect(mockUpdateDocument).not.toHaveBeenCalled();
+      expect(savedEntity).toBeNull();
+
+      await waitFor(() => {
+        expect(mockErrorMessage).toHaveBeenCalledWith(
+          "Document save destination is unknown!",
+        );
+      });
+    });
+
+    it("should return null and set error when id is empty", async () => {
+      const { result } = renderHook(() => usePlayableReferences());
+
+      let savedEntity: Playable | null = null;
+      await act(async () => {
+        savedEntity = await result.current.saveReferences(
+          "test-collection",
+          "",
+          { ref1: "sources" },
+        );
+      });
+
+      expect(mockUpdateDocument).not.toHaveBeenCalled();
+      expect(savedEntity).toBeNull();
+
+      await waitFor(() => {
+        expect(mockErrorMessage).toHaveBeenCalledWith(
+          "Saved document ID is unknown!",
+        );
+      });
+    });
+
+    it("should handle save errors gracefully", async () => {
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+      const error = new Error("Failed to save");
+      mockUpdateDocument.mockRejectedValueOnce(error);
+
+      const { result } = renderHook(() => usePlayableReferences());
+
+      let savedEntity: Playable | null = null;
+      await act(async () => {
+        savedEntity = await result.current.saveReferences(
+          "test-collection",
+          "entity123",
+          { ref1: "sources" },
+        );
+      });
+
+      expect(savedEntity).toBeNull();
+      expect(result.current.loading).toBe(false);
+      expect(consoleSpy).toHaveBeenCalledWith(error);
+
+      await waitFor(() => {
+        expect(mockErrorMessage).toHaveBeenCalledWith("Failed to save");
+      });
+
+      consoleSpy.mockRestore();
+    });
+
+    it("should handle loading state correctly during save", async () => {
+      let resolvePromise: (value: any) => void;
+      const promise = new Promise((resolve) => {
+        resolvePromise = resolve;
+      });
+      mockUpdateDocument.mockReturnValue(promise as any);
+
+      const { result } = renderHook(() => usePlayableReferences());
+
+      expect(result.current.loading).toBe(false);
+
+      act(() => {
+        result.current.saveReferences("test-collection", "entity123", {
+          ref1: "sources",
+        });
+      });
+
+      expect(result.current.loading).toBe(true);
+
+      await act(async () => {
+        resolvePromise!(mockPlayableEntity);
+        await promise;
+      });
+
+      expect(result.current.loading).toBe(false);
+    });
+
+    it("should save with default empty references when undefined", async () => {
+      mockUpdateDocument.mockResolvedValueOnce(mockPlayableEntity);
+
+      const { result } = renderHook(() => usePlayableReferences());
+
+      await act(async () => {
+        await result.current.saveReferences(
+          "test-collection",
+          "entity123",
+          undefined,
+        );
+      });
+
+      expect(mockUpdateDocument).toHaveBeenCalledWith(
+        "test-collection",
+        "entity123",
+        {
+          _updatedBy: "test@example.com",
+          references: {},
+        },
+      );
+    });
+
+    it("should save empty references object", async () => {
+      mockUpdateDocument.mockResolvedValueOnce(mockPlayableEntity);
+
+      const { result } = renderHook(() => usePlayableReferences());
+
+      await act(async () => {
+        await result.current.saveReferences("test-collection", "entity123", {});
+      });
+
+      expect(mockUpdateDocument).toHaveBeenCalledWith(
+        "test-collection",
+        "entity123",
+        {
+          _updatedBy: "test@example.com",
+          references: {},
+        },
+      );
+    });
+
+    it("should reject when user is not authenticated", async () => {
+      (useSession as jest.Mock).mockReturnValueOnce({
+        data: null,
+        status: "unauthenticated",
+      });
+
+      const { result } = renderHook(() => usePlayableReferences());
+
+      await expect(
+        result.current.saveReferences("test-collection", "entity123", {
+          ref1: "sources",
+        }),
+      ).rejects.toThrow("Unauthorized modifying!");
+    });
+
+    it("should handle save error without message", async () => {
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+      const error = new Error("");
+      mockUpdateDocument.mockRejectedValueOnce(error);
+
+      const { result } = renderHook(() => usePlayableReferences());
+
+      await act(async () => {
+        await result.current.saveReferences("test-collection", "entity123", {
+          ref1: "sources",
+        });
+      });
+
+      await waitFor(() => {
+        expect(mockErrorMessage).toHaveBeenCalledWith(
+          "Something in usePlayableReferences()",
+        );
+      });
+
+      consoleSpy.mockRestore();
+    });
+  });
+
   describe("function stability", () => {
     it("should maintain function references across renders", () => {
       const { result, rerender } = renderHook(() => usePlayableReferences());
@@ -425,6 +671,7 @@ describe("usePlayableReferences", () => {
       const initialLoadReferences = result.current.loadReferences;
       const initialLoadEntitiesForReferences =
         result.current.loadEntitiesForReferences;
+      const initialSaveReferences = result.current.saveReferences;
 
       rerender();
 
@@ -432,6 +679,7 @@ describe("usePlayableReferences", () => {
       expect(result.current.loadEntitiesForReferences).toBe(
         initialLoadEntitiesForReferences,
       );
+      expect(result.current.saveReferences).toBe(initialSaveReferences);
     });
   });
 
@@ -441,12 +689,14 @@ describe("usePlayableReferences", () => {
 
       expect(result.current).toHaveProperty("loadReferences");
       expect(result.current).toHaveProperty("loadEntitiesForReferences");
+      expect(result.current).toHaveProperty("saveReferences");
       expect(result.current).toHaveProperty("loading");
 
-      expect(Object.keys(result.current)).toHaveLength(3);
+      expect(Object.keys(result.current)).toHaveLength(4);
 
       expect(typeof result.current.loadReferences).toBe("function");
       expect(typeof result.current.loadEntitiesForReferences).toBe("function");
+      expect(typeof result.current.saveReferences).toBe("function");
       expect(typeof result.current.loading).toBe("boolean");
     });
   });
