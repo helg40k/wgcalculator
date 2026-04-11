@@ -106,8 +106,8 @@ describe("SourceView", () => {
     description: "A comprehensive test source for unit testing",
     name: "Test Source",
     references: {
-      "ref-1": "PROFILES" as any,
-      "ref-2": "WEAPONS" as any,
+      "ref-1": { name: "PROFILES" } as any,
+      "ref-2": { name: "WEAPONS" } as any,
     },
     status: "active",
     systemId: "system-123",
@@ -330,7 +330,7 @@ describe("SourceView", () => {
     it("should re-render when entity.references changes with same _id", () => {
       const sourceWithOneRef = {
         ...mockSource,
-        references: { "ref-1": "PROFILES" as any },
+        references: { "ref-1": { name: "PROFILES" } as any },
       };
 
       const { rerender } = render(<SourceView entity={sourceWithOneRef} />);
@@ -342,8 +342,8 @@ describe("SourceView", () => {
       const sourceWithTwoRefs = {
         ...mockSource,
         references: {
-          "ref-1": "PROFILES" as any,
-          "ref-2": "WEAPONS" as any,
+          "ref-1": { name: "PROFILES" } as any,
+          "ref-2": { name: "WEAPONS" } as any,
         },
       };
       rerender(<SourceView entity={sourceWithTwoRefs} />);

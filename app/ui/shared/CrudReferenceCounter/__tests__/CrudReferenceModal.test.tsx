@@ -219,8 +219,8 @@ describe("CrudReferenceModal", () => {
     onCancel: jest.fn(),
     onOk: jest.fn(),
     references: {
-      ref1: mockCollectionName.PROFILES as CollectionName,
-      ref2: mockCollectionName.WEAPONS as CollectionName,
+      ref1: { name: mockCollectionName.PROFILES as CollectionName },
+      ref2: { name: mockCollectionName.WEAPONS as CollectionName },
     },
     showModal: true,
   };
@@ -377,7 +377,7 @@ describe("CrudReferenceModal", () => {
       });
 
       expect(onOk).toHaveBeenCalledWith({
-        ref2: mockCollectionName.WEAPONS,
+        ref2: { name: mockCollectionName.WEAPONS },
       });
     });
 
@@ -664,7 +664,7 @@ describe("CrudReferenceModal", () => {
 
       expect(onOk).toHaveBeenCalledWith({
         ...defaultProps.references,
-        available1: mockCollectionName.PROFILES,
+        available1: { name: mockCollectionName.PROFILES },
       });
     });
 
@@ -796,7 +796,9 @@ describe("CrudReferenceModal", () => {
 
       const calledWith = onOk.mock.calls[0][0];
       expect(calledWith).not.toHaveProperty("ref1");
-      expect(calledWith).toHaveProperty("ref2", mockCollectionName.WEAPONS);
+      expect(calledWith).toHaveProperty("ref2", {
+        name: mockCollectionName.WEAPONS,
+      });
     });
   });
 
@@ -938,7 +940,7 @@ describe("CrudReferenceModal", () => {
       const props = {
         ...defaultProps,
         references: {
-          ref1: mockCollectionName.PROFILES as CollectionName,
+          ref1: { name: mockCollectionName.PROFILES as CollectionName },
         },
       };
 
@@ -1025,7 +1027,7 @@ describe("CrudReferenceModal", () => {
       const props = {
         ...defaultProps,
         references: {
-          ref1: mockCollectionName.PROFILES as CollectionName,
+          ref1: { name: mockCollectionName.PROFILES as CollectionName },
         },
       };
 
@@ -1130,7 +1132,7 @@ describe("CrudReferenceModal", () => {
       const props = {
         ...defaultProps,
         references: {
-          ref1: mockCollectionName.PROFILES as CollectionName,
+          ref1: { name: mockCollectionName.PROFILES as CollectionName },
         },
       };
 
@@ -1650,9 +1652,12 @@ describe("CrudReferenceModal", () => {
       expect(mockSaveReferences).toHaveBeenCalledWith(
         mockCollectionName.PROFILES,
         "entity-123",
-        { ref2: mockCollectionName.WEAPONS },
+        { ref2: { name: mockCollectionName.WEAPONS } },
       );
-      expect(mockRemoveIncomingReferences).toHaveBeenCalledWith("entity-123", []);
+      expect(mockRemoveIncomingReferences).toHaveBeenCalledWith(
+        "entity-123",
+        [],
+      );
       expect(onOk).toHaveBeenCalled();
     });
 
@@ -1675,7 +1680,9 @@ describe("CrudReferenceModal", () => {
         .closest('div[class*="pl-12"]')!;
       await act(async () => {
         fireEvent.click(
-          mentionRow.querySelector('[data-testid="trash-icon"]')!.closest("button")!,
+          mentionRow
+            .querySelector('[data-testid="trash-icon"]')!
+            .closest("button")!,
         );
       });
 
@@ -1713,7 +1720,9 @@ describe("CrudReferenceModal", () => {
         .closest('div[class*="pl-12"]')!;
       await act(async () => {
         fireEvent.click(
-          mentionRow.querySelector('[data-testid="trash-icon"]')!.closest("button")!,
+          mentionRow
+            .querySelector('[data-testid="trash-icon"]')!
+            .closest("button")!,
         );
       });
 

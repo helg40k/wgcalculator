@@ -84,7 +84,7 @@ const ReferenceCounter = ({
       loadedMentions[mentionCollectionName] = await loadEntities<Playable>(
         mentionCollectionName,
         {
-          filters: [[`references.${entity._id}`, "==", collectionName]],
+          filters: [[`references.${entity._id}.name`, "==", collectionName]],
           withoutSort: true,
         },
       );
@@ -167,7 +167,9 @@ const ReferenceCounter = ({
       <div style={{ color: colorText }}>
         <div className="ml-4">{refMessage} added</div>
         {0 < refNumber &&
-          renderTooltipCollectionList(Object.values(currentReferences))}
+          renderTooltipCollectionList(
+            Object.values(currentReferences).map((ref) => ref.name),
+          )}
         <div className="ml-4">{mentMessage} found</div>
         {0 < mentNumber &&
           renderTooltipCollectionList(

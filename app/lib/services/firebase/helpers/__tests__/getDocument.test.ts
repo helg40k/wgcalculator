@@ -192,8 +192,8 @@ describe("getDocument", () => {
       },
       name: "Complex Document",
       references: {
-        ref1: "collection1",
-        ref2: "collection2",
+        ref1: { name: "collection1" },
+        ref2: { name: "collection2" },
       },
       timestamps: {
         createdAt: { nanoseconds: 0, seconds: 1234567890 },

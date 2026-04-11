@@ -30,8 +30,13 @@ export const sourceTypes = [
 ] as const;
 export type SourceType = (typeof sourceTypes)[number];
 
+export interface Reference {
+  name: CollectionName;
+  link?: string;
+}
+
 export interface References {
-  [key: string]: CollectionName;
+  [key: string]: Reference;
 }
 
 export type ReferenceHierarchy = {

@@ -441,7 +441,7 @@ describe("usePlayableReferences", () => {
     it("should save references successfully", async () => {
       const updatedEntity = {
         ...mockPlayableEntity,
-        references: { ref1: "sources" as const },
+        references: { ref1: { name: "sources" as const } },
       };
       mockUpdateDocument.mockResolvedValueOnce(updatedEntity);
 
@@ -452,7 +452,7 @@ describe("usePlayableReferences", () => {
         savedEntity = await result.current.saveReferences(
           "test-collection",
           "entity123",
-          { ref1: "sources" },
+          { ref1: { name: "sources" } },
         );
       });
 
@@ -461,7 +461,7 @@ describe("usePlayableReferences", () => {
         "entity123",
         {
           _updatedBy: "test@example.com",
-          references: { ref1: "sources" },
+          references: { ref1: { name: "sources" } },
         },
       );
       expect(savedEntity).toEqual(updatedEntity);
@@ -474,7 +474,7 @@ describe("usePlayableReferences", () => {
       let savedEntity: Playable | null = null;
       await act(async () => {
         savedEntity = await result.current.saveReferences(null, "entity123", {
-          ref1: "sources",
+          ref1: { name: "sources" },
         });
       });
 
@@ -496,7 +496,7 @@ describe("usePlayableReferences", () => {
         savedEntity = await result.current.saveReferences(
           undefined,
           "entity123",
-          { ref1: "sources" },
+          { ref1: { name: "sources" } },
         );
       });
 
@@ -518,7 +518,7 @@ describe("usePlayableReferences", () => {
         savedEntity = await result.current.saveReferences(
           "test-collection",
           "",
-          { ref1: "sources" },
+          { ref1: { name: "sources" } },
         );
       });
 
@@ -544,7 +544,7 @@ describe("usePlayableReferences", () => {
         savedEntity = await result.current.saveReferences(
           "test-collection",
           "entity123",
-          { ref1: "sources" },
+          { ref1: { name: "sources" } },
         );
       });
 
@@ -572,7 +572,7 @@ describe("usePlayableReferences", () => {
 
       act(() => {
         result.current.saveReferences("test-collection", "entity123", {
-          ref1: "sources",
+          ref1: { name: "sources" },
         });
       });
 
@@ -638,7 +638,7 @@ describe("usePlayableReferences", () => {
 
       await expect(
         result.current.saveReferences("test-collection", "entity123", {
-          ref1: "sources",
+          ref1: { name: "sources" },
         }),
       ).rejects.toThrow("Unauthorized modifying!");
     });
@@ -652,7 +652,7 @@ describe("usePlayableReferences", () => {
 
       await act(async () => {
         await result.current.saveReferences("test-collection", "entity123", {
-          ref1: "sources",
+          ref1: { name: "sources" },
         });
       });
 

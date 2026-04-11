@@ -6,7 +6,7 @@ import "@testing-library/jest-dom";
 // First test the minimal mock component
 const MockReferenceCounter = ({ entity, collectionName }: any) => {
   const refCount = entity?.references
-    ? Object.values(entity.references).flat().length
+    ? Object.keys(entity.references).length
     : 0;
 
   return (
@@ -22,8 +22,9 @@ describe("CrudReferenceCounter Mock Tests", () => {
     _id: "test-id",
     name: "Test Entity",
     references: {
-      profiles: ["p1", "p2"],
-      weapons: ["w1"],
+      p1: { name: "profiles" },
+      p2: { name: "profiles" },
+      w1: { name: "weapons" },
     },
   };
 
@@ -40,7 +41,7 @@ describe("CrudReferenceCounter Mock Tests", () => {
   it("should display singular reference message", () => {
     const entityWithOneRef = {
       ...mockEntity,
-      references: { profiles: ["p1"] },
+      references: { p1: { name: "profiles" } },
     };
 
     render(
@@ -238,7 +239,7 @@ describe("CrudReferenceCounter Real Component", () => {
         const mockEntity = {
           _id: "test-id",
           name: "Test Entity",
-          references: { ref1: "PROFILES" },
+          references: { ref1: { name: "PROFILES" } },
         };
 
         return React.createElement(ReferenceCounter, {
@@ -317,7 +318,7 @@ describe("CrudReferenceCounter Real Component", () => {
         const mockEntity = {
           _id: "test-id",
           name: "Test Entity",
-          references: { ref1: "PROFILES", ref2: "WEAPONS" },
+          references: { ref1: { name: "PROFILES" }, ref2: { name: "WEAPONS" } },
         };
 
         return React.createElement(ReferenceCounter, {
@@ -361,7 +362,7 @@ describe("CrudReferenceCounter Real Component", () => {
         const mockEntity = {
           _id: "test-id",
           name: "Test Entity",
-          references: { ref1: "PROFILES" },
+          references: { ref1: { name: "PROFILES" } },
         };
 
         return React.createElement(ReferenceCounter, {
@@ -386,7 +387,9 @@ describe("CrudReferenceCounter Real Component", () => {
       expect(modalElement.props.entityId).toBe("test-id");
       expect(modalElement.props.entityName).toBe("Test Entity");
       expect(modalElement.props.showModal).toBe(true);
-      expect(modalElement.props.references).toEqual({ ref1: "PROFILES" });
+      expect(modalElement.props.references).toEqual({
+        ref1: { name: "PROFILES" },
+      });
       expect(modalElement.props.collectionName).toBe(
         mockCollectionName.PROFILES,
       );
@@ -424,7 +427,7 @@ describe("CrudReferenceCounter Real Component", () => {
         const mockEntity = {
           _id: "test-id",
           name: "Test Entity",
-          references: { ref1: "PROFILES", ref2: "WEAPONS" },
+          references: { ref1: { name: "PROFILES" }, ref2: { name: "WEAPONS" } },
         };
 
         return React.createElement(ReferenceCounter, {
@@ -444,8 +447,8 @@ describe("CrudReferenceCounter Real Component", () => {
       const renderedElement = mockRender.mock.calls[0][0];
       const modalElement = renderedElement.props.children;
       expect(modalElement.props.references).toEqual({
-        ref1: "PROFILES",
-        ref2: "WEAPONS",
+        ref1: { name: "PROFILES" },
+        ref2: { name: "WEAPONS" },
       });
     });
   });
@@ -460,7 +463,7 @@ describe("CrudReferenceCounter Real Component", () => {
         const mockEntity = {
           _id: "test-id",
           name: "Test Entity",
-          references: { ref1: "PROFILES" },
+          references: { ref1: { name: "PROFILES" } },
         };
 
         return React.createElement(ReferenceCounter, {
@@ -488,9 +491,9 @@ describe("CrudReferenceCounter Real Component", () => {
       // Simulate saving with new references
       act(() => {
         handleSaved({
-          ref1: "PROFILES",
-          ref2: "WEAPONS",
-          ref3: "ARMORS",
+          ref1: { name: "PROFILES" },
+          ref2: { name: "WEAPONS" },
+          ref3: { name: "ARMORS" },
         });
       });
 
@@ -503,7 +506,7 @@ describe("CrudReferenceCounter Real Component", () => {
         const mockEntity = {
           _id: "test-id",
           name: "Test Entity",
-          references: { ref1: "PROFILES" },
+          references: { ref1: { name: "PROFILES" } },
         };
 
         return React.createElement(ReferenceCounter, {
@@ -525,7 +528,7 @@ describe("CrudReferenceCounter Real Component", () => {
       const handleSaved = modalElement.props.onOk;
 
       act(() => {
-        handleSaved({ ref1: "PROFILES" });
+        handleSaved({ ref1: { name: "PROFILES" } });
       });
 
       expect(mockUnmount).toHaveBeenCalled();
@@ -536,7 +539,7 @@ describe("CrudReferenceCounter Real Component", () => {
         const mockEntity = {
           _id: "test-id",
           name: "Test Entity",
-          references: { ref1: "PROFILES" },
+          references: { ref1: { name: "PROFILES" } },
         };
 
         return React.createElement(ReferenceCounter, {
@@ -559,7 +562,7 @@ describe("CrudReferenceCounter Real Component", () => {
       const modalElement1 = renderedElement1.props.children;
       const handleSaved = modalElement1.props.onOk;
 
-      const newRefs = { ref1: "PROFILES", ref2: "WEAPONS" };
+      const newRefs = { ref1: { name: "PROFILES" }, ref2: { name: "WEAPONS" } };
       act(() => {
         handleSaved(newRefs);
       });
@@ -581,7 +584,7 @@ describe("CrudReferenceCounter Real Component", () => {
         const mockEntity = {
           _id: "test-id",
           name: "Test Entity",
-          references: { ref1: "PROFILES", ref2: "WEAPONS" },
+          references: { ref1: { name: "PROFILES" }, ref2: { name: "WEAPONS" } },
         };
 
         return React.createElement(ReferenceCounter, {
@@ -622,7 +625,7 @@ describe("CrudReferenceCounter Real Component", () => {
         const mockEntity = {
           _id: "test-id",
           name: "Test Entity",
-          references: { ref1: "PROFILES" },
+          references: { ref1: { name: "PROFILES" } },
         };
 
         return React.createElement(ReferenceCounter, {
@@ -665,7 +668,7 @@ describe("CrudReferenceCounter Real Component", () => {
         const mockEntity = {
           _id: "test-id",
           name: "Test Entity",
-          references: { ref1: "PROFILES" },
+          references: { ref1: { name: "PROFILES" } },
         };
 
         return React.createElement(
@@ -696,7 +699,7 @@ describe("CrudReferenceCounter Real Component", () => {
       const modalElement = renderedElement.props.children;
       const handleSaved = modalElement.props.onOk;
 
-      const newRefs = { ref1: "PROFILES", ref2: "WEAPONS" };
+      const newRefs = { ref1: { name: "PROFILES" }, ref2: { name: "WEAPONS" } };
       act(() => {
         handleSaved(newRefs);
       });
@@ -712,7 +715,7 @@ describe("CrudReferenceCounter Real Component", () => {
         const mockEntity = {
           _id: "test-id",
           name: "Test Entity",
-          references: { ref1: "PROFILES" },
+          references: { ref1: { name: "PROFILES" } },
         };
 
         return React.createElement(ReferenceCounter, {
@@ -735,7 +738,10 @@ describe("CrudReferenceCounter Real Component", () => {
 
       expect(() => {
         act(() => {
-          handleSaved({ ref1: "PROFILES", ref2: "WEAPONS" });
+          handleSaved({
+            ref1: { name: "PROFILES" },
+            ref2: { name: "WEAPONS" },
+          });
         });
       }).not.toThrow();
 
@@ -752,10 +758,17 @@ describe("CrudReferenceCounter Real Component", () => {
       const mockEntity = {
         _id: "test-id",
         name: "Test Entity",
-        references: { ref1: "PROFILES" } as Record<string, string>,
+        references: { ref1: { name: "PROFILES" } } as Record<
+          string,
+          { name: string }
+        >,
       };
 
-      const TestWrapper = ({ refs }: { refs: Record<string, string> }) => {
+      const TestWrapper = ({
+        refs,
+      }: {
+        refs: Record<string, { name: string }>;
+      }) => {
         return React.createElement(ReferenceCounter, {
           collectionName: mockCollectionName.PROFILES,
           entity: { ...mockEntity, references: refs },
@@ -765,7 +778,7 @@ describe("CrudReferenceCounter Real Component", () => {
 
       const { rerender } = render(
         React.createElement(TestWrapper, {
-          refs: { ref1: "PROFILES" },
+          refs: { ref1: { name: "PROFILES" } },
         }),
       );
 
@@ -773,7 +786,11 @@ describe("CrudReferenceCounter Real Component", () => {
 
       rerender(
         React.createElement(TestWrapper, {
-          refs: { ref1: "PROFILES", ref2: "WEAPONS", ref3: "ARMORS" },
+          refs: {
+            ref1: { name: "PROFILES" },
+            ref2: { name: "WEAPONS" },
+            ref3: { name: "ARMORS" },
+          },
         }),
       );
 
@@ -785,7 +802,11 @@ describe("CrudReferenceCounter Real Component", () => {
     it("should re-render when entity.references changes", () => {
       const renderCount = { current: 0 };
 
-      const TestWrapper = ({ refs }: { refs: Record<string, string> }) => {
+      const TestWrapper = ({
+        refs,
+      }: {
+        refs: Record<string, { name: string }>;
+      }) => {
         const mockEntity = {
           _id: "test-id",
           name: "Test Entity",
@@ -802,7 +823,7 @@ describe("CrudReferenceCounter Real Component", () => {
 
       const { rerender } = render(
         React.createElement(TestWrapper, {
-          refs: { ref1: "PROFILES" },
+          refs: { ref1: { name: "PROFILES" } },
         }),
       );
 
@@ -810,7 +831,7 @@ describe("CrudReferenceCounter Real Component", () => {
 
       rerender(
         React.createElement(TestWrapper, {
-          refs: { ref1: "PROFILES", ref2: "WEAPONS" },
+          refs: { ref1: { name: "PROFILES" }, ref2: { name: "WEAPONS" } },
         }),
       );
 
@@ -821,7 +842,7 @@ describe("CrudReferenceCounter Real Component", () => {
       const mockEntity = {
         _id: "test-id",
         name: "Test Entity",
-        references: { ref1: "PROFILES" },
+        references: { ref1: { name: "PROFILES" } },
       };
 
       const TestWrapper = ({ viewOnly }: { viewOnly: boolean }) => {

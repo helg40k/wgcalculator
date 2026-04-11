@@ -260,11 +260,11 @@ const CrudReferenceModal = ({
   const groupedRefIds = useMemo(() => {
     const results: Partial<Record<CollectionName, string[]>> = {};
     allowedToRefer.forEach((colName) => (results[colName] = []));
-    Object.entries(references).forEach(([entId, colName]) => {
-      if (!results[colName]) {
-        results[colName] = [];
+    Object.entries(references).forEach(([entId, ref]) => {
+      if (!results[ref.name]) {
+        results[ref.name] = [];
       }
-      results[colName]!.push(entId);
+      results[ref.name]!.push(entId);
     });
     return results;
   }, [allowedToRefer, references]);
@@ -469,7 +469,7 @@ const CrudReferenceModal = ({
                           const colNameTyped = colName as CollectionName;
                           setReferences((prev) => ({
                             ...prev,
-                            [selectedEntityId]: colNameTyped,
+                            [selectedEntityId]: { name: colNameTyped },
                           }));
                           const selectedEntity = availableEntities.find(
                             (ent) => ent._id === selectedEntityId,

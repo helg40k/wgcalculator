@@ -116,8 +116,8 @@ describe("updateDocument", () => {
       },
       name: "Complex Update",
       references: {
-        ref1: "updated-collection1",
-        ref3: "new-collection3",
+        ref1: { name: "updated-collection1" },
+        ref3: { name: "new-collection3" },
       },
     };
 
