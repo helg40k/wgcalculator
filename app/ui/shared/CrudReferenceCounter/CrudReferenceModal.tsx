@@ -14,6 +14,7 @@ import {
   Modal,
   Select,
   Spin,
+  Tag,
   theme,
   Tooltip,
 } from "antd";
@@ -355,6 +356,9 @@ const CrudReferenceModal = ({
                             status={ent.status}
                             editable={false}
                           />
+                          {references[ent._id]?.link && (
+                            <Tag>{references[ent._id].link}</Tag>
+                          )}
                           <DeleteButton
                             onDelete={() => {
                               const colNameTyped = colName as CollectionName;
@@ -755,6 +759,7 @@ const CrudReferenceModal = ({
         }
       }}
       onCancel={handleCancel}
+      width={570}
       maskClosable={false}
       keyboard={false}
       okButtonProps={{ disabled: loading || disableModal || !hasChanges }}

@@ -129,6 +129,8 @@ jest.mock("antd", () => ({
     spinning
       ? React.createElement("div", { "data-testid": "ant-spin" }, "Loading...")
       : React.createElement("div", null, children),
+  Tag: ({ children }: any) =>
+    React.createElement("span", { "data-testid": "ant-tag" }, children),
   Tooltip: ({ children, title }: any) =>
     React.createElement(
       "div",
@@ -1182,6 +1184,96 @@ describe("CrudReferenceModal", () => {
         .closest('div[class*="pl-12"]')!;
       expect(newRow.className).toContain("bg-red-50");
       expect(newRow.className).toContain("hover:bg-blue-50");
+    });
+  });
+
+  describe("Reference Link Tag", () => {
+    it("should display link tag when reference has a non-empty link", async () => {
+      const props = {
+        ...defaultProps,
+        references: {
+          ref1: {
+            link: "p.42",
+            name: mockCollectionName.PROFILES as CollectionName,
+          },
+          ref2: { name: mockCollectionName.WEAPONS as CollectionName },
+        },
+      };
+
+      await act(async () => {
+        render(<CrudReferenceModal {...props} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Profile")).toBeInTheDocument();
+      });
+
+      expect(screen.getByText("p.42")).toBeInTheDocument();
+      expect(
+        screen.getByText("p.42").closest("[data-testid='ant-tag']"),
+      ).toBeTruthy();
+    });
+
+    it("should not display link tag when reference has no link", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Profile")).toBeInTheDocument();
+      });
+
+      expect(screen.queryAllByTestId("ant-tag")).toHaveLength(0);
+    });
+
+    it("should not display link tag for newly added references", async () => {
+      const props = {
+        ...defaultProps,
+        references: {
+          ref1: {
+            link: "p.10",
+            name: mockCollectionName.PROFILES as CollectionName,
+          },
+        },
+      };
+
+      await act(async () => {
+        render(<CrudReferenceModal {...props} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Profile")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "available1" },
+        });
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByText((content) => content.includes("1 unsaved")),
+        ).toBeInTheDocument();
+      });
+
+      const tags = screen.queryAllByTestId("ant-tag");
+      expect(tags).toHaveLength(1);
+      expect(tags[0]).toHaveTextContent("p.10");
     });
   });
 
