@@ -1,0 +1,18 @@
+---
+description: Frontend component and page patterns
+---
+
+# Frontend Components & Pages
+
+## Styling
+
+- Ant Design 5
+- Tailwind CSS styles
+
+## Key hooks
+
+- `app/lib/hooks/`
+
+## Data flow
+
+

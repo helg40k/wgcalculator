@@ -1064,4 +1064,146 @@ describe("CrudReferenceCounter Real Component", () => {
       expect(mockLoadEntities).toHaveBeenCalled();
     });
   });
+
+  describe("MentionsLoaded and localStorage Cache", () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockLoadEntities.mockReset().mockResolvedValue([]);
+      localStorage.clear();
+    });
+
+    it("should show cached localStorage value before mentions load", () => {
+      localStorage.setItem("mentNumber_test-id_PROFILES", "3");
+
+      const TestReferenceCounter = () => {
+        const mockEntity = {
+          _id: "test-id",
+          name: "Test Entity",
+          references: {},
+        };
+        return React.createElement(ReferenceCounter, {
+          collectionName: mockCollectionName.PROFILES,
+          entity: mockEntity,
+          viewOnly: false,
+        });
+      };
+
+      render(React.createElement(TestReferenceCounter));
+
+      expect(screen.getByText("3 outer mentions")).toBeInTheDocument();
+    });
+
+    it("should show real mentNumber after mentions load completes", async () => {
+      localStorage.setItem("mentNumber_test-id_PROFILES", "5");
+
+      mockLoadEntities.mockImplementation((collName: string) => {
+        if (collName === "WEAPONS") {
+          return Promise.resolve([
+            { _id: "w1", name: "Weapon 1" },
+            { _id: "w2", name: "Weapon 2" },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const TestReferenceCounter = () => {
+        const mockEntity = {
+          _id: "test-id",
+          name: "Test Entity",
+          references: {},
+        };
+        return React.createElement(ReferenceCounter, {
+          collectionName: mockCollectionName.PROFILES,
+          entity: mockEntity,
+          viewOnly: false,
+        });
+      };
+
+      await act(async () => {
+        render(React.createElement(TestReferenceCounter));
+      });
+
+      expect(screen.getByText("2 outer mentions")).toBeInTheDocument();
+    });
+
+    it("should hide mention counter when loaded result is 0 despite localStorage cache", async () => {
+      localStorage.setItem("mentNumber_test-id_PROFILES", "3");
+
+      const TestReferenceCounter = () => {
+        const mockEntity = {
+          _id: "test-id",
+          name: "Test Entity",
+          references: {},
+        };
+        return React.createElement(ReferenceCounter, {
+          collectionName: mockCollectionName.PROFILES,
+          entity: mockEntity,
+          viewOnly: false,
+        });
+      };
+
+      await act(async () => {
+        render(React.createElement(TestReferenceCounter));
+      });
+
+      expect(screen.queryByTestId("arrow-return-icon")).not.toBeInTheDocument();
+    });
+
+    it("should clear localStorage when mentions load with 0", async () => {
+      localStorage.setItem("mentNumber_test-id_PROFILES", "3");
+
+      const TestReferenceCounter = () => {
+        const mockEntity = {
+          _id: "test-id",
+          name: "Test Entity",
+          references: {},
+        };
+        return React.createElement(ReferenceCounter, {
+          collectionName: mockCollectionName.PROFILES,
+          entity: mockEntity,
+          viewOnly: false,
+        });
+      };
+
+      await act(async () => {
+        render(React.createElement(TestReferenceCounter));
+      });
+
+      expect(localStorage.getItem("mentNumber_test-id_PROFILES")).toBe("0");
+    });
+
+    it("should update localStorage when mentions load with new count", async () => {
+      localStorage.setItem("mentNumber_test-id_PROFILES", "1");
+
+      mockLoadEntities.mockImplementation((collName: string) => {
+        if (collName === "WEAPONS") {
+          return Promise.resolve([
+            { _id: "w1", name: "Weapon 1" },
+            { _id: "w2", name: "Weapon 2" },
+            { _id: "w3", name: "Weapon 3" },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const TestReferenceCounter = () => {
+        const mockEntity = {
+          _id: "test-id",
+          name: "Test Entity",
+          references: {},
+        };
+        return React.createElement(ReferenceCounter, {
+          collectionName: mockCollectionName.PROFILES,
+          entity: mockEntity,
+          viewOnly: false,
+        });
+      };
+
+      await act(async () => {
+        render(React.createElement(TestReferenceCounter));
+      });
+
+      expect(localStorage.getItem("mentNumber_test-id_PROFILES")).toBe("3");
+    });
+  });
 });

@@ -62,8 +62,8 @@ const ReferenceCounter = ({
   }, [entity._id, entityReferencesKey]);
 
   const [mentions, setMentions] = useState<Mentions>({});
+  const [mentionsLoaded, setMentionsLoaded] = useState(false);
 
-  // Save the previous value in localStorage
   const getPreviousMentNumber = () => {
     const key = `mentNumber_${entity._id}_${collectionName}`;
     const stored = localStorage.getItem(key);
@@ -90,6 +90,7 @@ const ReferenceCounter = ({
       );
     }
     setMentions(loadedMentions);
+    setMentionsLoaded(true);
   }, [collectionName, entity._id, loadEntities, utils]);
 
   useEffect(() => {
@@ -105,21 +106,19 @@ const ReferenceCounter = ({
   }, [currentReferences]);
 
   const mentNumber = useMemo(() => {
-    // Calculate the total number of elements in all arrays, not the number of keys
     const number = Object.values(mentions).reduce(
       (total, array) => total + array.length,
       0,
     );
-    // Save the previous value if the current one is greater than 0
-    if (number > 0) {
+    if (mentionsLoaded) {
       setPreviousMentNumber(number);
     }
     return number;
-  }, [mentions, entity._id]);
+  }, [mentions, entity._id, mentionsLoaded]);
 
-  // Use previous number if current is 0 and we have a previous value
+  // Before first load completes, show cached value to avoid 0→N flash
   const displayMentNumber =
-    mentNumber === 0 && getPreviousMentNumber() > 0
+    !mentionsLoaded && getPreviousMentNumber() > 0
       ? getPreviousMentNumber()
       : mentNumber;
 
