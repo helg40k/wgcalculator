@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { Spin } from "antd";
 
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
@@ -32,6 +32,13 @@ const CosAdminSources = () => {
     await deleteEntity(collectionName, id);
   };
 
+  const onReload = useCallback(() => {
+    loadEntities<Source>(collectionName, {
+      filters: [["systemId", "==", gameSystem?._id || ""]],
+      sort: ["year", "desc"],
+    }).then((value) => setSources(value));
+  }, [loadEntities, gameSystem?._id]);
+
   return (
     <Spin spinning={loading} size="large">
       <CrudMultiLineView.List
@@ -53,6 +60,7 @@ const CosAdminSources = () => {
           { key: "version", label: "Version" },
           { key: "status", label: "Status" },
         ]}
+        onReload={onReload}
       />
     </Spin>
   );

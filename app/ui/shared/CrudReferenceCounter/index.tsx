@@ -22,6 +22,7 @@ import {
   References,
 } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
+import { EntitiesUpdateContext } from "@/app/ui/CrudMultiLineView";
 import CrudReferenceModal from "@/app/ui/shared/CrudReferenceCounter/CrudReferenceModal";
 
 interface ReferenceCounterProps<T extends Playable = Playable> {
@@ -46,9 +47,20 @@ const ReferenceCounter = ({
   const [, utils] = useContext(GameSystemContext);
   const { data: session } = useSession();
   const { getEntity, loadEntities, loading, saveEntity } = useEntities();
+  const entitiesCtx = useContext(EntitiesUpdateContext);
   const [currentReferences, setCurrentReferences] = useState<References>(
     entity.references || {},
   );
+
+  const entityReferencesKey = useMemo(
+    () => JSON.stringify(entity.references ?? {}),
+    [entity.references],
+  );
+
+  useEffect(() => {
+    setCurrentReferences(entity.references || {});
+  }, [entity._id, entityReferencesKey]);
+
   const [mentions, setMentions] = useState<Mentions>({});
 
   // Save the previous value in localStorage
@@ -62,6 +74,8 @@ const ReferenceCounter = ({
     const key = `mentNumber_${entity._id}_${collectionName}`;
     localStorage.setItem(key, value.toString());
   };
+
+  const mentionsVersion = entitiesCtx?.mentionsVersion ?? 0;
 
   const loadMentions = useCallback(async () => {
     const canBeMentionedBy = utils.canBeMentionedBy(collectionName);
@@ -80,7 +94,7 @@ const ReferenceCounter = ({
 
   useEffect(() => {
     loadMentions();
-  }, [loadMentions]);
+  }, [loadMentions, mentionsVersion]);
 
   const allowedToRefer = useMemo(() => {
     return utils.getAllowedToRefer(collectionName);
@@ -158,7 +172,9 @@ const ReferenceCounter = ({
         <div className="ml-4">{mentMessage} found</div>
         {0 < mentNumber &&
           renderTooltipCollectionList(
-            Object.keys(mentions || {}) as CollectionName[],
+            Object.entries(mentions).flatMap(([collName, entities]) =>
+              entities.map(() => collName as CollectionName),
+            ),
           )}
         {!viewOnly && (
           <div className="mt-2 text-xs" style={{ color: colorTextDisabled }}>
@@ -197,6 +213,8 @@ const ReferenceCounter = ({
 
     const handleSaved = (references: References) => {
       setCurrentReferences(references);
+      entitiesCtx?.updateEntity(entity._id, { references });
+      void entitiesCtx?.reloadEntities?.();
       void loadMentions();
       closeModal();
     };
@@ -246,9 +264,11 @@ const ReferenceCounter = ({
 };
 
 export default memo(ReferenceCounter, (prevProps, nextProps) => {
-  // Only re-render if entity ID or collection name actually changed
   return (
     prevProps.entity._id === nextProps.entity._id &&
-    prevProps.collectionName === nextProps.collectionName
+    prevProps.collectionName === nextProps.collectionName &&
+    prevProps.viewOnly === nextProps.viewOnly &&
+    JSON.stringify(prevProps.entity.references) ===
+      JSON.stringify(nextProps.entity.references)
   );
 });

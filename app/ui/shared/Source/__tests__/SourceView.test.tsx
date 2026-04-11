@@ -304,21 +304,17 @@ describe("SourceView", () => {
 
   describe("Memoization", () => {
     it("should be memoized component", () => {
-      // Test that component is wrapped with memo
-      expect(SourceView.displayName).toBeUndefined(); // memo doesn't set displayName
-      // memo returns an object, not a function
+      expect(SourceView.displayName).toBeUndefined();
       expect(typeof SourceView).toBe("object");
     });
 
     it("should render updated content when props change", () => {
       const { rerender } = render(<SourceView entity={mockSource} />);
 
-      // Verify initial render
       expect(screen.getByTestId("ant-title-3")).toHaveTextContent(
         "Test Source",
       );
 
-      // Change properties - memo compares by _id, so changing _id will cause re-render
       const updatedSource = {
         ...mockSource,
         _id: "different-id",
@@ -326,9 +322,51 @@ describe("SourceView", () => {
       };
       rerender(<SourceView entity={updatedSource} />);
 
-      // Component should render the updated name
       expect(screen.getByTestId("ant-title-3")).toHaveTextContent(
         "Updated Name",
+      );
+    });
+
+    it("should re-render when entity.references changes with same _id", () => {
+      const sourceWithOneRef = {
+        ...mockSource,
+        references: { "ref-1": "PROFILES" as any },
+      };
+
+      const { rerender } = render(<SourceView entity={sourceWithOneRef} />);
+
+      expect(screen.getByTestId("reference-count")).toHaveTextContent(
+        "1 references",
+      );
+
+      const sourceWithTwoRefs = {
+        ...mockSource,
+        references: {
+          "ref-1": "PROFILES" as any,
+          "ref-2": "WEAPONS" as any,
+        },
+      };
+      rerender(<SourceView entity={sourceWithTwoRefs} />);
+
+      expect(screen.getByTestId("reference-count")).toHaveTextContent(
+        "2 references",
+      );
+    });
+
+    it("should not re-render when only name changes with same _id and references", () => {
+      const entity1 = { ...mockSource, name: "Original Name" };
+
+      const { rerender } = render(<SourceView entity={entity1} />);
+
+      expect(screen.getByTestId("ant-title-3")).toHaveTextContent(
+        "Original Name",
+      );
+
+      const entity2 = { ...mockSource, name: "Changed Name" };
+      rerender(<SourceView entity={entity2} />);
+
+      expect(screen.getByTestId("ant-title-3")).toHaveTextContent(
+        "Original Name",
       );
     });
   });

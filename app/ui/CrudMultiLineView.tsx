@@ -1,4 +1,5 @@
 import {
+  createContext,
   Dispatch,
   memo,
   SetStateAction,
@@ -46,6 +47,12 @@ import SortItems, {
 } from "@/app/ui/shared/SortItems";
 
 import "./CrudMultiLineView.css";
+
+export const EntitiesUpdateContext = createContext<{
+  updateEntity: (entityId: string, updates: Partial<Playable>) => void;
+  reloadEntities?: () => void;
+  mentionsVersion: number;
+} | null>(null);
 
 const hoverButtonStyle = {
   height: "26px",
@@ -180,6 +187,7 @@ interface BaseMultiLineViewProps<T extends Playable = Playable> {
   onSave?: (entity: T) => Promise<T | null>;
   onDelete?: (id: string) => Promise<void>;
   filterableFields?: (keyof T)[];
+  onReload?: () => void;
 }
 
 // Props specific to List variant
@@ -671,6 +679,15 @@ const useMultiLineViewLogic = <T extends Playable>({
     );
   };
 
+  const updateEntityPartial = useCallback(
+    (entityId: string, updates: Partial<Playable>) => {
+      setEntities((prev: T[]) =>
+        prev.map((e) => (e._id === entityId ? { ...e, ...updates } : e)),
+      );
+    },
+    [setEntities],
+  );
+
   return {
     // Theme
     borderRadiusLG,
@@ -711,6 +728,7 @@ const useMultiLineViewLogic = <T extends Playable>({
     setSortSelection,
     setValues,
     sortSelection,
+    updateEntityPartial,
     values,
   };
 };
@@ -780,6 +798,7 @@ const CrudMultiLineViewList = <T extends Playable>({
   onDelete,
   filterableFields = [],
   sortableFields = [],
+  onReload,
 }: ListProps<T>) => {
   const {
     borderRadiusLG,
@@ -801,6 +820,7 @@ const CrudMultiLineViewList = <T extends Playable>({
     setIsNew,
     setIsValid,
     setValues,
+    updateEntityPartial,
   } = useMultiLineViewLogic({
     entities,
     filterableFields,
@@ -812,8 +832,24 @@ const CrudMultiLineViewList = <T extends Playable>({
     sortableFields,
   });
 
+  const [mentionsVersion, setMentionsVersion] = useState(0);
+
+  const entitiesContextValue = useMemo(
+    () => ({
+      mentionsVersion,
+      reloadEntities: onReload
+        ? () => {
+            onReload();
+            setMentionsVersion((v) => v + 1);
+          }
+        : undefined,
+      updateEntity: updateEntityPartial,
+    }),
+    [updateEntityPartial, onReload, mentionsVersion],
+  );
+
   return (
-    <>
+    <EntitiesUpdateContext.Provider value={entitiesContextValue}>
       {(toolbarPosition === ToolbarPosition.UP ||
         singleToolbarUntil <= entities.length) &&
         createToolbar(ToolbarPosition.UP, !!EditComponent)}
@@ -912,7 +948,7 @@ const CrudMultiLineViewList = <T extends Playable>({
       {(toolbarPosition === ToolbarPosition.DOWN ||
         singleToolbarUntil <= entities.length) &&
         createToolbar(ToolbarPosition.DOWN, !!EditComponent)}
-    </>
+    </EntitiesUpdateContext.Provider>
   );
 };
 
@@ -930,6 +966,7 @@ const CrudMultiLineViewTable = <T extends Playable>({
   onDelete,
   filterableFields = [],
   rowFooter,
+  onReload,
 }: TableProps<T>) => {
   const {
     borderRadiusLG,
@@ -955,6 +992,7 @@ const CrudMultiLineViewTable = <T extends Playable>({
     setIsValid,
     setSortSelection,
     setValues,
+    updateEntityPartial,
     values,
   } = useMultiLineViewLogic({
     entities,
@@ -1320,8 +1358,24 @@ const CrudMultiLineViewTable = <T extends Playable>({
     [setSortSelection, edit],
   );
 
+  const [mentionsVersion, setMentionsVersion] = useState(0);
+
+  const entitiesContextValue = useMemo(
+    () => ({
+      mentionsVersion,
+      reloadEntities: onReload
+        ? () => {
+            onReload();
+            setMentionsVersion((v) => v + 1);
+          }
+        : undefined,
+      updateEntity: updateEntityPartial,
+    }),
+    [updateEntityPartial, onReload, mentionsVersion],
+  );
+
   return (
-    <>
+    <EntitiesUpdateContext.Provider value={entitiesContextValue}>
       {(toolbarPosition === ToolbarPosition.UP ||
         singleToolbarUntil <= entities.length) &&
         createTableToolbar(ToolbarPosition.UP, isEditable)}
@@ -1378,7 +1432,7 @@ const CrudMultiLineViewTable = <T extends Playable>({
       {(toolbarPosition === ToolbarPosition.DOWN ||
         singleToolbarUntil <= entities.length) &&
         createTableToolbar(ToolbarPosition.DOWN, isEditable)}
-    </>
+    </EntitiesUpdateContext.Provider>
   );
 };
 

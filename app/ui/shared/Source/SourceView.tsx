@@ -99,6 +99,9 @@ const SourceView = ({ entity, editMode = false }: SourceViewProps) => {
 };
 
 export default memo(SourceView, (prevProps, nextProps) => {
-  // Only re-render if entity ID actually changed
-  return prevProps.entity._id === nextProps.entity._id;
+  return (
+    prevProps.entity._id === nextProps.entity._id &&
+    JSON.stringify(prevProps.entity.references) ===
+      JSON.stringify(nextProps.entity.references)
+  );
 });

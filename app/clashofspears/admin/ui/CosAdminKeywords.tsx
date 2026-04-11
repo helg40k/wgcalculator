@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { Spin } from "antd";
 
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
@@ -36,6 +36,13 @@ const CosAdminKeywords = () => {
   const onDelete = async (id: string): Promise<void> => {
     await deleteEntity(collectionName, id);
   };
+
+  const onReload = useCallback(() => {
+    loadEntities<Keyword>(collectionName, {
+      filters: [["systemId", "==", gameSystem?._id || ""]],
+      sort: ["name", "asc"],
+    }).then((value) => setKeywords(value));
+  }, [loadEntities, gameSystem?._id]);
 
   const tableData = [
     {
@@ -78,6 +85,7 @@ const CosAdminKeywords = () => {
         onSave={onSave}
         onDelete={onDelete}
         filterableFields={["name", "description", "status"]}
+        onReload={onReload}
       />
     </Spin>
   );
