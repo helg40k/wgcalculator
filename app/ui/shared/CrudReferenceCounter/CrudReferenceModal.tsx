@@ -11,6 +11,7 @@ import {
   Collapse,
   CollapseProps,
   Divider,
+  Input,
   Modal,
   Select,
   Spin,
@@ -198,6 +199,7 @@ const CrudReferenceModal = ({
   >([]);
   const [availableEntities, setAvailableEntities] = useState<Playable[]>([]);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  const [linkInput, setLinkInput] = useState("");
   const [exhaustedCollections, setExhaustedCollections] = useState<
     Set<CollectionName>
   >(new Set());
@@ -458,6 +460,19 @@ const CrudReferenceModal = ({
                     autoFocus
                   />
                   <Tooltip
+                    title="If you have a precise link (page, paragraph, etc.), type it here"
+                    mouseEnterDelay={0.5}
+                  >
+                    <Input
+                      placeholder="Ref..."
+                      value={linkInput}
+                      onChange={(e) => setLinkInput(e.target.value)}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      style={{ width: "60px" }}
+                    />
+                  </Tooltip>
+                  <Tooltip
                     color="darkGreen"
                     title="Confirm selection"
                     mouseEnterDelay={0.5}
@@ -473,7 +488,12 @@ const CrudReferenceModal = ({
                           const colNameTyped = colName as CollectionName;
                           setReferences((prev) => ({
                             ...prev,
-                            [selectedEntityId]: { name: colNameTyped },
+                            [selectedEntityId]: {
+                              name: colNameTyped,
+                              ...(linkInput.trim() && {
+                                link: linkInput.trim(),
+                              }),
+                            },
                           }));
                           const selectedEntity = availableEntities.find(
                             (ent) => ent._id === selectedEntityId,
@@ -498,6 +518,7 @@ const CrudReferenceModal = ({
                           setScrollToBottom(true);
                         }
                         setSelectedEntityId(null);
+                        setLinkInput("");
                         setShowingSelect(null);
                         setSelectOptions([]);
                         setAvailableEntities([]);
@@ -523,6 +544,7 @@ const CrudReferenceModal = ({
                       }}
                       onClick={() => {
                         setSelectedEntityId(null);
+                        setLinkInput("");
                         setShowingSelect(null);
                         setSelectOptions([]);
                         setAvailableEntities([]);
@@ -599,6 +621,7 @@ const CrudReferenceModal = ({
       });
   }, [
     groupedRefIds,
+    linkInput,
     loadedEntities,
     loading,
     disableModal,
@@ -759,7 +782,7 @@ const CrudReferenceModal = ({
         }
       }}
       onCancel={handleCancel}
-      width={570}
+      width={580}
       maskClosable={false}
       keyboard={false}
       okButtonProps={{ disabled: loading || disableModal || !hasChanges }}

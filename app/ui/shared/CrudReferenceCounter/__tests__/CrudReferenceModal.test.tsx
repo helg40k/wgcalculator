@@ -67,6 +67,14 @@ jest.mock("antd", () => ({
       ),
     ),
   Divider: () => React.createElement("hr", { "data-testid": "ant-divider" }),
+  Input: ({ placeholder, value, onChange, ...props }: any) =>
+    React.createElement("input", {
+      "data-testid": "ant-input",
+      onChange,
+      placeholder,
+      value,
+      ...props,
+    }),
   Modal: Object.assign(
     ({
       open,
@@ -740,6 +748,157 @@ describe("CrudReferenceModal", () => {
       const optionValues2 = Array.from(options2).map((o: any) => o.value);
       expect(optionValues2).not.toContain("available1");
       expect(optionValues2).toContain("available2");
+    });
+  });
+
+  describe("Link Input Field", () => {
+    it("should render input with placeholder 'Ref...' when Add more is clicked", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(() => {
+        const addButtons = screen.getAllByText("Add more");
+        expect(addButtons.length).toBeGreaterThan(0);
+      });
+
+      await act(async () => {
+        const addButtons = screen.getAllByText("Add more");
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        const input = screen.getByTestId("ant-input");
+        expect(input).toBeInTheDocument();
+        expect(input).toHaveAttribute("placeholder", "Ref...");
+      });
+    });
+
+    it("should save reference without link when input is empty", async () => {
+      const onOk = jest.fn();
+      const props = { ...defaultProps, onOk };
+
+      await act(async () => {
+        render(<CrudReferenceModal {...props} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getAllByText("Add more").length).toBeGreaterThan(0);
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getAllByText("Add more")[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "available1" },
+        });
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("modal-ok-button"));
+      });
+
+      const savedRefs = onOk.mock.calls[0][0];
+      expect(savedRefs.available1).toEqual({
+        name: mockCollectionName.PROFILES,
+      });
+      expect(savedRefs.available1).not.toHaveProperty("link");
+    });
+
+    it("should save trimmed link value into Reference.link", async () => {
+      const onOk = jest.fn();
+      const props = { ...defaultProps, onOk };
+
+      await act(async () => {
+        render(<CrudReferenceModal {...props} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getAllByText("Add more").length).toBeGreaterThan(0);
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getAllByText("Add more")[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-input")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-input"), {
+          target: { value: "  p.42  " },
+        });
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "available1" },
+        });
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("modal-ok-button"));
+      });
+
+      const savedRefs = onOk.mock.calls[0][0];
+      expect(savedRefs.available1).toEqual({
+        link: "p.42",
+        name: mockCollectionName.PROFILES,
+      });
+    });
+
+    it("should reset link input after confirming selection", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getAllByText("Add more").length).toBeGreaterThan(0);
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getAllByText("Add more")[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-input")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-input"), {
+          target: { value: "p.42" },
+        });
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "available1" },
+        });
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      expect(screen.queryByTestId("ant-input")).not.toBeInTheDocument();
     });
   });
 
