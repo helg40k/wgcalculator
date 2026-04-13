@@ -27,6 +27,7 @@ import {
   References,
 } from "@/app/lib/definitions";
 import usePlayableReferences from "@/app/lib/hooks/usePlayableReferences";
+import CrudReferenceLink from "@/app/ui/shared/CrudReferenceCounter/CrudReferenceLink";
 import EntityStatusUI from "@/app/ui/shared/EntityStatusUI";
 
 // CSS styles for disabling collapse headers but keeping content interactive
@@ -200,6 +201,7 @@ const CrudReferenceModal = ({
   const [availableEntities, setAvailableEntities] = useState<Playable[]>([]);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [linkInput, setLinkInput] = useState("");
+  const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
   const [exhaustedCollections, setExhaustedCollections] = useState<
     Set<CollectionName>
   >(new Set());
@@ -240,8 +242,18 @@ const CrudReferenceModal = ({
     [removedMentionIds],
   );
 
+  const linkChanged = useMemo(() => {
+    return Object.keys(references).some(
+      (id) =>
+        oldReferences[id] && references[id]?.link !== oldReferences[id]?.link,
+    );
+  }, [references, oldReferences]);
+
   const hasChanges =
-    unsavedCount > 0 || removedCount > 0 || removedMentionCount > 0;
+    unsavedCount > 0 ||
+    removedCount > 0 ||
+    removedMentionCount > 0 ||
+    linkChanged;
 
   const removedMentionUpdates = useMemo(() => {
     const list: Array<{ collectionName: CollectionName; documentId: string }> =
@@ -358,8 +370,33 @@ const CrudReferenceModal = ({
                             status={ent.status}
                             editable={false}
                           />
-                          {references[ent._id]?.link && (
-                            <Tag>{references[ent._id].link}</Tag>
+                          {editingLinkId === ent._id ? (
+                            <CrudReferenceLink.Edit
+                              link={references[ent._id]?.link}
+                              onDone={(newLink) => {
+                                if (newLink !== undefined) {
+                                  setReferences((prev) => ({
+                                    ...prev,
+                                    [ent._id]: {
+                                      ...prev[ent._id],
+                                      ...(newLink
+                                        ? { link: newLink }
+                                        : { link: undefined }),
+                                    },
+                                  }));
+                                }
+                                setEditingLinkId(null);
+                                setDisableModal(false);
+                              }}
+                            />
+                          ) : (
+                            <CrudReferenceLink.View
+                              link={references[ent._id]?.link}
+                              onClick={() => {
+                                setEditingLinkId(ent._id);
+                                setDisableModal(true);
+                              }}
+                            />
                           )}
                           <DeleteButton
                             onDelete={() => {
@@ -621,6 +658,7 @@ const CrudReferenceModal = ({
       });
   }, [
     groupedRefIds,
+    editingLinkId,
     linkInput,
     loadedEntities,
     loading,

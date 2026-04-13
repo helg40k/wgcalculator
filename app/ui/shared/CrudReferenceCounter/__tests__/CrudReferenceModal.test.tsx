@@ -137,8 +137,12 @@ jest.mock("antd", () => ({
     spinning
       ? React.createElement("div", { "data-testid": "ant-spin" }, "Loading...")
       : React.createElement("div", null, children),
-  Tag: ({ children }: any) =>
-    React.createElement("span", { "data-testid": "ant-tag" }, children),
+  Tag: ({ children, onClick, ...props }: any) =>
+    React.createElement(
+      "span",
+      { "data-testid": "ant-tag", onClick, ...props },
+      children,
+    ),
   Tooltip: ({ children, title }: any) =>
     React.createElement(
       "div",
@@ -1373,7 +1377,7 @@ describe("CrudReferenceModal", () => {
       ).toBeTruthy();
     });
 
-    it("should not display link tag when reference has no link", async () => {
+    it("should display ellipsis in link tag when reference has no link", async () => {
       await act(async () => {
         render(<CrudReferenceModal {...defaultProps} />);
       });
@@ -1382,7 +1386,11 @@ describe("CrudReferenceModal", () => {
         expect(screen.getByText("Test Profile")).toBeInTheDocument();
       });
 
-      expect(screen.queryAllByTestId("ant-tag")).toHaveLength(0);
+      const tags = screen.queryAllByTestId("ant-tag");
+      expect(tags.length).toBeGreaterThan(0);
+      tags.forEach((tag) => {
+        expect(tag).toHaveTextContent("...");
+      });
     });
 
     it("should not display link tag for newly added references", async () => {
@@ -1433,6 +1441,188 @@ describe("CrudReferenceModal", () => {
       const tags = screen.queryAllByTestId("ant-tag");
       expect(tags).toHaveLength(1);
       expect(tags[0]).toHaveTextContent("p.10");
+    });
+  });
+
+  describe("Reference Link Editing", () => {
+    it("should switch to edit mode when link tag is clicked", async () => {
+      const props = {
+        ...defaultProps,
+        references: {
+          ref1: {
+            link: "p.5",
+            name: mockCollectionName.PROFILES as CollectionName,
+          },
+          ref2: { name: mockCollectionName.WEAPONS as CollectionName },
+        },
+      };
+
+      await act(async () => {
+        render(<CrudReferenceModal {...props} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Profile")).toBeInTheDocument();
+      });
+
+      const linkTag = screen.getByText("p.5");
+      await act(async () => {
+        fireEvent.click(linkTag);
+      });
+
+      const input = screen.getByDisplayValue("p.5");
+      expect(input).toBeInTheDocument();
+      expect(input).toHaveAttribute("placeholder", "Ref...");
+    });
+
+    it("should show placeholder for empty link in edit mode", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Profile")).toBeInTheDocument();
+      });
+
+      const ellipsisTags = screen.getAllByText("...");
+      await act(async () => {
+        fireEvent.click(ellipsisTags[0]);
+      });
+
+      const input = screen.getByPlaceholderText("Ref...");
+      expect(input).toBeInTheDocument();
+      expect(input).toHaveValue("");
+    });
+
+    it("should save link value on Enter", async () => {
+      const onOk = jest.fn();
+      const props = {
+        ...defaultProps,
+        onOk,
+        references: {
+          ref1: { name: mockCollectionName.PROFILES as CollectionName },
+          ref2: { name: mockCollectionName.WEAPONS as CollectionName },
+        },
+      };
+
+      await act(async () => {
+        render(<CrudReferenceModal {...props} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Profile")).toBeInTheDocument();
+      });
+
+      const ellipsisTags = screen.getAllByText("...");
+      await act(async () => {
+        fireEvent.click(ellipsisTags[0]);
+      });
+
+      const input = screen.getByPlaceholderText("Ref...");
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "p.42" } });
+      });
+
+      await act(async () => {
+        fireEvent.keyDown(input, { key: "Enter" });
+      });
+
+      expect(screen.queryByPlaceholderText("Ref...")).not.toBeInTheDocument();
+      expect(screen.getByText("p.42")).toBeInTheDocument();
+    });
+
+    it("should cancel editing on Escape without changing link", async () => {
+      const props = {
+        ...defaultProps,
+        references: {
+          ref1: {
+            link: "p.5",
+            name: mockCollectionName.PROFILES as CollectionName,
+          },
+          ref2: { name: mockCollectionName.WEAPONS as CollectionName },
+        },
+      };
+
+      await act(async () => {
+        render(<CrudReferenceModal {...props} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("p.5")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("p.5"));
+      });
+
+      const input = screen.getByDisplayValue("p.5");
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "changed" } });
+      });
+
+      await act(async () => {
+        fireEvent.keyDown(input, { key: "Escape" });
+      });
+
+      expect(screen.queryByPlaceholderText("Ref...")).not.toBeInTheDocument();
+      expect(screen.getByText("p.5")).toBeInTheDocument();
+    });
+
+    it("should disable modal controls while editing link", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Profile")).toBeInTheDocument();
+      });
+
+      const ellipsisTags = screen.getAllByText("...");
+      await act(async () => {
+        fireEvent.click(ellipsisTags[0]);
+      });
+
+      expect(screen.getByTestId("modal-ok-button")).toBeDisabled();
+    });
+
+    it("should re-enable modal controls after finishing edit", async () => {
+      const props = {
+        ...defaultProps,
+        references: {
+          ref1: {
+            link: "p.5",
+            name: mockCollectionName.PROFILES as CollectionName,
+          },
+          ref2: { name: mockCollectionName.WEAPONS as CollectionName },
+        },
+      };
+
+      await act(async () => {
+        render(<CrudReferenceModal {...props} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("p.5")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("p.5"));
+      });
+
+      expect(screen.getByTestId("modal-ok-button")).toBeDisabled();
+
+      const input = screen.getByDisplayValue("p.5");
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "p.99" } });
+      });
+
+      await act(async () => {
+        fireEvent.keyDown(input, { key: "Enter" });
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("modal-ok-button")).not.toBeDisabled();
+      });
     });
   });
 
