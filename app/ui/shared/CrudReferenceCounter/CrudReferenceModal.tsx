@@ -242,18 +242,20 @@ const CrudReferenceModal = ({
     [removedMentionIds],
   );
 
-  const linkChanged = useMemo(() => {
-    return Object.keys(references).some(
+  const modifiedLinkCount = useMemo(() => {
+    const normalize = (link?: string) => link?.trim() ?? "";
+    return Object.keys(references).filter(
       (id) =>
-        oldReferences[id] && references[id]?.link !== oldReferences[id]?.link,
-    );
+        oldReferences[id] &&
+        normalize(references[id]?.link) !== normalize(oldReferences[id]?.link),
+    ).length;
   }, [references, oldReferences]);
 
   const hasChanges =
     unsavedCount > 0 ||
     removedCount > 0 ||
     removedMentionCount > 0 ||
-    linkChanged;
+    modifiedLinkCount > 0;
 
   const removedMentionUpdates = useMemo(() => {
     const list: Array<{ collectionName: CollectionName; documentId: string }> =
@@ -829,7 +831,8 @@ const CrudReferenceModal = ({
       <div className="font-bold">
         References ({refNumber} added
         {unsavedCount > 0 && `, ${unsavedCount} unsaved`}
-        {removedCount > 0 && `, ${removedCount} removed`})
+        {removedCount > 0 && `, ${removedCount} removed`}
+        {modifiedLinkCount > 0 && `, ${modifiedLinkCount} modified`})
       </div>
       <div
         ref={referencesScrollRef}

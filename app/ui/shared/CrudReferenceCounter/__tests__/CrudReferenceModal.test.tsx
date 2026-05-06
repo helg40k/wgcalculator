@@ -1753,6 +1753,87 @@ describe("CrudReferenceModal", () => {
         ),
       ).toBeInTheDocument();
     });
+
+    it("should show 'modified' count after editing a saved ref's link", async () => {
+      const props = {
+        ...defaultProps,
+        references: {
+          ref1: { name: mockCollectionName.PROFILES as CollectionName },
+          ref2: { name: mockCollectionName.WEAPONS as CollectionName },
+        },
+      };
+
+      await act(async () => {
+        render(<CrudReferenceModal {...props} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Profile")).toBeInTheDocument();
+      });
+
+      const ellipsisTags = screen.getAllByText("...");
+      await act(async () => {
+        fireEvent.click(ellipsisTags[0]);
+      });
+
+      const input = screen.getByPlaceholderText("Ref...");
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "p.42" } });
+      });
+
+      await act(async () => {
+        fireEvent.keyDown(input, { key: "Enter" });
+      });
+
+      expect(
+        screen.getByText(
+          (content) =>
+            content.includes("2 added") && content.includes("1 modified"),
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("should not show 'modified' when a new unsaved ref has a link", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getAllByText("Add more").length).toBeGreaterThan(0);
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getAllByText("Add more")[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-input")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-input"), {
+          target: { value: "p.10" },
+        });
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "available1" },
+        });
+      });
+
+      await act(async () => {
+        const checkButton = screen.getByTestId("check-icon").closest("button")!;
+        fireEvent.click(checkButton);
+      });
+
+      const headerEl = screen.getByText(
+        (content) =>
+          content.includes("2 added") && content.includes("1 unsaved"),
+      );
+      expect(headerEl).toBeInTheDocument();
+      expect(headerEl.textContent).not.toContain("modified");
+    });
   });
 
   describe("Scroll Wrapper", () => {
