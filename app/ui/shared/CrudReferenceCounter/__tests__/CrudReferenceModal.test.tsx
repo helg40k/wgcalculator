@@ -256,6 +256,13 @@ jest.mock("../../../../lib/hooks/usePlayableReferences", () => ({
   }),
 }));
 
+// Mock collectionInvalidation
+const mockInvalidateCollections = jest.fn();
+jest.mock("../../../../lib/collectionInvalidation", () => ({
+  invalidateCollections: (...args: unknown[]) =>
+    mockInvalidateCollections(...args),
+}));
+
 // Mock EntityStatusUI
 jest.mock("../../EntityStatusUI", () => ({
   __esModule: true,
@@ -2369,6 +2376,100 @@ describe("CrudReferenceModal", () => {
       expect(mockSaveReferences).toHaveBeenCalled();
       expect(mockRemoveIncomingReferences).toHaveBeenCalled();
       expect(onOk).not.toHaveBeenCalled();
+    });
+
+    it("should call invalidateCollections with affected collections after removing mentions", async () => {
+      const onOk = jest.fn();
+
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} onOk={onOk} />);
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Mention Profile 1")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      const mentionRow = screen
+        .getByText("Mention Profile 1")
+        .closest('div[class*="pl-12"]')!;
+      await act(async () => {
+        fireEvent.click(
+          mentionRow
+            .querySelector('[data-testid="trash-icon"]')!
+            .closest("button")!,
+        );
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("modal-ok-button"));
+      });
+
+      expect(mockInvalidateCollections).toHaveBeenCalledWith([
+        mockCollectionName.PROFILES,
+      ]);
+    });
+
+    it("should not call invalidateCollections when no mentions are removed", async () => {
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Test Profile")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      const trashButtons = screen.getAllByTestId("trash-icon");
+      const referenceTrashButton = trashButtons[0].closest("button")!;
+
+      await act(async () => {
+        fireEvent.click(referenceTrashButton);
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("modal-ok-button"));
+      });
+
+      expect(mockSaveReferences).toHaveBeenCalled();
+      expect(mockInvalidateCollections).not.toHaveBeenCalled();
+    });
+
+    it("should not call invalidateCollections when removeIncomingReferences fails", async () => {
+      mockRemoveIncomingReferences.mockResolvedValueOnce(false);
+
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Mention Profile 1")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      const mentionRow = screen
+        .getByText("Mention Profile 1")
+        .closest('div[class*="pl-12"]')!;
+      await act(async () => {
+        fireEvent.click(
+          mentionRow
+            .querySelector('[data-testid="trash-icon"]')!
+            .closest("button")!,
+        );
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("modal-ok-button"));
+      });
+
+      expect(mockRemoveIncomingReferences).toHaveBeenCalled();
+      expect(mockInvalidateCollections).not.toHaveBeenCalled();
     });
 
     it("should not call onOk when save fails", async () => {

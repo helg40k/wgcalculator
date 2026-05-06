@@ -4,7 +4,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
 // First test the minimal mock component
-const MockReferenceCounter = ({ entity, collectionName }: any) => {
+const MockReferenceCounter = ({ entity }: any) => {
   const refCount = entity?.references
     ? Object.keys(entity.references).length
     : 0;
@@ -119,7 +119,7 @@ describe("CrudReferenceCounter Real Component", () => {
 
     // Mock CrudReferenceModal
     jest.doMock("../CrudReferenceModal", () => {
-      const MockCrudReferenceModal = (props: any) => {
+      function MockCrudReferenceModal(props: any) {
         return React.createElement("div", {
           "data-props": JSON.stringify({
             collectionName: props.collectionName,
@@ -128,7 +128,7 @@ describe("CrudReferenceCounter Real Component", () => {
           }),
           "data-testid": "crud-reference-modal",
         });
-      };
+      }
       return MockCrudReferenceModal;
     });
 
@@ -157,7 +157,11 @@ describe("CrudReferenceCounter Real Component", () => {
 
     // Mock next-auth/react
     jest.doMock("next-auth/react", () => ({
-      SessionProvider: ({ children }: any) => children,
+      SessionProvider: function MockSessionProvider(props: {
+        children?: React.ReactNode;
+      }) {
+        return props.children ?? null;
+      },
       useSession: () => ({
         data: {
           user: { email: "test@example.com", name: "Test User" },
@@ -227,6 +231,15 @@ describe("CrudReferenceCounter Real Component", () => {
     await expect(async () => {
       await import("../index");
     }).not.toThrow();
+
+    const heroiconsOutline = jest.requireMock(
+      "@heroicons/react/24/outline",
+    ) as {
+      ArrowUturnRightIcon: unknown;
+      PaperClipIcon: unknown;
+    };
+    expect(heroiconsOutline.ArrowUturnRightIcon).toBeDefined();
+    expect(heroiconsOutline.PaperClipIcon).toBeDefined();
   });
 
   describe("ViewOnly Mode", () => {
@@ -396,6 +409,11 @@ describe("CrudReferenceCounter Real Component", () => {
     });
 
     it("should wrap modal with SessionProvider", () => {
+      const nextAuthReact = jest.requireMock("next-auth/react") as {
+        SessionProvider: React.ComponentType<{ children?: React.ReactNode }>;
+      };
+      expect(nextAuthReact.SessionProvider).toBeDefined();
+
       const TestReferenceCounter = () => {
         const mockEntity = {
           _id: "test-id",

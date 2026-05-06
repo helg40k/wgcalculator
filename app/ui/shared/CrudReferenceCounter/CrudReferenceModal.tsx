@@ -25,6 +25,7 @@ import {
   Tooltip,
 } from "antd";
 
+import { invalidateCollections } from "@/app/lib/collectionInvalidation";
 import {
   CollectionName,
   EntityStatusRegistry,
@@ -833,6 +834,12 @@ const CrudReferenceModal = ({
           );
           if (!removalsOk) {
             return;
+          }
+          const affectedCollections = [
+            ...new Set(removedMentionUpdates.map((u) => u.collectionName)),
+          ];
+          if (affectedCollections.length > 0) {
+            invalidateCollections(affectedCollections);
           }
           onOk(references);
         } finally {

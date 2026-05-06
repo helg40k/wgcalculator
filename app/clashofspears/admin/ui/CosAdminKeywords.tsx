@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useState } from "react";
 import { Spin } from "antd";
 
+import { useCollectionInvalidation } from "@/app/lib/collectionInvalidation";
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { CollectionRegistry, Keyword } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
@@ -43,6 +44,8 @@ const CosAdminKeywords = () => {
       sort: ["name", "asc"],
     }).then((value) => setKeywords(value));
   }, [loadEntities, gameSystem?._id]);
+
+  useCollectionInvalidation(collectionName, onReload);
 
   const tableData = [
     {

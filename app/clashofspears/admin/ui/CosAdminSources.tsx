@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useState } from "react";
 import { Spin } from "antd";
 
+import { useCollectionInvalidation } from "@/app/lib/collectionInvalidation";
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { CollectionRegistry, Source } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
@@ -38,6 +39,8 @@ const CosAdminSources = () => {
       sort: ["year", "desc"],
     }).then((value) => setSources(value));
   }, [loadEntities, gameSystem?._id]);
+
+  useCollectionInvalidation(collectionName, onReload);
 
   return (
     <Spin spinning={loading} size="large">
