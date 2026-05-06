@@ -25,6 +25,14 @@ import useEntities from "@/app/lib/hooks/useEntities";
 import { EntitiesUpdateContext } from "@/app/ui/CrudMultiLineView";
 import CrudReferenceModal from "@/app/ui/shared/CrudReferenceCounter/CrudReferenceModal";
 
+const getCalculatedCollections = (collectionNames: CollectionName[]) => {
+  const result: Partial<Record<CollectionName, number>> = {};
+  for (const collName of collectionNames) {
+    result[collName] = (result[collName] || 0) + 1;
+  }
+  return result;
+};
+
 interface ReferenceCounterProps<T extends Playable = Playable> {
   entity: T;
   collectionName: CollectionName;
@@ -46,7 +54,7 @@ const ReferenceCounter = ({
   } = theme.useToken();
   const [, utils] = useContext(GameSystemContext);
   const { data: session } = useSession();
-  const { getEntity, loadEntities, loading, saveEntity } = useEntities();
+  const { loadEntities } = useEntities();
   const entitiesCtx = useContext(EntitiesUpdateContext);
   const [currentReferences, setCurrentReferences] = useState<References>(
     entity.references || {},
@@ -59,21 +67,13 @@ const ReferenceCounter = ({
 
   useEffect(() => {
     setCurrentReferences(entity.references || {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- entity.references is compared via entityReferencesKey for deep equality
   }, [entity._id, entityReferencesKey]);
 
   const [mentions, setMentions] = useState<Mentions>({});
   const [mentionsLoaded, setMentionsLoaded] = useState(false);
 
-  const getPreviousMentNumber = () => {
-    const key = `mentNumber_${entity._id}_${collectionName}`;
-    const stored = localStorage.getItem(key);
-    return stored ? parseInt(stored, 10) : 0;
-  };
-
-  const setPreviousMentNumber = (value: number) => {
-    const key = `mentNumber_${entity._id}_${collectionName}`;
-    localStorage.setItem(key, value.toString());
-  };
+  const mentNumberCacheKey = `mentNumber_${entity._id}_${collectionName}`;
 
   const mentionsVersion = entitiesCtx?.mentionsVersion ?? 0;
 
@@ -106,72 +106,54 @@ const ReferenceCounter = ({
   }, [currentReferences]);
 
   const mentNumber = useMemo(() => {
-    const number = Object.values(mentions).reduce(
+    return Object.values(mentions).reduce(
       (total, array) => total + array.length,
       0,
     );
+  }, [mentions]);
+
+  useEffect(() => {
     if (mentionsLoaded) {
-      setPreviousMentNumber(number);
+      localStorage.setItem(mentNumberCacheKey, mentNumber.toString());
     }
-    return number;
-  }, [mentions, entity._id, mentionsLoaded]);
+  }, [mentNumber, mentionsLoaded, mentNumberCacheKey]);
 
   // Before first load completes, show cached value to avoid 0→N flash
+  const cachedStr = localStorage.getItem(mentNumberCacheKey);
+  const cachedMentNumber = cachedStr ? parseInt(cachedStr, 10) : 0;
   const displayMentNumber =
-    !mentionsLoaded && getPreviousMentNumber() > 0
-      ? getPreviousMentNumber()
-      : mentNumber;
+    !mentionsLoaded && cachedMentNumber > 0 ? cachedMentNumber : mentNumber;
 
   const refMessage = useMemo(() => {
-    return 1 === refNumber ? "1 reference" : `${refNumber} references`;
+    return refNumber === 1 ? "1 reference" : `${refNumber} references`;
   }, [refNumber]);
 
   const mentMessage = useMemo(() => {
-    return 1 === displayMentNumber
+    return displayMentNumber === 1
       ? "1 outer mention"
       : `${displayMentNumber} outer mentions`;
   }, [displayMentNumber]);
 
-  const getCalculatedCollections = useCallback(
-    (collectionNames: CollectionName[]) => {
-      const result: Record<CollectionName, number> = {} as Record<
-        CollectionName,
-        number
-      >;
-      if (collectionNames) {
-        collectionNames.forEach((collName) => {
-          const previousQuantity = result[collName] || 0;
-          result[collName] = previousQuantity + 1;
-        });
-      }
-      return result;
-    },
-    [],
-  );
-
-  const renderTooltipCollectionList = useCallback(
-    (collections: CollectionName[]) => {
-      return Object.entries(getCalculatedCollections(collections))
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([collName, quantity]) => (
-          <div key={collName} className="text-xs ml-10">
-            {quantity} <span className="font-mono">{collName}</span>
-          </div>
-        ));
-    },
-    [getCalculatedCollections],
-  );
+  const renderTooltipCollectionList = (collections: CollectionName[]) => {
+    return Object.entries(getCalculatedCollections(collections))
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([collName, quantity]) => (
+        <div key={collName} className="text-xs ml-10">
+          {quantity} <span className="font-mono">{collName}</span>
+        </div>
+      ));
+  };
 
   const tooltipBody = useMemo(
     () => (
       <div style={{ color: colorText }}>
         <div className="ml-4">{refMessage} added</div>
-        {0 < refNumber &&
+        {refNumber > 0 &&
           renderTooltipCollectionList(
             Object.values(currentReferences).map((ref) => ref.name),
           )}
         <div className="ml-4">{mentMessage} found</div>
-        {0 < mentNumber &&
+        {mentNumber > 0 &&
           renderTooltipCollectionList(
             Object.entries(mentions).flatMap(([collName, entities]) =>
               entities.map(() => collName as CollectionName),
@@ -179,20 +161,21 @@ const ReferenceCounter = ({
           )}
         {!viewOnly && (
           <div className="mt-2 text-xs" style={{ color: colorTextDisabled }}>
-            *Click to manage or get know more
+            *Click to manage or get to know more
           </div>
         )}
       </div>
     ),
     [
       colorText,
+      colorTextDisabled,
       refMessage,
       refNumber,
       mentMessage,
       mentNumber,
       currentReferences,
       mentions,
-      getCalculatedCollections,
+      viewOnly,
     ],
   );
 
@@ -238,29 +221,27 @@ const ReferenceCounter = ({
   };
 
   return (
-    <>
-      <div
-        className={`flex p-0.5 text-nowrap justify-start ${viewOnly ? "cursor-default" : "cursor-pointer"}`}
-        style={{ color: colorTextSecondary }}
-        onClick={onClick}
-      >
-        <Tooltip title={tooltipBody} color="white" mouseEnterDelay={0.5}>
-          <div
-            className="flex items-center"
-            style={0 === refNumber ? { color: colorTextTertiary } : undefined}
-          >
-            <PaperClipIcon className="h-3.5" />
-            <span className="pl-0.5">{refMessage}</span>
+    <div
+      className={`flex p-0.5 text-nowrap justify-start ${viewOnly ? "cursor-default" : "cursor-pointer"}`}
+      style={{ color: colorTextSecondary }}
+      onClick={onClick}
+    >
+      <Tooltip title={tooltipBody} color="white" mouseEnterDelay={0.5}>
+        <div
+          className="flex items-center"
+          style={refNumber === 0 ? { color: colorTextTertiary } : undefined}
+        >
+          <PaperClipIcon className="h-3.5" />
+          <span className="pl-0.5">{refMessage}</span>
+        </div>
+        {displayMentNumber > 0 && (
+          <div className="flex items-center">
+            <ArrowUturnRightIcon className="h-3.5" />
+            <span className="pl-0.5">{mentMessage}</span>
           </div>
-          {0 < displayMentNumber && (
-            <div className="flex items-center">
-              <ArrowUturnRightIcon className="h-3.5" />
-              <span className="pl-0.5">{mentMessage}</span>
-            </div>
-          )}
-        </Tooltip>
-      </div>
-    </>
+        )}
+      </Tooltip>
+    </div>
   );
 };
 

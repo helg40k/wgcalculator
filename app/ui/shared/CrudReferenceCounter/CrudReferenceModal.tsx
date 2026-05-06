@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useInsertionEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { CaretRightOutlined } from "@ant-design/icons";
 import {
   ArrowPathIcon,
@@ -30,28 +36,20 @@ import usePlayableReferences from "@/app/lib/hooks/usePlayableReferences";
 import CrudReferenceLink from "@/app/ui/shared/CrudReferenceCounter/CrudReferenceLink";
 import EntityStatusUI from "@/app/ui/shared/EntityStatusUI";
 
-// CSS styles for disabling collapse headers but keeping content interactive
-if (
-  typeof document !== "undefined" &&
-  !document.getElementById("collapse-disabled-styles")
-) {
-  const style = document.createElement("style");
-  style.id = "collapse-disabled-styles";
-  style.innerHTML = `
-    .collapse-disabled .ant-collapse-header {
-      cursor: default !important;
-      pointer-events: none !important;
-    }
-    .collapse-disabled .ant-collapse-content {
-      pointer-events: auto !important;
-    }
-    .collapse-disabled .ant-collapse-expand-icon {
-      cursor: default !important;
-      pointer-events: none !important;
-    }
-  `;
-  document.head.appendChild(style);
-}
+const COLLAPSE_DISABLED_STYLE_ID = "collapse-disabled-styles";
+const COLLAPSE_DISABLED_CSS = `
+  .collapse-disabled .ant-collapse-header {
+    cursor: default !important;
+    pointer-events: none !important;
+  }
+  .collapse-disabled .ant-collapse-content {
+    pointer-events: auto !important;
+  }
+  .collapse-disabled .ant-collapse-expand-icon {
+    cursor: default !important;
+    pointer-events: none !important;
+  }
+`;
 
 interface DeleteButtonProps {
   onDelete: () => void;
@@ -176,6 +174,15 @@ const CrudReferenceModal = ({
   const {
     token: { colorText, colorTextSecondary },
   } = theme.useToken();
+
+  useInsertionEffect(() => {
+    if (document.getElementById(COLLAPSE_DISABLED_STYLE_ID)) return;
+    const style = document.createElement("style");
+    style.id = COLLAPSE_DISABLED_STYLE_ID;
+    style.textContent = COLLAPSE_DISABLED_CSS;
+    document.head.appendChild(style);
+  }, []);
+
   const [disableModal, setDisableModal] = useState<boolean>(false);
   const [references, setReferences] = useState<References>(oldReferences);
   const [referenceExpandedKeys, setReferenceExpandedKeys] = useState<string[]>(
@@ -774,6 +781,7 @@ const CrudReferenceModal = ({
     const refParts: string[] = [];
     if (unsavedCount > 0) refParts.push(`${unsavedCount} added`);
     if (removedCount > 0) refParts.push(`${removedCount} removed`);
+    if (modifiedLinkCount > 0) refParts.push(`${modifiedLinkCount} modified`);
     Modal.confirm({
       cancelText: "Cancel",
       content: (

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { Input, Tag } from "antd";
 
 interface CrudReferenceLinkViewProps {
@@ -12,7 +12,7 @@ const CrudReferenceLinkView: React.FC<CrudReferenceLinkViewProps> = ({
   link,
   onClick,
 }) => {
-  const entityLink = useMemo(() => link?.trim(), [link]);
+  const entityLink = link?.trim();
   return (
     <Tag
       onClick={onClick}
