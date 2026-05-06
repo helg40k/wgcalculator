@@ -22,6 +22,7 @@ import {
 
 import {
   CollectionName,
+  EntityStatusRegistry,
   Mentions,
   Playable,
   References,
@@ -367,11 +368,13 @@ const CrudReferenceModal = ({
                           <span>{ent.name}</span>
                         </DescriptionTooltip>
                         <div className="flex items-center gap-1">
-                          <EntityStatusUI.Tag
-                            entityId={ent._id}
-                            status={ent.status}
-                            editable={false}
-                          />
+                          {ent.status !== EntityStatusRegistry.ACTIVE && (
+                            <EntityStatusUI.Tag
+                              entityId={ent._id}
+                              status={ent.status}
+                              editable={false}
+                            />
+                          )}
                           {editingLinkId === ent._id ? (
                             <CrudReferenceLink.Edit
                               link={references[ent._id]?.link}
@@ -461,18 +464,19 @@ const CrudReferenceModal = ({
                       return (
                         <div className="relative w-full">
                           <span>{option.label}</span>
-                          {entity && (
-                            <div
-                              className="absolute -right-1"
-                              style={{ top: -1 }}
-                            >
-                              <EntityStatusUI.Tag
-                                entityId={entity._id}
-                                status={entity.status}
-                                editable={false}
-                              />
-                            </div>
-                          )}
+                          {entity &&
+                            entity.status !== EntityStatusRegistry.ACTIVE && (
+                              <div
+                                className="absolute -right-1"
+                                style={{ top: -1 }}
+                              >
+                                <EntityStatusUI.Tag
+                                  entityId={entity._id}
+                                  status={entity.status}
+                                  editable={false}
+                                />
+                              </div>
+                            )}
                         </div>
                       );
                     }}
@@ -485,18 +489,19 @@ const CrudReferenceModal = ({
                           <span className="block truncate pr-16">
                             {props.label}
                           </span>
-                          {entity && (
-                            <div
-                              className="absolute -right-2"
-                              style={{ top: -1 }}
-                            >
-                              <EntityStatusUI.Tag
-                                entityId={entity._id}
-                                status={entity.status}
-                                editable={false}
-                              />
-                            </div>
-                          )}
+                          {entity &&
+                            entity.status !== EntityStatusRegistry.ACTIVE && (
+                              <div
+                                className="absolute -right-2"
+                                style={{ top: -1 }}
+                              >
+                                <EntityStatusUI.Tag
+                                  entityId={entity._id}
+                                  status={entity.status}
+                                  editable={false}
+                                />
+                              </div>
+                            )}
                         </div>
                       );
                     }}
@@ -712,11 +717,13 @@ const CrudReferenceModal = ({
                         <span>{ent.name}</span>
                       </DescriptionTooltip>
                       <div className="flex items-center gap-1">
-                        <EntityStatusUI.Tag
-                          entityId={ent._id}
-                          status={ent.status}
-                          editable={false}
-                        />
+                        {ent.status !== EntityStatusRegistry.ACTIVE && (
+                          <EntityStatusUI.Tag
+                            entityId={ent._id}
+                            status={ent.status}
+                            editable={false}
+                          />
+                        )}
                         {isRemoved ? (
                           <RestoreButton
                             onRestore={() => {

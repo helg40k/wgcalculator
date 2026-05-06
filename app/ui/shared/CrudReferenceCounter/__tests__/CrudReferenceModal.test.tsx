@@ -191,7 +191,16 @@ const mockCollectionName = {
 };
 
 jest.mock("../../../../lib/definitions", () => ({
-  CollectionName: mockCollectionName,
+  CollectionName: {
+    ARMORS: "ARMORS",
+    PROFILES: "PROFILES",
+    WEAPONS: "WEAPONS",
+  },
+  EntityStatusRegistry: {
+    ACTIVE: "active",
+    DISABLED: "disabled",
+    OBSOLETE: "obsolete",
+  },
 }));
 
 // Mock usePlayableReferences hook
