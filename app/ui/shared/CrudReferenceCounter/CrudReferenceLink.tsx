@@ -2,17 +2,23 @@ import React, { useMemo, useState } from "react";
 import { Input, Tag } from "antd";
 
 interface CrudReferenceLinkViewProps {
+  highlighted?: boolean;
   link?: string;
   onClick?: () => void;
 }
 
 const CrudReferenceLinkView: React.FC<CrudReferenceLinkViewProps> = ({
+  highlighted,
   link,
   onClick,
 }) => {
   const entityLink = useMemo(() => link?.trim(), [link]);
   return (
-    <Tag onClick={onClick} style={{ cursor: "pointer" }}>
+    <Tag
+      onClick={onClick}
+      color={highlighted ? "volcano" : undefined}
+      style={{ cursor: "pointer" }}
+    >
       {entityLink || "..."}
     </Tag>
   );

@@ -394,6 +394,10 @@ const CrudReferenceModal = ({
                           ) : (
                             <CrudReferenceLink.View
                               link={references[ent._id]?.link}
+                              highlighted={
+                                (references[ent._id]?.link?.trim() ?? "") !==
+                                (oldReferences[ent._id]?.link?.trim() ?? "")
+                              }
                               onClick={() => {
                                 setEditingLinkId(ent._id);
                                 setDisableModal(true);
