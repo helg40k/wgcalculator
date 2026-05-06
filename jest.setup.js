@@ -23,25 +23,43 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
   disconnect: jest.fn(),
 }));
 
+// rc-table / Ant Design Table measure scrollbar (jsdom: pseudo-element getComputedStyle)
+const originalGetComputedStyle = window.getComputedStyle.bind(window);
+window.getComputedStyle = (elt, pseudoElt) => {
+  if (pseudoElt) {
+    return {};
+  }
+  return originalGetComputedStyle(elt);
+};
+
 // Mock Firebase functions
 const mockDeleteFieldValue = {};
-jest.mock('firebase/firestore', () => ({
-  collection: jest.fn(),
-  doc: jest.fn(),
-  getDoc: jest.fn(),
-  getDocs: jest.fn(),
-  setDoc: jest.fn(),
-  updateDoc: jest.fn(),
-  deleteDoc: jest.fn(),
-  deleteField: jest.fn(() => mockDeleteFieldValue),
-  query: jest.fn(),
-  where: jest.fn(),
-  orderBy: jest.fn(),
-  limit: jest.fn(),
-  startAfter: jest.fn(),
-  documentId: jest.fn(),
-  serverTimestamp: jest.fn(() => ({ seconds: 1234567890, nanoseconds: 0 })),
-}))
+jest.mock('firebase/firestore', () => {
+  class Timestamp {
+    constructor(seconds = 0, nanoseconds = 0) {
+      this.seconds = seconds;
+      this.nanoseconds = nanoseconds;
+    }
+  }
+  return {
+    Timestamp,
+    collection: jest.fn(),
+    deleteDoc: jest.fn(),
+    deleteField: jest.fn(() => mockDeleteFieldValue),
+    doc: jest.fn(),
+    documentId: jest.fn(),
+    getDoc: jest.fn(),
+    getDocs: jest.fn(),
+    limit: jest.fn(),
+    orderBy: jest.fn(),
+    query: jest.fn(),
+    serverTimestamp: jest.fn(() => ({ nanoseconds: 0, seconds: 1234567890 })),
+    setDoc: jest.fn(),
+    startAfter: jest.fn(),
+    updateDoc: jest.fn(),
+    where: jest.fn(),
+  };
+});
 
 // Global test timeout
 jest.setTimeout(10000)
