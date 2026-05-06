@@ -15,7 +15,6 @@ import {
   Modal,
   Select,
   Spin,
-  Tag,
   theme,
   Tooltip,
 } from "antd";
@@ -175,13 +174,7 @@ const CrudReferenceModal = ({
   allowedToRefer,
 }: CrudReferenceModalProps) => {
   const {
-    token: {
-      colorText,
-      colorTextSecondary,
-      colorTextTertiary,
-      colorTextDisabled,
-      colorBgBase,
-    },
+    token: { colorText, colorTextSecondary },
   } = theme.useToken();
   const [disableModal, setDisableModal] = useState<boolean>(false);
   const [references, setReferences] = useState<References>(oldReferences);
@@ -326,6 +319,7 @@ const CrudReferenceModal = ({
     Promise.all(loadPromises).finally(() => {
       setLoading(false);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- groupedRefIds is compared via JSON.stringify in the dependency array for deep equality
   }, [JSON.stringify(groupedRefIds), loadReferences]);
 
   useEffect(() => {
@@ -683,6 +677,9 @@ const CrudReferenceModal = ({
     availableEntities,
     selectedEntityId,
     exhaustedCollections,
+    loadEntitiesForReferences,
+    oldReferences,
+    references,
   ]);
   useEffect(() => {
     if (!hasUserInteracted) {
@@ -762,7 +759,7 @@ const CrudReferenceModal = ({
           ),
         };
       });
-  }, [mentions, loading, colorText, colorTextSecondary, removedMentionIds]);
+  }, [mentions, loading, colorTextSecondary, removedMentionIds, disableModal]);
   const mentionExpandedKeys = useMemo(() => {
     return Object.entries(mentions)
       .filter(([, entities]) => entities.length)

@@ -10,27 +10,34 @@ import {
 import "@testing-library/jest-dom";
 
 // Mock all external dependencies first
-jest.mock("@ant-design/icons", () => ({
-  CaretRightOutlined: ({ rotate }: { rotate?: number }) =>
+jest.mock("@ant-design/icons", () => {
+  const CaretRightOutlined = ({ rotate }: { rotate?: number }) =>
     React.createElement("div", {
       "data-testid": "caret-right",
       style: { transform: `rotate(${rotate || 0}deg)` },
-    }),
-}));
+    });
+  CaretRightOutlined.displayName = "CaretRightOutlined";
+  return { CaretRightOutlined };
+});
 
-jest.mock("@heroicons/react/24/outline", () => ({
-  ArrowPathIcon: ({ className }: { className?: string }) =>
-    React.createElement("div", { className, "data-testid": "arrow-path-icon" }),
-  CheckIcon: ({ className }: { className?: string }) =>
-    React.createElement("div", { className, "data-testid": "check-icon" }),
-  TrashIcon: ({ className }: { className?: string }) =>
-    React.createElement("div", { className, "data-testid": "trash-icon" }),
-  XMarkIcon: ({ className }: { className?: string }) =>
-    React.createElement("div", { className, "data-testid": "x-mark-icon" }),
-}));
+jest.mock("@heroicons/react/24/outline", () => {
+  const createIcon = (testId: string) => {
+    const Icon = (props: { className?: string }) =>
+      React.createElement("div", { ...props, "data-testid": testId });
+    Icon.displayName = `HeroIcon(${testId})`;
+    return Icon;
+  };
 
-jest.mock("antd", () => ({
-  Button: ({ children, onClick, disabled, icon, ...props }: any) =>
+  return {
+    ArrowPathIcon: createIcon("arrow-path-icon"),
+    CheckIcon: createIcon("check-icon"),
+    TrashIcon: createIcon("trash-icon"),
+    XMarkIcon: createIcon("x-mark-icon"),
+  };
+});
+
+jest.mock("antd", () => {
+  const Button = ({ children, onClick, disabled, icon, ...props }: any) =>
     React.createElement(
       "button",
       {
@@ -40,8 +47,10 @@ jest.mock("antd", () => ({
         ...props,
       },
       icon || children,
-    ),
-  Collapse: ({ items, activeKey, onChange, ...props }: any) =>
+    );
+  Button.displayName = "Button";
+
+  const Collapse = ({ items, onChange, ...props }: any) =>
     React.createElement(
       "div",
       { "data-testid": "ant-collapse", ...props },
@@ -65,9 +74,13 @@ jest.mock("antd", () => ({
           ),
         ),
       ),
-    ),
-  Divider: () => React.createElement("hr", { "data-testid": "ant-divider" }),
-  Input: ({
+    );
+  Collapse.displayName = "Collapse";
+
+  const Divider = () =>
+    React.createElement("hr", { "data-testid": "ant-divider" });
+
+  const Input = ({
     placeholder,
     value,
     onChange,
@@ -78,7 +91,7 @@ jest.mock("antd", () => ({
   }: any) =>
     React.createElement(
       "span",
-      { "data-testid": "ant-input-wrapper" },
+      { className, "data-testid": "ant-input-wrapper" },
       React.createElement("input", {
         "data-testid": "ant-input",
         onChange,
@@ -95,49 +108,52 @@ jest.mock("antd", () => ({
             },
           })
         : null,
-    ),
-  Modal: Object.assign(
-    ({
-      open,
-      title,
-      children,
-      onOk,
-      onCancel,
-      okButtonProps,
-      ...props
-    }: any) =>
-      open
-        ? React.createElement(
+    );
+  Input.displayName = "Input";
+
+  const ModalRoot = ({
+    open,
+    title,
+    children,
+    onOk,
+    onCancel,
+    okButtonProps,
+    ...props
+  }: any) =>
+    open
+      ? React.createElement(
+          "div",
+          { "data-testid": "ant-modal", ...props },
+          React.createElement("div", { "data-testid": "modal-title" }, title),
+          children,
+          React.createElement(
             "div",
-            { "data-testid": "ant-modal", ...props },
-            React.createElement("div", { "data-testid": "modal-title" }, title),
-            children,
+            { "data-testid": "modal-footer" },
             React.createElement(
-              "div",
-              { "data-testid": "modal-footer" },
-              React.createElement(
-                "button",
-                {
-                  "data-testid": "modal-ok-button",
-                  disabled: okButtonProps?.disabled,
-                  onClick: () => onOk && onOk(),
-                },
-                "OK",
-              ),
-              React.createElement(
-                "button",
-                {
-                  "data-testid": "modal-cancel-button",
-                  onClick: () => onCancel && onCancel(),
-                },
-                "Cancel",
-              ),
+              "button",
+              {
+                "data-testid": "modal-ok-button",
+                disabled: okButtonProps?.disabled,
+                onClick: () => onOk && onOk(),
+              },
+              "OK",
             ),
-          )
-        : null,
-    { confirm: jest.fn() },
-  ),
-  Select: ({ options, placeholder, onChange, ...props }: any) =>
+            React.createElement(
+              "button",
+              {
+                "data-testid": "modal-cancel-button",
+                onClick: () => onCancel && onCancel(),
+              },
+              "Cancel",
+            ),
+          ),
+        )
+      : null;
+  ModalRoot.displayName = "Modal";
+
+  const Modal = Object.assign(ModalRoot, { confirm: jest.fn() });
+
+  const Select = ({ options, placeholder, onChange, ...props }: any) =>
     React.createElement(
       "select",
       {
@@ -153,24 +169,32 @@ jest.mock("antd", () => ({
           option.label,
         ),
       ),
-    ),
-  Spin: ({ spinning, children }: any) =>
+    );
+  Select.displayName = "Select";
+
+  const Spin = ({ spinning, children }: any) =>
     spinning
       ? React.createElement("div", { "data-testid": "ant-spin" }, "Loading...")
-      : React.createElement("div", null, children),
-  Tag: ({ children, onClick, ...props }: any) =>
+      : React.createElement("div", null, children);
+  Spin.displayName = "Spin";
+
+  const Tag = ({ children, onClick, ...props }: any) =>
     React.createElement(
       "span",
       { "data-testid": "ant-tag", onClick, ...props },
       children,
-    ),
-  Tooltip: ({ children, title }: any) =>
+    );
+  Tag.displayName = "Tag";
+
+  const Tooltip = ({ children, title }: any) =>
     React.createElement(
       "div",
       { "data-testid": "ant-tooltip", title },
       children,
-    ),
-  theme: {
+    );
+  Tooltip.displayName = "Tooltip";
+
+  const theme = {
     useToken: jest.fn(() => ({
       token: {
         colorBgBase: "#ffffff",
@@ -180,8 +204,21 @@ jest.mock("antd", () => ({
         colorTextTertiary: "#999999",
       },
     })),
-  },
-}));
+  };
+
+  return {
+    Button,
+    Collapse,
+    Divider,
+    Input,
+    Modal,
+    Select,
+    Spin,
+    Tag,
+    Tooltip,
+    theme,
+  };
+});
 
 // Mock definitions
 const mockCollectionName = {
@@ -235,7 +272,8 @@ jest.mock("../../EntityStatusUI", () => ({
 // Import the component after all mocks are set up
 import { Modal as AntModal } from "antd";
 
-import { CollectionName } from "../../../../lib/definitions";
+import { CollectionName } from "@/app/lib/definitions";
+
 import CrudReferenceModal from "../CrudReferenceModal";
 
 const mockModalConfirm = AntModal.confirm as jest.Mock;
@@ -273,7 +311,7 @@ describe("CrudReferenceModal", () => {
     jest.clearAllMocks();
 
     // Setup different mock implementations for different collections
-    mockLoadReferences.mockImplementation((colName, entIds) => {
+    mockLoadReferences.mockImplementation((colName) => {
       if (colName === "PROFILES") {
         return Promise.resolve([
           {
