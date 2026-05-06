@@ -67,14 +67,35 @@ jest.mock("antd", () => ({
       ),
     ),
   Divider: () => React.createElement("hr", { "data-testid": "ant-divider" }),
-  Input: ({ placeholder, value, onChange, ...props }: any) =>
-    React.createElement("input", {
-      "data-testid": "ant-input",
-      onChange,
-      placeholder,
-      value,
-      ...props,
-    }),
+  Input: ({
+    placeholder,
+    value,
+    onChange,
+    onClear,
+    allowClear,
+    className,
+    ...props
+  }: any) =>
+    React.createElement(
+      "span",
+      { "data-testid": "ant-input-wrapper" },
+      React.createElement("input", {
+        "data-testid": "ant-input",
+        onChange,
+        placeholder,
+        value,
+        ...props,
+      }),
+      allowClear && value
+        ? React.createElement("button", {
+            "data-testid": "ant-input-clear",
+            onClick: () => {
+              if (onClear) onClear();
+              if (onChange) onChange({ target: { value: "" } });
+            },
+          })
+        : null,
+    ),
   Modal: Object.assign(
     ({
       open,
@@ -1623,6 +1644,52 @@ describe("CrudReferenceModal", () => {
       await waitFor(() => {
         expect(screen.getByTestId("modal-ok-button")).not.toBeDisabled();
       });
+    });
+
+    it("should clear link, return to view with '...' and mark as modified when clear icon is clicked", async () => {
+      const props = {
+        ...defaultProps,
+        references: {
+          ref1: {
+            link: "p.5",
+            name: mockCollectionName.PROFILES as CollectionName,
+          },
+          ref2: { name: mockCollectionName.WEAPONS as CollectionName },
+        },
+      };
+
+      await act(async () => {
+        render(<CrudReferenceModal {...props} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("p.5")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("p.5"));
+      });
+
+      expect(screen.getByDisplayValue("p.5")).toBeInTheDocument();
+
+      const clearButton = screen.getByTestId("ant-input-clear");
+      await act(async () => {
+        fireEvent.click(clearButton);
+      });
+
+      expect(screen.queryByDisplayValue("p.5")).not.toBeInTheDocument();
+
+      const ellipsisTags = screen.getAllByText("...");
+      expect(ellipsisTags.length).toBeGreaterThanOrEqual(2);
+
+      expect(
+        screen.getByText(
+          (content) =>
+            content.includes("2 added") && content.includes("1 modified"),
+        ),
+      ).toBeInTheDocument();
+
+      expect(screen.getByTestId("modal-ok-button")).not.toBeDisabled();
     });
   });
 

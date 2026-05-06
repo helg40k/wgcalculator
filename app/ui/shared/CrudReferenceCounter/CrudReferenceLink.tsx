@@ -37,10 +37,13 @@ const CrudReferenceLinkEdit: React.FC<CrudReferenceLinkEditProps> = ({
 
   return (
     <Input
+      allowClear
       autoFocus
+      className="[&_.ant-input-suffix]:pl !pl-1.5 !pr-1.5"
       placeholder="Ref..."
       value={value}
       onChange={(e) => setValue(e.target.value)}
+      onClear={() => onDone("")}
       onBlur={() => onDone(value.trim() || undefined)}
       onKeyDown={(e) => {
         if (e.key === "Enter") {

@@ -377,15 +377,15 @@ const CrudReferenceModal = ({
                               link={references[ent._id]?.link}
                               onDone={(newLink) => {
                                 if (newLink !== undefined) {
-                                  setReferences((prev) => ({
-                                    ...prev,
-                                    [ent._id]: {
-                                      ...prev[ent._id],
-                                      ...(newLink
-                                        ? { link: newLink }
-                                        : { link: undefined }),
-                                    },
-                                  }));
+                                  setReferences((prev) => {
+                                    const ref = { ...prev[ent._id] };
+                                    if (newLink) {
+                                      ref.link = newLink;
+                                    } else {
+                                      delete ref.link;
+                                    }
+                                    return { ...prev, [ent._id]: ref };
+                                  });
                                 }
                                 setEditingLinkId(null);
                                 setDisableModal(false);
@@ -507,12 +507,14 @@ const CrudReferenceModal = ({
                     mouseEnterDelay={0.5}
                   >
                     <Input
+                      allowClear
+                      className="[&_.ant-input-suffix]:pl !pl-1.5 !pr-1.5"
                       placeholder="Ref..."
                       value={linkInput}
                       onChange={(e) => setLinkInput(e.target.value)}
                       onMouseDown={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.stopPropagation()}
-                      style={{ width: "60px" }}
+                      style={{ width: "65px" }}
                     />
                   </Tooltip>
                   <Tooltip
