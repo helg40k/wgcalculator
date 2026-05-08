@@ -33,6 +33,7 @@ export type SourceType = (typeof sourceTypes)[number];
 export interface Reference {
   name: CollectionName;
   link?: string;
+  title?: string;
 }
 
 export interface References {

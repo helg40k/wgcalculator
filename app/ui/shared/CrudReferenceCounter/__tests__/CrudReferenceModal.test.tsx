@@ -466,7 +466,7 @@ describe("CrudReferenceModal", () => {
       });
 
       expect(onOk).toHaveBeenCalledWith({
-        ref2: { name: mockCollectionName.WEAPONS },
+        ref2: { name: mockCollectionName.WEAPONS, title: "Test Weapon" },
       });
     });
 
@@ -752,8 +752,12 @@ describe("CrudReferenceModal", () => {
       });
 
       expect(onOk).toHaveBeenCalledWith({
-        ...defaultProps.references,
-        available1: { name: mockCollectionName.PROFILES },
+        available1: {
+          name: mockCollectionName.PROFILES,
+          title: "Available Entity 1",
+        },
+        ref1: { name: mockCollectionName.PROFILES, title: "Test Profile" },
+        ref2: { name: mockCollectionName.WEAPONS, title: "Test Weapon" },
       });
     });
 
@@ -891,6 +895,7 @@ describe("CrudReferenceModal", () => {
       const savedRefs = onOk.mock.calls[0][0];
       expect(savedRefs.available1).toEqual({
         name: mockCollectionName.PROFILES,
+        title: "Available Entity 1",
       });
       expect(savedRefs.available1).not.toHaveProperty("link");
     });
@@ -940,6 +945,7 @@ describe("CrudReferenceModal", () => {
       expect(savedRefs.available1).toEqual({
         link: "p.42",
         name: mockCollectionName.PROFILES,
+        title: "Available Entity 1",
       });
     });
 
@@ -1038,6 +1044,7 @@ describe("CrudReferenceModal", () => {
       expect(calledWith).not.toHaveProperty("ref1");
       expect(calledWith).toHaveProperty("ref2", {
         name: mockCollectionName.WEAPONS,
+        title: "Test Weapon",
       });
     });
   });
@@ -2295,13 +2302,15 @@ describe("CrudReferenceModal", () => {
       expect(mockSaveReferences).toHaveBeenCalledWith(
         mockCollectionName.PROFILES,
         "entity-123",
-        { ref2: { name: mockCollectionName.WEAPONS } },
+        { ref2: { name: mockCollectionName.WEAPONS, title: "Test Weapon" } },
       );
       expect(mockRemoveIncomingReferences).toHaveBeenCalledWith(
         "entity-123",
         [],
       );
-      expect(onOk).toHaveBeenCalled();
+      expect(onOk).toHaveBeenCalledWith({
+        ref2: { name: mockCollectionName.WEAPONS, title: "Test Weapon" },
+      });
     });
 
     it("should call removeIncomingReferences with removed mentions then onOk", async () => {
@@ -2470,6 +2479,58 @@ describe("CrudReferenceModal", () => {
 
       expect(mockRemoveIncomingReferences).toHaveBeenCalled();
       expect(mockInvalidateCollections).not.toHaveBeenCalled();
+    });
+
+    it("should populate title for all references on save, not just changed ones", async () => {
+      const onOk = jest.fn();
+
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} onOk={onOk} />);
+      });
+
+      await waitFor(
+        () => {
+          expect(screen.getByText("Test Profile")).toBeInTheDocument();
+          expect(screen.getByText("Test Weapon")).toBeInTheDocument();
+        },
+        { timeout: 2000 },
+      );
+
+      await act(async () => {
+        fireEvent.click(screen.getAllByText("Add more")[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "available1" },
+        });
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("check-icon").closest("button")!);
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("modal-ok-button"));
+      });
+
+      const savedRefs = mockSaveReferences.mock.calls[0][2];
+      expect(savedRefs.ref1).toEqual(
+        expect.objectContaining({ title: "Test Profile" }),
+      );
+      expect(savedRefs.ref2).toEqual(
+        expect.objectContaining({ title: "Test Weapon" }),
+      );
+      expect(savedRefs.available1).toEqual(
+        expect.objectContaining({ title: "Available Entity 1" }),
+      );
+
+      const onOkRefs = onOk.mock.calls[0][0];
+      expect(onOkRefs).toEqual(savedRefs);
     });
 
     it("should not call onOk when save fails", async () => {

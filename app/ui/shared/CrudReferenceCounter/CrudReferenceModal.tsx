@@ -538,6 +538,9 @@ const CrudReferenceModal = ({
                       onClick={() => {
                         if (selectedEntityId) {
                           const colNameTyped = colName as CollectionName;
+                          const selectedEntity = availableEntities.find(
+                            (ent) => ent._id === selectedEntityId,
+                          );
                           setReferences((prev) => ({
                             ...prev,
                             [selectedEntityId]: {
@@ -545,11 +548,11 @@ const CrudReferenceModal = ({
                               ...(linkInput.trim() && {
                                 link: linkInput.trim(),
                               }),
+                              ...(selectedEntity && {
+                                title: selectedEntity.name,
+                              }),
                             },
                           }));
-                          const selectedEntity = availableEntities.find(
-                            (ent) => ent._id === selectedEntityId,
-                          );
                           if (selectedEntity) {
                             setLoadedEntities((prev) => ({
                               ...prev,
@@ -820,10 +823,18 @@ const CrudReferenceModal = ({
       onOk={async () => {
         setLoading(true);
         try {
+          const referencesWithTitles = { ...references };
+          for (const [entId, ref] of Object.entries(referencesWithTitles)) {
+            const entities = loadedEntities[ref.name] || [];
+            const entity = entities.find((e) => e._id === entId);
+            if (entity) {
+              referencesWithTitles[entId] = { ...ref, title: entity.name };
+            }
+          }
           const result = await saveReferences(
             collectionName,
             entityId,
-            references,
+            referencesWithTitles,
           );
           if (!result) {
             return;
@@ -841,7 +852,7 @@ const CrudReferenceModal = ({
           if (affectedCollections.length > 0) {
             invalidateCollections(affectedCollections);
           }
-          onOk(references);
+          onOk(referencesWithTitles);
         } finally {
           setLoading(false);
         }
