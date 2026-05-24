@@ -8,7 +8,7 @@
     border-top: none !important;
     border-left: none !important;
     border-right: none !important;
-    background-color: inherit !important;
+    background-color: transparent !important;
     padding-top: 0 !important;
 }
 
@@ -17,7 +17,23 @@
     border-bottom: none !important;
 }
 
+/* When hovering the main row, also highlight the expanded row below it */
+.hide-expand-column .ant-table-tbody > tr:not(.ant-table-expanded-row):hover + tr.ant-table-expanded-row > td {
+    background-color: var(--ant-table-row-hover-bg, #fafafa) !important;
+}
+
+/* When hovering the expanded row, also highlight the main row above it */
+.hide-expand-column .ant-table-tbody > tr:has(+ tr.ant-table-expanded-row:hover) > td {
+    background-color: var(--ant-table-row-hover-bg, #fafafa) !important;
+}
+
+/* Ensure the expanded row itself highlights on hover */
+.hide-expand-column .ant-table-tbody > tr.ant-table-expanded-row:hover > td {
+    background-color: var(--ant-table-row-hover-bg, #fafafa) !important;
+}
+
 /* Preserve edit-row background on hover */
-.hide-expand-column .ant-table-tbody > tr.bg-blue-50:hover > td {
+.hide-expand-column .ant-table-tbody > tr.bg-blue-50:hover > td,
+.hide-expand-column .ant-table-tbody > tr.bg-blue-50:hover + tr.ant-table-expanded-row > td {
     background-color: inherit !important;
 }

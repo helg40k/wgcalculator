@@ -244,7 +244,7 @@ const ReferenceCounter = ({
 
   return (
     <div
-      className={`flex p-0.5 text-nowrap justify-start ${viewOnly ? "cursor-default" : "cursor-pointer"}`}
+      className={`flex p-0.5 text-nowrap justify-start w-fit ${viewOnly ? "cursor-default" : "cursor-pointer"}`}
       style={{ color: colorTextSecondary }}
       onClick={onClick}
     >
