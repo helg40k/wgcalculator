@@ -95,6 +95,9 @@ const mockCollectionName = {
 };
 
 const mockLoadEntities = jest.fn().mockResolvedValue([]);
+const mockInvalidateCollections = jest.fn();
+const mockReloadMentions = jest.fn();
+const mockGetMentions = jest.fn().mockReturnValue({});
 
 // Shared mock context for EntitiesUpdateContext
 const MockEntitiesUpdateContext = createContext<{
@@ -206,6 +209,17 @@ describe("CrudReferenceCounter Real Component", () => {
     // Mock CrudMultiLineView to export the shared context
     jest.doMock("@/app/ui/CrudMultiLineView", () => ({
       EntitiesUpdateContext: MockEntitiesUpdateContext,
+    }));
+
+    // Mock collectionInvalidation
+    jest.doMock("@/app/lib/collectionInvalidation", () => ({
+      invalidateCollections: (...args: unknown[]) =>
+        mockInvalidateCollections(...args),
+    }));
+
+    // Mock MentionsContext
+    jest.doMock("../../../../lib/contexts/MentionsContext", () => ({
+      MentionsContext: React.createContext(null),
     }));
 
     // Mock react-dom/client
@@ -1243,6 +1257,287 @@ describe("CrudReferenceCounter Real Component", () => {
       });
 
       expect(localStorage.getItem("mentNumber_test-id_PROFILES")).toBe("3");
+    });
+  });
+
+  describe("Collection Invalidation on Save", () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it("should call invalidateCollections with affected collection names after save", () => {
+      const TestReferenceCounter = () => {
+        const mockEntity = {
+          _id: "test-id",
+          name: "Test Entity",
+          references: { ref1: { name: "PROFILES" } },
+        };
+
+        return React.createElement(ReferenceCounter, {
+          collectionName: mockCollectionName.PROFILES,
+          entity: mockEntity,
+          viewOnly: false,
+        });
+      };
+
+      render(React.createElement(TestReferenceCounter));
+
+      const component = screen
+        .getByText("1 reference")
+        .closest('div[class*="cursor-"]');
+      fireEvent.click(component!);
+
+      const renderedElement = mockRender.mock.calls[0][0];
+      const modalElement = renderedElement.props.children;
+      const handleSaved = modalElement.props.onOk;
+
+      act(() => {
+        handleSaved({
+          ref1: { name: "PROFILES" },
+          ref2: { name: "WEAPONS" },
+        });
+      });
+
+      expect(mockInvalidateCollections).toHaveBeenCalledTimes(1);
+      const calledWith = mockInvalidateCollections.mock.calls[0][0];
+      expect(calledWith).toEqual(
+        expect.arrayContaining(["PROFILES", "WEAPONS"]),
+      );
+    });
+
+    it("should include both old and new collection names in invalidation", () => {
+      const TestReferenceCounter = () => {
+        const mockEntity = {
+          _id: "test-id",
+          name: "Test Entity",
+          references: {
+            ref1: { name: "PROFILES" },
+            ref2: { name: "ARMORS" },
+          },
+        };
+
+        return React.createElement(ReferenceCounter, {
+          collectionName: mockCollectionName.PROFILES,
+          entity: mockEntity,
+          viewOnly: false,
+        });
+      };
+
+      render(React.createElement(TestReferenceCounter));
+
+      const component = screen
+        .getByText("2 references")
+        .closest('div[class*="cursor-"]');
+      fireEvent.click(component!);
+
+      const renderedElement = mockRender.mock.calls[0][0];
+      const modalElement = renderedElement.props.children;
+      const handleSaved = modalElement.props.onOk;
+
+      act(() => {
+        handleSaved({ ref3: { name: "WEAPONS" } });
+      });
+
+      expect(mockInvalidateCollections).toHaveBeenCalledTimes(1);
+      const calledWith = mockInvalidateCollections.mock.calls[0][0];
+      expect(calledWith).toEqual(
+        expect.arrayContaining(["PROFILES", "ARMORS", "WEAPONS"]),
+      );
+    });
+
+    it("should deduplicate collection names across old and new references", () => {
+      const TestReferenceCounter = () => {
+        const mockEntity = {
+          _id: "test-id",
+          name: "Test Entity",
+          references: { ref1: { name: "PROFILES" } },
+        };
+
+        return React.createElement(ReferenceCounter, {
+          collectionName: mockCollectionName.PROFILES,
+          entity: mockEntity,
+          viewOnly: false,
+        });
+      };
+
+      render(React.createElement(TestReferenceCounter));
+
+      const component = screen
+        .getByText("1 reference")
+        .closest('div[class*="cursor-"]');
+      fireEvent.click(component!);
+
+      const renderedElement = mockRender.mock.calls[0][0];
+      const modalElement = renderedElement.props.children;
+      const handleSaved = modalElement.props.onOk;
+
+      act(() => {
+        handleSaved({
+          ref1: { name: "PROFILES" },
+          ref2: { name: "PROFILES" },
+        });
+      });
+
+      expect(mockInvalidateCollections).toHaveBeenCalledTimes(1);
+      const calledWith = mockInvalidateCollections.mock.calls[0][0] as string[];
+      const unique = [...new Set(calledWith)];
+      expect(unique).toEqual(["PROFILES"]);
+    });
+
+    it("should not call invalidateCollections when both old and new references are empty", () => {
+      const TestReferenceCounter = () => {
+        const mockEntity = {
+          _id: "test-id",
+          name: "Test Entity",
+          references: {},
+        };
+
+        return React.createElement(ReferenceCounter, {
+          collectionName: mockCollectionName.PROFILES,
+          entity: mockEntity,
+          viewOnly: false,
+        });
+      };
+
+      render(React.createElement(TestReferenceCounter));
+
+      const component = screen
+        .getByText("0 references")
+        .closest('div[class*="cursor-"]');
+      fireEvent.click(component!);
+
+      const renderedElement = mockRender.mock.calls[0][0];
+      const modalElement = renderedElement.props.children;
+      const handleSaved = modalElement.props.onOk;
+
+      act(() => {
+        handleSaved({});
+      });
+
+      expect(mockInvalidateCollections).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("MentionsContext Integration", () => {
+    let MockMentionsContextObj: React.Context<any>;
+
+    beforeAll(async () => {
+      const mentionsModule = jest.requireMock(
+        "../../../../lib/contexts/MentionsContext",
+      ) as { MentionsContext: React.Context<any> };
+      MockMentionsContextObj = mentionsModule.MentionsContext;
+    });
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockLoadEntities.mockReset().mockResolvedValue([]);
+      mockReloadMentions.mockReset();
+      mockGetMentions.mockReset().mockReturnValue({});
+    });
+
+    it("should call mentionsCtx.reloadMentions on save when context is provided", () => {
+      const TestReferenceCounter = () => {
+        const mockEntity = {
+          _id: "test-id",
+          name: "Test Entity",
+          references: { ref1: { name: "PROFILES" } },
+        };
+
+        return React.createElement(
+          MockMentionsContextObj.Provider,
+          {
+            value: {
+              getMentions: mockGetMentions,
+              mentionsLoaded: true,
+              reloadMentions: mockReloadMentions,
+            },
+          },
+          React.createElement(ReferenceCounter, {
+            collectionName: mockCollectionName.PROFILES,
+            entity: mockEntity,
+            viewOnly: false,
+          }),
+        );
+      };
+
+      render(React.createElement(TestReferenceCounter));
+
+      const component = screen
+        .getByText("1 reference")
+        .closest('div[class*="cursor-"]');
+      fireEvent.click(component!);
+
+      const renderedElement = mockRender.mock.calls[0][0];
+      const modalElement = renderedElement.props.children;
+      const handleSaved = modalElement.props.onOk;
+
+      act(() => {
+        handleSaved({ ref1: { name: "PROFILES" } });
+      });
+
+      expect(mockReloadMentions).toHaveBeenCalledTimes(1);
+    });
+
+    it("should use getMentions from context instead of loadEntities", async () => {
+      mockGetMentions.mockReturnValue({
+        WEAPONS: [
+          { _id: "w1", name: "Weapon 1" },
+          { _id: "w2", name: "Weapon 2" },
+        ],
+      });
+
+      const TestReferenceCounter = () => {
+        const mockEntity = {
+          _id: "test-id",
+          name: "Test Entity",
+          references: {},
+        };
+
+        return React.createElement(
+          MockMentionsContextObj.Provider,
+          {
+            value: {
+              getMentions: mockGetMentions,
+              mentionsLoaded: true,
+              reloadMentions: mockReloadMentions,
+            },
+          },
+          React.createElement(ReferenceCounter, {
+            collectionName: mockCollectionName.PROFILES,
+            entity: mockEntity,
+            viewOnly: false,
+          }),
+        );
+      };
+
+      await act(async () => {
+        render(React.createElement(TestReferenceCounter));
+      });
+
+      expect(mockGetMentions).toHaveBeenCalledWith("test-id");
+      expect(screen.getByText("2 outer mentions")).toBeInTheDocument();
+    });
+
+    it("should fall back to loadEntities when MentionsContext is null", async () => {
+      const TestReferenceCounter = () => {
+        const mockEntity = {
+          _id: "test-id",
+          name: "Test Entity",
+          references: {},
+        };
+
+        return React.createElement(ReferenceCounter, {
+          collectionName: mockCollectionName.PROFILES,
+          entity: mockEntity,
+          viewOnly: false,
+        });
+      };
+
+      await act(async () => {
+        render(React.createElement(TestReferenceCounter));
+      });
+
+      expect(mockLoadEntities).toHaveBeenCalled();
     });
   });
 });

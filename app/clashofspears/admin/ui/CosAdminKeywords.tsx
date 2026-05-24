@@ -3,6 +3,7 @@ import { Spin } from "antd";
 
 import { useCollectionInvalidation } from "@/app/lib/collectionInvalidation";
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
+import { MentionsProvider } from "@/app/lib/contexts/MentionsContext";
 import { CollectionRegistry, Keyword } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
 import CrudMultiLineView from "@/app/ui/CrudMultiLineView";
@@ -70,26 +71,28 @@ const CosAdminKeywords = () => {
 
   return (
     <Spin spinning={loading} size="large">
-      <CrudMultiLineView.Table
-        singleName={"keyword"}
-        pluralNames={"keywords"}
-        singleToolbarUntil={10}
-        entities={keywords}
-        rowFooter={(record: Keyword, editMode: boolean) => (
-          <ReferenceCounter
-            entity={record}
-            collectionName={collectionName}
-            viewOnly={editMode}
-          />
-        )}
-        setEntities={setKeywords}
-        sortableStatus={true}
-        table={tableData}
-        onSave={onSave}
-        onDelete={onDelete}
-        filterableFields={["name", "description", "status"]}
-        onReload={onReload}
-      />
+      <MentionsProvider collectionName={collectionName}>
+        <CrudMultiLineView.Table
+          singleName={"keyword"}
+          pluralNames={"keywords"}
+          singleToolbarUntil={10}
+          entities={keywords}
+          rowFooter={(record: Keyword, editMode: boolean) => (
+            <ReferenceCounter
+              entity={record}
+              collectionName={collectionName}
+              viewOnly={editMode}
+            />
+          )}
+          setEntities={setKeywords}
+          sortableStatus={true}
+          table={tableData}
+          onSave={onSave}
+          onDelete={onDelete}
+          filterableFields={["name", "description", "status"]}
+          onReload={onReload}
+        />
+      </MentionsProvider>
     </Spin>
   );
 };

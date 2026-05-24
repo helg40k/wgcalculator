@@ -14,7 +14,9 @@ import {
 import { theme, Tooltip } from "antd";
 import { SessionProvider, useSession } from "next-auth/react";
 
+import { invalidateCollections } from "@/app/lib/collectionInvalidation";
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
+import { MentionsContext } from "@/app/lib/contexts/MentionsContext";
 import {
   CollectionName,
   Mentions,
@@ -53,6 +55,7 @@ const ReferenceCounter = ({
     },
   } = theme.useToken();
   const [, utils] = useContext(GameSystemContext);
+  const mentionsCtx = useContext(MentionsContext);
   const { data: session } = useSession();
   const { loadEntities } = useEntities();
   const entitiesCtx = useContext(EntitiesUpdateContext);
@@ -94,8 +97,15 @@ const ReferenceCounter = ({
   }, [collectionName, entity._id, loadEntities, utils]);
 
   useEffect(() => {
-    loadMentions();
-  }, [loadMentions, mentionsVersion]);
+    if (mentionsCtx) {
+      setMentions(mentionsCtx.getMentions(entity._id));
+      if (mentionsCtx.mentionsLoaded) {
+        setMentionsLoaded(true);
+      }
+    } else {
+      loadMentions();
+    }
+  }, [mentionsCtx, entity._id, loadMentions, mentionsVersion]);
 
   const allowedToRefer = useMemo(() => {
     return utils.getAllowedToRefer(collectionName);
@@ -199,7 +209,19 @@ const ReferenceCounter = ({
       setCurrentReferences(references);
       entitiesCtx?.updateEntity(entity._id, { references });
       void entitiesCtx?.reloadEntities?.();
-      void loadMentions();
+      if (mentionsCtx) {
+        mentionsCtx.reloadMentions();
+      } else {
+        void loadMentions();
+      }
+
+      const oldCollNames = Object.values(currentReferences).map((r) => r.name);
+      const newCollNames = Object.values(references).map((r) => r.name);
+      const affected = [...new Set([...oldCollNames, ...newCollNames])];
+      if (affected.length > 0) {
+        invalidateCollections(affected);
+      }
+
       closeModal();
     };
 

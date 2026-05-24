@@ -24,3 +24,18 @@ export function useCollectionInvalidation(
     return () => eventTarget.removeEventListener(EVENT_NAME, handler);
   }, [collection, callback]);
 }
+
+export function useMultiCollectionInvalidation(
+  collections: readonly CollectionName[],
+  callback: () => void,
+): void {
+  useEffect(() => {
+    if (collections.length === 0) return;
+    const collectionSet = new Set(collections);
+    const handler = (e: Event) => {
+      if (collectionSet.has((e as CustomEvent).detail)) callback();
+    };
+    eventTarget.addEventListener(EVENT_NAME, handler);
+    return () => eventTarget.removeEventListener(EVENT_NAME, handler);
+  }, [collections, callback]);
+}

@@ -3,6 +3,7 @@ import { Spin } from "antd";
 
 import { useCollectionInvalidation } from "@/app/lib/collectionInvalidation";
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
+import { MentionsProvider } from "@/app/lib/contexts/MentionsContext";
 import { CollectionRegistry, Source } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
 import CrudMultiLineView from "@/app/ui/CrudMultiLineView";
@@ -44,27 +45,35 @@ const CosAdminSources = () => {
 
   return (
     <Spin spinning={loading} size="large">
-      <CrudMultiLineView.List
-        singleName={"source"}
-        pluralNames={"sources"}
-        singleToolbarUntil={5}
-        entities={sources}
-        setEntities={setSources}
-        view={SourceUI.View}
-        edit={SourceUI.Edit}
-        onSave={onSave}
-        onDelete={onDelete}
-        filterableFields={["name", "authors", "type", "description", "status"]}
-        sortableFields={[
-          { key: "name", label: "Name" },
-          { key: "authors", label: "Authors" },
-          { key: "type", label: "Type" },
-          { key: "year", label: "Year" },
-          { key: "version", label: "Version" },
-          { key: "status", label: "Status" },
-        ]}
-        onReload={onReload}
-      />
+      <MentionsProvider collectionName={collectionName}>
+        <CrudMultiLineView.List
+          singleName={"source"}
+          pluralNames={"sources"}
+          singleToolbarUntil={5}
+          entities={sources}
+          setEntities={setSources}
+          view={SourceUI.View}
+          edit={SourceUI.Edit}
+          onSave={onSave}
+          onDelete={onDelete}
+          filterableFields={[
+            "name",
+            "authors",
+            "type",
+            "description",
+            "status",
+          ]}
+          sortableFields={[
+            { key: "name", label: "Name" },
+            { key: "authors", label: "Authors" },
+            { key: "type", label: "Type" },
+            { key: "year", label: "Year" },
+            { key: "version", label: "Version" },
+            { key: "status", label: "Status" },
+          ]}
+          onReload={onReload}
+        />
+      </MentionsProvider>
     </Spin>
   );
 };

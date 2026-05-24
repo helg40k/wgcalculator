@@ -301,6 +301,22 @@ describe("useGameSystem", () => {
         );
       });
     });
+
+    it("should maintain utils object reference when game system doesn't change", async () => {
+      mockGetDocuments.mockResolvedValue([mockGameSystem]);
+
+      const { result, rerender } = renderHook(() => useGameSystem());
+
+      await waitFor(() => {
+        expect(result.current[0]).toEqual(mockGameSystem);
+      });
+
+      const initialUtils = result.current[1];
+
+      rerender();
+
+      expect(result.current[1]).toBe(initialUtils);
+    });
   });
 
   describe("return structure", () => {

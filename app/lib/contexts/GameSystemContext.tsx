@@ -1,10 +1,13 @@
 "use client";
 
-import { createContext, ReactNode } from "react";
+import { createContext, ReactNode, useMemo } from "react";
 
 import useGameSystem from "@/app/lib/hooks/useGameSystem";
 
-type GameSystemContextType = ReturnType<typeof useGameSystem>;
+type GameSystemContextType = readonly [
+  ReturnType<typeof useGameSystem>[0],
+  ReturnType<typeof useGameSystem>[1],
+];
 
 export const GameSystemContext = createContext<GameSystemContextType>([
   undefined,
@@ -12,12 +15,16 @@ export const GameSystemContext = createContext<GameSystemContextType>([
     canBeMentionedBy: () => [],
     getAllowedToRefer: () => [],
   },
-]);
+] as const);
 
 export const GameSystemProvider = ({ children }: { children: ReactNode }) => {
   const [gameSystem, utils] = useGameSystem();
+  const value = useMemo(
+    () => [gameSystem, utils] as const,
+    [gameSystem, utils],
+  );
   return (
-    <GameSystemContext.Provider value={[gameSystem, utils]}>
+    <GameSystemContext.Provider value={value}>
       {children}
     </GameSystemContext.Provider>
   );

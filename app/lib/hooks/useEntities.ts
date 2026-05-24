@@ -106,6 +106,10 @@ const useEntities = () => {
 
       try {
         setLoading(true);
+
+        // uncomment it to test performance
+        // console.log(`loadEntities - ${dbRef}`);
+
         return (await getCollectionData(type, opts)) as T[];
       } catch (err: any) {
         console.error(err);

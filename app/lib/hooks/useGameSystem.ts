@@ -67,7 +67,12 @@ const useGameSystem = (): [GameSystem | undefined, GameSystemUtils] => {
     [gameSystem?.referenceHierarchy],
   );
 
-  return [gameSystem, { canBeMentionedBy, getAllowedToRefer }];
+  const utils = useMemo(
+    () => ({ canBeMentionedBy, getAllowedToRefer }),
+    [canBeMentionedBy, getAllowedToRefer],
+  );
+
+  return [gameSystem, utils] as const;
 };
 
 export default useGameSystem;
