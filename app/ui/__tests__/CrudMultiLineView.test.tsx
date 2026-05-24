@@ -33,7 +33,7 @@ jest.mock("@/app/lib/errorMessage", () => jest.fn());
 const mockThemeToken = {
   borderRadiusLG: 8,
   colorBgContainer: "#fff",
-  colorBgTextHover: "#f5f5f5",
+  colorFillAlter: "rgba(0, 0, 0, 0.02)",
   colorTextDisabled: "#999",
   colorTextSecondary: "#666",
 };

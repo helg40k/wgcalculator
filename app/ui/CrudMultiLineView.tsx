@@ -9,6 +9,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { FastColor } from "@ant-design/fast-color";
 import {
   CheckIcon,
   PencilSquareIcon,
@@ -261,10 +262,18 @@ const useMultiLineViewLogic = <T extends Playable>({
     token: {
       colorTextSecondary,
       colorBgContainer,
-      colorBgTextHover,
+      colorFillAlter,
       borderRadiusLG,
     },
   } = theme.useToken();
+
+  const rowHoverBg = useMemo(
+    () =>
+      new FastColor(colorFillAlter)
+        .onBackground(colorBgContainer)
+        .toHexString(),
+    [colorFillAlter, colorBgContainer],
+  );
 
   // Filter and sort entities
   const filteredAndSortedEntities = useMemo(() => {
@@ -694,19 +703,21 @@ const useMultiLineViewLogic = <T extends Playable>({
     // Methods
     cleanNewItem,
     colorBgContainer,
-    colorBgTextHover,
     colorTextSecondary,
     createTableToolbar,
     createToolbar,
     deleteItem,
     // State
     edit,
+
     editingStatus,
     filterText,
     // Computed values
     filteredAndSortedEntities,
+
     getCurrentStatus,
     getEntitiesToSave,
+    rowHoverBg,
     hovered,
     isNew,
     isValid,
@@ -803,7 +814,7 @@ const CrudMultiLineViewList = <T extends Playable>({
   const {
     borderRadiusLG,
     colorBgContainer,
-    colorBgTextHover,
+    rowHoverBg,
     createToolbar,
     edit,
     filteredAndSortedEntities,
@@ -862,7 +873,7 @@ const CrudMultiLineViewList = <T extends Playable>({
             onMouseLeave={() => setHovered(null)}
             style={{
               backgroundColor:
-                isHovered && !edit ? colorBgTextHover : colorBgContainer,
+                isHovered && !edit ? rowHoverBg : colorBgContainer,
               borderRadius: borderRadiusLG,
               position: "relative",
             }}

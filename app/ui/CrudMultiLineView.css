@@ -17,7 +17,7 @@
     border-bottom: none !important;
 }
 
-/* Disable hover effects in table */
-.hide-expand-column .ant-table-tbody > tr:hover > td {
+/* Preserve edit-row background on hover */
+.hide-expand-column .ant-table-tbody > tr.bg-blue-50:hover > td {
     background-color: inherit !important;
 }
