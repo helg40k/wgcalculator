@@ -13,6 +13,8 @@ import {
 const getEntityStatusStyles = () => {
   const {
     token: {
+      colorError,
+      colorErrorBg,
       colorTextSecondary,
       colorTextTertiary,
       colorWarningBg,
@@ -58,6 +60,8 @@ const getEntityStatusStyles = () => {
   };
 
   return {
+    colorError,
+    colorErrorBg,
     colorTextDisabled,
     colorTextSecondary,
     colorTextTertiary,
@@ -73,6 +77,7 @@ interface EntityStatusProps {
   entityId: string;
   status: EntityStatus;
   editable: boolean;
+  hasBrokenReference?: boolean;
   onChange?: (id: string, newStatus: EntityStatus) => Promise<void>;
 }
 
@@ -103,10 +108,27 @@ const EntityStatusView: React.FC<EntityStatusProps> = ({
   entityId,
   status,
   editable,
+  hasBrokenReference,
   onChange,
 }) => {
   const [open, setOpen] = useState(false);
-  const { colorTextSecondary, getTextColor } = getEntityStatusStyles();
+  const { colorError, colorTextSecondary, getTextColor } =
+    getEntityStatusStyles();
+
+  if (hasBrokenReference) {
+    return (
+      <Tooltip
+        title="At least one of its references is broken"
+        color="white"
+        styles={{ body: { color: colorError, minWidth: 265 } }}
+        mouseEnterDelay={0.5}
+      >
+        <span className="font-mono text-xs" style={{ color: colorError }}>
+          broken
+        </span>
+      </Tooltip>
+    );
+  }
 
   const menuItems = createMenuItems(status);
 
@@ -157,27 +179,39 @@ const EntityStatusBadge: React.FC<EntityStatusBadgeProps> = ({
   entityId,
   status,
   editable,
+  hasBrokenReference,
   onChange,
   show,
 }) => {
-  const { getBackgroundColor, getBorderColorBadge } = getEntityStatusStyles();
+  const { colorErrorBg, colorError, getBackgroundColor, getBorderColorBadge } =
+    getEntityStatusStyles();
 
-  if (show === false && status === EntityStatusRegistry.ACTIVE) {
+  if (
+    !hasBrokenReference &&
+    show === false &&
+    status === EntityStatusRegistry.ACTIVE
+  ) {
     return <>{children}</>;
   }
 
+  const isBroken = !!hasBrokenReference;
+
   return (
     <Badge.Ribbon
-      className={clsx("border-1", getBorderColorBadge(status))}
+      className={clsx(
+        "border-1",
+        isBroken ? "border-red-400" : getBorderColorBadge(status),
+      )}
       text={
         <EntityStatusView
           entityId={entityId}
           status={status}
           editable={editable}
+          hasBrokenReference={hasBrokenReference}
           onChange={onChange}
         />
       }
-      color={getBackgroundColor(status)}
+      color={isBroken ? colorErrorBg : getBackgroundColor(status)}
       placement="start"
     >
       {children}
@@ -189,24 +223,29 @@ const EntityStatusTag: React.FC<EntityStatusProps> = ({
   entityId,
   status,
   editable,
+  hasBrokenReference,
   onChange,
 }) => {
-  const { getBackgroundColor, getBorderColorTag } = getEntityStatusStyles();
+  const { colorError, colorErrorBg, getBackgroundColor, getBorderColorTag } =
+    getEntityStatusStyles();
+
+  const isBroken = !!hasBrokenReference;
 
   const styles = {
-    borderColor: getBorderColorTag(status),
+    borderColor: isBroken ? colorError : getBorderColorTag(status),
   };
 
   return (
     <Tag
-      color={getBackgroundColor(status)}
-      className={clsx({ "cursor-pointer": editable })}
+      color={isBroken ? colorErrorBg : getBackgroundColor(status)}
+      className={clsx({ "cursor-pointer": !isBroken && editable })}
       style={styles}
     >
       <EntityStatusView
         entityId={entityId}
         status={status}
         editable={editable}
+        hasBrokenReference={hasBrokenReference}
         onChange={onChange}
       />
     </Tag>

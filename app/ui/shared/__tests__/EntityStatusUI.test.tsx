@@ -13,6 +13,8 @@ jest.mock("@ant-design/v5-patch-for-react-19", () => ({}));
 
 // Mock Ant Design theme
 const mockThemeToken = {
+  colorError: "#ff4d4f",
+  colorErrorBg: "#fff2f0",
   colorTextDisabled: "#cccccc",
   colorTextSecondary: "#666666",
   colorTextTertiary: "#999999",
@@ -690,45 +692,160 @@ describe("EntityStatusUI", () => {
     });
   });
 
-  describe("component composition", () => {
-    it("should render Badge with complex children", () => {
-      render(
-        <EntityStatusUI.Badge
-          entityId="test-entity"
-          status={EntityStatusRegistry.DISABLED}
-          editable={false}
-        >
-          <div>
-            <h3>Title</h3>
-            <p>Description</p>
-            <button>Action</button>
-          </div>
-        </EntityStatusUI.Badge>,
-      );
+  describe("broken reference state", () => {
+    describe("EntityStatusUI.Tag with hasBrokenReference", () => {
+      it("should render 'broken' text instead of status", () => {
+        render(
+          <EntityStatusUI.Tag
+            entityId="test-entity"
+            status={EntityStatusRegistry.ACTIVE}
+            editable={true}
+            hasBrokenReference={true}
+          />,
+        );
 
-      expect(screen.getByText("Title")).toBeInTheDocument();
-      expect(screen.getByText("Description")).toBeInTheDocument();
-      expect(screen.getByText("Action")).toBeInTheDocument();
-      expect(screen.getByText("disabled")).toBeInTheDocument();
+        expect(screen.getByText("broken")).toBeInTheDocument();
+        expect(screen.queryByText("active")).not.toBeInTheDocument();
+      });
+
+      it("should apply red color to broken text", () => {
+        render(
+          <EntityStatusUI.Tag
+            entityId="test-entity"
+            status={EntityStatusRegistry.ACTIVE}
+            editable={true}
+            hasBrokenReference={true}
+          />,
+        );
+
+        const brokenElement = screen.getByText("broken");
+        expect(brokenElement).toHaveStyle({
+          color: mockThemeToken.colorError,
+        });
+      });
+
+      it("should not show dropdown when clicked even if editable", () => {
+        const mockOnChange = jest.fn();
+
+        render(
+          <EntityStatusUI.Tag
+            entityId="test-entity"
+            status={EntityStatusRegistry.ACTIVE}
+            editable={true}
+            hasBrokenReference={true}
+            onChange={mockOnChange}
+          />,
+        );
+
+        const brokenElement = screen.getByText("broken");
+        fireEvent.click(brokenElement);
+
+        expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+        expect(mockOnChange).not.toHaveBeenCalled();
+      });
+
+      it("should not have cursor-pointer class when broken", () => {
+        render(
+          <EntityStatusUI.Tag
+            entityId="test-entity"
+            status={EntityStatusRegistry.ACTIVE}
+            editable={true}
+            hasBrokenReference={true}
+          />,
+        );
+
+        const brokenElement = screen.getByText("broken");
+        expect(brokenElement).not.toHaveClass("cursor-pointer");
+      });
+
+      it("should render normal status when hasBrokenReference is false", () => {
+        render(
+          <EntityStatusUI.Tag
+            entityId="test-entity"
+            status={EntityStatusRegistry.ACTIVE}
+            editable={true}
+            hasBrokenReference={false}
+          />,
+        );
+
+        expect(screen.getByText("active")).toBeInTheDocument();
+        expect(screen.queryByText("broken")).not.toBeInTheDocument();
+      });
     });
 
-    it("should handle nested components in Badge", () => {
-      render(
-        <EntityStatusUI.Badge
-          entityId="test-entity"
-          status={EntityStatusRegistry.OBSOLETE}
-          editable={false}
-        >
-          <EntityStatusUI.Tag
-            entityId="nested-entity"
+    describe("EntityStatusUI.Badge with hasBrokenReference", () => {
+      it("should render 'broken' text instead of status", () => {
+        render(
+          <EntityStatusUI.Badge
+            entityId="test-entity"
+            status={EntityStatusRegistry.ACTIVE}
+            editable={true}
+            hasBrokenReference={true}
+          >
+            <div>Test Content</div>
+          </EntityStatusUI.Badge>,
+        );
+
+        expect(screen.getByText("broken")).toBeInTheDocument();
+        expect(screen.queryByText("active")).not.toBeInTheDocument();
+        expect(screen.getByText("Test Content")).toBeInTheDocument();
+      });
+
+      it("should always show ribbon when broken, even with show=false and active status", () => {
+        render(
+          <EntityStatusUI.Badge
+            entityId="test-entity"
             status={EntityStatusRegistry.ACTIVE}
             editable={false}
-          />
-        </EntityStatusUI.Badge>,
-      );
+            show={false}
+            hasBrokenReference={true}
+          >
+            <div>Test Content</div>
+          </EntityStatusUI.Badge>,
+        );
 
-      expect(screen.getByText("obsolete")).toBeInTheDocument();
-      expect(screen.getByText("active")).toBeInTheDocument();
+        expect(screen.getByText("broken")).toBeInTheDocument();
+        expect(screen.getByText("Test Content")).toBeInTheDocument();
+      });
+
+      it("should apply red border class when broken", () => {
+        const { container } = render(
+          <EntityStatusUI.Badge
+            entityId="test-entity"
+            status={EntityStatusRegistry.ACTIVE}
+            editable={true}
+            hasBrokenReference={true}
+          >
+            <div>Test Content</div>
+          </EntityStatusUI.Badge>,
+        );
+
+        const badgeElement = container.querySelector(".ant-ribbon");
+        expect(badgeElement).toHaveClass("border-red-400");
+        expect(badgeElement).not.toHaveClass("border-gray-300");
+      });
+
+      it("should not be editable when broken", () => {
+        const mockOnChange = jest.fn();
+
+        render(
+          <EntityStatusUI.Badge
+            entityId="test-entity"
+            status={EntityStatusRegistry.ACTIVE}
+            editable={true}
+            hasBrokenReference={true}
+            onChange={mockOnChange}
+          >
+            <div>Test Content</div>
+          </EntityStatusUI.Badge>,
+        );
+
+        const brokenElement = screen.getByText("broken");
+        fireEvent.click(brokenElement);
+
+        expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+        expect(mockOnChange).not.toHaveBeenCalled();
+      });
     });
   });
 });

@@ -33,6 +33,7 @@ import clsx from "clsx";
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { EntityStatus, Playable } from "@/app/lib/definitions";
 import errorMessage from "@/app/lib/errorMessage";
+import useBrokenReferences from "@/app/lib/hooks/useBrokenReferences";
 import { NEW_ENTITY_TEMP_ID } from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
 import {
   equalDeep,
@@ -717,7 +718,6 @@ const useMultiLineViewLogic = <T extends Playable>({
 
     getCurrentStatus,
     getEntitiesToSave,
-    rowHoverBg,
     hovered,
     isNew,
     isValid,
@@ -729,6 +729,7 @@ const useMultiLineViewLogic = <T extends Playable>({
     onClickEdit,
     onClickSave,
     resetEditingState,
+    rowHoverBg,
     saveItem,
     setEdit,
     setEditingStatus,
@@ -754,6 +755,7 @@ const HoverBadge = memo(function HoverBadge({
   onClickDelete,
   getCurrentStatus,
   onChangeStatus,
+  hasBrokenReference,
   ViewComponent,
 }: {
   entity: any;
@@ -764,6 +766,7 @@ const HoverBadge = memo(function HoverBadge({
   onClickDelete: (id: string, name: string) => void;
   getCurrentStatus: (entity: any) => EntityStatus;
   onChangeStatus: (id: string, newStatus: EntityStatus) => Promise<void>;
+  hasBrokenReference?: boolean;
   ViewComponent: React.ComponentType<any>;
 }) {
   return (
@@ -787,6 +790,7 @@ const HoverBadge = memo(function HoverBadge({
         status={getCurrentStatus(entity)}
         editable={true}
         show={true}
+        hasBrokenReference={hasBrokenReference}
         onChange={onChangeStatus}
       >
         <ViewComponent entity={entity} />
@@ -843,6 +847,8 @@ const CrudMultiLineViewList = <T extends Playable>({
     sortableFields,
   });
 
+  const brokenEntityIds = useBrokenReferences(entities);
+
   const [mentionsVersion, setMentionsVersion] = useState(0);
 
   const entitiesContextValue = useMemo(
@@ -885,6 +891,7 @@ const CrudMultiLineViewList = <T extends Playable>({
                   status={getCurrentStatus(entity)}
                   editable={true}
                   show={false}
+                  hasBrokenReference={brokenEntityIds.has(entity._id)}
                   onChange={onChangeStatus}
                 >
                   <ViewComponent entity={entity} editMode={false} />
@@ -896,6 +903,7 @@ const CrudMultiLineViewList = <T extends Playable>({
                   status={getCurrentStatus(entity)}
                   editable={false}
                   show={false}
+                  hasBrokenReference={brokenEntityIds.has(entity._id)}
                   onChange={onChangeStatus}
                 >
                   <ViewComponent entity={entity} editMode={true} />
@@ -918,6 +926,7 @@ const CrudMultiLineViewList = <T extends Playable>({
                     entityId={entity._id}
                     status={getCurrentStatus(entity)}
                     editable={NEW_ENTITY_TEMP_ID !== entity._id}
+                    hasBrokenReference={brokenEntityIds.has(entity._id)}
                     onChange={onChangeStatus}
                   >
                     <EditComponent
@@ -949,6 +958,7 @@ const CrudMultiLineViewList = <T extends Playable>({
                   onClickDelete={onClickDelete}
                   getCurrentStatus={getCurrentStatus}
                   onChangeStatus={onChangeStatus}
+                  hasBrokenReference={brokenEntityIds.has(entity._id)}
                   ViewComponent={ViewComponent}
                 />
               </div>
@@ -1017,6 +1027,8 @@ const CrudMultiLineViewTable = <T extends Playable>({
       .filter((col) => col.sortable)
       .map((col) => ({ key: col.field as keyof T, label: col.header })),
   });
+
+  const brokenEntityIds = useBrokenReferences(entities);
 
   // Game system context for setting systemId
   const [gameSystem] = useContext(GameSystemContext);
@@ -1265,6 +1277,7 @@ const CrudMultiLineViewTable = <T extends Playable>({
             entityId={record._id}
             status={currentStatus}
             editable={editable}
+            hasBrokenReference={brokenEntityIds.has(record._id)}
             onChange={onChangeStatus}
           />
         );
@@ -1274,7 +1287,7 @@ const CrudMultiLineViewTable = <T extends Playable>({
       title: "Status",
       width: 80,
     }),
-    [edit, getCurrentStatus, onChangeStatus, sortableStatus],
+    [edit, getCurrentStatus, onChangeStatus, sortableStatus, brokenEntityIds],
   );
 
   // Add actions column
