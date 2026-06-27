@@ -1381,7 +1381,7 @@ describe("CrudReferenceCounter Real Component", () => {
       expect(unique).toEqual(["PROFILES"]);
     });
 
-    it("should not call invalidateCollections when both old and new references are empty", () => {
+    it("should always invalidate own collection even when both old and new references are empty", () => {
       const TestReferenceCounter = () => {
         const mockEntity = {
           _id: "test-id",
@@ -1411,7 +1411,8 @@ describe("CrudReferenceCounter Real Component", () => {
         handleSaved({});
       });
 
-      expect(mockInvalidateCollections).not.toHaveBeenCalled();
+      expect(mockInvalidateCollections).toHaveBeenCalledTimes(1);
+      expect(mockInvalidateCollections).toHaveBeenCalledWith(["PROFILES"]);
     });
   });
 

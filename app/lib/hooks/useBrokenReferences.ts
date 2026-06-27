@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CollectionName, Playable } from "@/app/lib/definitions";
 import getDocumentsByIds from "@/app/lib/services/firebase/helpers/getDocumentsByIds";
 
-const groupReferencesByCollection = (
+export const groupReferencesByCollection = (
   entities: Playable[],
 ): Map<CollectionName, Map<string, Set<string>>> => {
   const result = new Map<CollectionName, Map<string, Set<string>>>();
@@ -28,6 +28,56 @@ const groupReferencesByCollection = (
   return result;
 };
 
+export const validateBrokenReferences = async (
+  entities: Playable[],
+): Promise<Set<string>> => {
+  const grouped = groupReferencesByCollection(entities);
+  const broken = new Set<string>();
+
+  const queries: Array<{
+    collectionName: CollectionName;
+    refIds: string[];
+  }> = [];
+  for (const [collectionName, refIdToEntities] of grouped) {
+    queries.push({
+      collectionName,
+      refIds: [...refIdToEntities.keys()],
+    });
+  }
+
+  if (queries.length === 0) {
+    return broken;
+  }
+
+  const results = await Promise.all(
+    queries.map(({ collectionName, refIds }) =>
+      getDocumentsByIds(collectionName, refIds).then((docs) => ({
+        collectionName,
+        refIds,
+        returnedIds: new Set(
+          docs.map((doc) => doc._id as string).filter(Boolean),
+        ),
+      })),
+    ),
+  );
+
+  for (const { collectionName, refIds, returnedIds } of results) {
+    const collMap = grouped.get(collectionName)!;
+    for (const refId of refIds) {
+      if (!returnedIds.has(refId)) {
+        const ownerEntities = collMap.get(refId);
+        if (ownerEntities) {
+          for (const entityId of ownerEntities) {
+            broken.add(entityId);
+          }
+        }
+      }
+    }
+  }
+
+  return broken;
+};
+
 const useBrokenReferences = (entities: Playable[]): Set<string> => {
   const [brokenEntityIds, setBrokenEntityIds] = useState<Set<string>>(
     new Set(),
@@ -50,58 +100,19 @@ const useBrokenReferences = (entities: Playable[]): Set<string> => {
 
     abortRef.current = false;
 
-    const validate = async () => {
-      const grouped = groupReferencesByCollection(entities);
-      const broken = new Set<string>();
-
-      const queries: Array<{
-        collectionName: CollectionName;
-        refIds: string[];
-      }> = [];
-      for (const [collectionName, refIdToEntities] of grouped) {
-        queries.push({
-          collectionName,
-          refIds: [...refIdToEntities.keys()],
-        });
+    const run = async () => {
+      const result = await validateBrokenReferences(entities);
+      if (!abortRef.current) {
+        setBrokenEntityIds(result);
       }
-
-      const results = await Promise.all(
-        queries.map(({ collectionName, refIds }) =>
-          getDocumentsByIds(collectionName, refIds).then((docs) => ({
-            collectionName,
-            refIds,
-            returnedIds: new Set(
-              docs.map((doc) => doc._id as string).filter(Boolean),
-            ),
-          })),
-        ),
-      );
-
-      if (abortRef.current) return;
-
-      for (const { collectionName, refIds, returnedIds } of results) {
-        const collMap = grouped.get(collectionName)!;
-        for (const refId of refIds) {
-          if (!returnedIds.has(refId)) {
-            const ownerEntities = collMap.get(refId);
-            if (ownerEntities) {
-              for (const entityId of ownerEntities) {
-                broken.add(entityId);
-              }
-            }
-          }
-        }
-      }
-
-      setBrokenEntityIds(broken);
     };
 
-    void validate();
+    void run();
 
     return () => {
       abortRef.current = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fingerprint captures reference changes; entities ref used inside validate
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fingerprint captures reference changes; entities ref used inside run
   }, [fingerprint]);
 
   return brokenEntityIds;

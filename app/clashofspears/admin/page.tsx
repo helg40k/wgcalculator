@@ -10,7 +10,7 @@ import {
   faSpellCheck,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon as Icon } from "@fortawesome/react-fontawesome";
-import { Tabs } from "antd";
+import { Badge, Tabs } from "antd";
 
 import CosAdminArmors from "@/app/clashofspears/admin/ui/CosAdminArmors";
 import CosAdminKeywords from "@/app/clashofspears/admin/ui/CosAdminKeywords";
@@ -19,7 +19,14 @@ import CosAdminSources from "@/app/clashofspears/admin/ui/CosAdminSources";
 import CosAdminStart from "@/app/clashofspears/admin/ui/CosAdminStart";
 import CosAdminTraits from "@/app/clashofspears/admin/ui/CosAdminTraits";
 import CosAdminWeapons from "@/app/clashofspears/admin/ui/CosAdminWeapons";
-import { getMenuItems, MenuItemConst } from "@/app/ui/shared";
+import {
+  BrokenReferencesProvider,
+  useBrokenReferencesState,
+} from "@/app/lib/contexts/BrokenReferencesContext";
+import { GameSystemProvider } from "@/app/lib/contexts/GameSystemContext";
+import { CollectionName, CollectionRegistry } from "@/app/lib/definitions";
+import useBrokenReferencesManager from "@/app/lib/hooks/useBrokenReferencesManager";
+import { getMenuItems, MenuItem, MenuItemConst } from "@/app/ui/shared";
 import TemplatePageLayout, { MenuInfo } from "@/app/ui/TemplatePageLayout";
 
 type MenuKey =
@@ -76,12 +83,40 @@ const MENU_ITEMS: Record<MenuKey, MenuItemConst> = {
 };
 /* eslint-enable sort-keys-fix/sort-keys-fix */
 
-const Page = () => {
+const MONITORED_COLLECTIONS: readonly CollectionName[] = [
+  CollectionRegistry.Source,
+  CollectionRegistry.Keyword,
+] as const;
+
+const PageContent = () => {
   const [activeTabContent, setActiveTabContent] = useState<string>(
     MENU_ITEMS.START.key,
   );
 
-  const adminSiderMenuItems = useMemo(() => getMenuItems(MENU_ITEMS) || [], []);
+  const brokenState = useBrokenReferencesState();
+  useBrokenReferencesManager(MONITORED_COLLECTIONS, brokenState);
+
+  const counts = brokenState.getCounts();
+
+  const adminSiderMenuItems: MenuItem[] = useMemo(() => {
+    const baseItems = getMenuItems(MENU_ITEMS) || [];
+    return baseItems.map((item) => {
+      if (!item || typeof item !== "object" || !("key" in item)) return item;
+      const count = counts[item.key as string] ?? 0;
+      if (count > 0) {
+        return {
+          ...item,
+          label: (
+            <span className="flex items-center justify-between">
+              {(item as any).label}
+              <Badge count={count} size="default" title="" />
+            </span>
+          ),
+        };
+      }
+      return item;
+    });
+  }, [counts]);
 
   const onClickSiderMenu = (info: MenuInfo) => {
     setActiveTabContent(info.key);
@@ -134,20 +169,30 @@ const Page = () => {
   }, [activeTabContent]);
 
   return (
-    <TemplatePageLayout
-      definedHeaderMenuKey="config"
-      siderMenuItems={adminSiderMenuItems}
-      onClickSiderMenu={onClickSiderMenu}
-      contentHeader={contentHeader}
-    >
-      <Tabs
-        tabPosition="top"
-        animated={false}
-        activeKey={activeTabContent}
-        renderTabBar={() => <></>}
-        items={tabsContent}
-      />
-    </TemplatePageLayout>
+    <BrokenReferencesProvider value={brokenState}>
+      <TemplatePageLayout
+        definedHeaderMenuKey="config"
+        siderMenuItems={adminSiderMenuItems}
+        onClickSiderMenu={onClickSiderMenu}
+        contentHeader={contentHeader}
+      >
+        <Tabs
+          tabPosition="top"
+          animated={false}
+          activeKey={activeTabContent}
+          renderTabBar={() => <></>}
+          items={tabsContent}
+        />
+      </TemplatePageLayout>
+    </BrokenReferencesProvider>
+  );
+};
+
+const Page = () => {
+  return (
+    <GameSystemProvider>
+      <PageContent />
+    </GameSystemProvider>
   );
 };
 

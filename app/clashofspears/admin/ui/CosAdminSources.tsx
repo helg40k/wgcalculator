@@ -47,6 +47,7 @@ const CosAdminSources = () => {
     <Spin spinning={loading} size="large">
       <MentionsProvider collectionName={collectionName}>
         <CrudMultiLineView.List
+          collectionName={collectionName}
           singleName={"source"}
           pluralNames={"sources"}
           singleToolbarUntil={5}

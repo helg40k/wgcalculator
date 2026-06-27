@@ -30,8 +30,9 @@ import type { Rule } from "antd/es/form";
 import type { ColumnsType } from "antd/es/table";
 import clsx from "clsx";
 
+import { BrokenReferencesContext } from "@/app/lib/contexts/BrokenReferencesContext";
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
-import { EntityStatus, Playable } from "@/app/lib/definitions";
+import { CollectionName, EntityStatus, Playable } from "@/app/lib/definitions";
 import errorMessage from "@/app/lib/errorMessage";
 import useBrokenReferences from "@/app/lib/hooks/useBrokenReferences";
 import { NEW_ENTITY_TEMP_ID } from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
@@ -180,6 +181,7 @@ const EditModeButtons = ({
 
 // Base props shared by both List and Table
 interface BaseMultiLineViewProps<T extends Playable = Playable> {
+  collectionName?: CollectionName;
   singleName: string;
   pluralNames: string;
   toolbarPosition?: ToolbarPosition;
@@ -801,6 +803,7 @@ const HoverBadge = memo(function HoverBadge({
 
 // List Component
 const CrudMultiLineViewList = <T extends Playable>({
+  collectionName,
   singleName = "item",
   pluralNames = "items",
   toolbarPosition = ToolbarPosition.UP,
@@ -847,7 +850,14 @@ const CrudMultiLineViewList = <T extends Playable>({
     sortableFields,
   });
 
-  const brokenEntityIds = useBrokenReferences(entities);
+  const brokenRefsCtx = useContext(BrokenReferencesContext);
+  const localBrokenIds = useBrokenReferences(
+    brokenRefsCtx && collectionName ? [] : entities,
+  );
+  const brokenEntityIds =
+    brokenRefsCtx && collectionName
+      ? brokenRefsCtx.getBrokenIds(collectionName)
+      : localBrokenIds;
 
   const [mentionsVersion, setMentionsVersion] = useState(0);
 
@@ -975,6 +985,7 @@ const CrudMultiLineViewList = <T extends Playable>({
 
 // Table Component
 const CrudMultiLineViewTable = <T extends Playable>({
+  collectionName,
   singleName = "item",
   pluralNames = "items",
   toolbarPosition = ToolbarPosition.UP,
@@ -1028,7 +1039,14 @@ const CrudMultiLineViewTable = <T extends Playable>({
       .map((col) => ({ key: col.field as keyof T, label: col.header })),
   });
 
-  const brokenEntityIds = useBrokenReferences(entities);
+  const brokenRefsCtx = useContext(BrokenReferencesContext);
+  const localBrokenIds = useBrokenReferences(
+    brokenRefsCtx && collectionName ? [] : entities,
+  );
+  const brokenEntityIds =
+    brokenRefsCtx && collectionName
+      ? brokenRefsCtx.getBrokenIds(collectionName)
+      : localBrokenIds;
 
   // Game system context for setting systemId
   const [gameSystem] = useContext(GameSystemContext);

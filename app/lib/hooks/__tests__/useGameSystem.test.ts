@@ -98,7 +98,7 @@ describe("useGameSystem", () => {
     });
 
     it("should handle null pathname", async () => {
-      mockUsePathname.mockReturnValue(null);
+      mockUsePathname.mockReturnValue(null as unknown as string);
       mockGetDocuments.mockResolvedValueOnce([]);
 
       renderHook(() => useGameSystem());

@@ -73,6 +73,7 @@ const CosAdminKeywords = () => {
     <Spin spinning={loading} size="large">
       <MentionsProvider collectionName={collectionName}>
         <CrudMultiLineView.Table
+          collectionName={collectionName}
           singleName={"keyword"}
           pluralNames={"keywords"}
           singleToolbarUntil={10}

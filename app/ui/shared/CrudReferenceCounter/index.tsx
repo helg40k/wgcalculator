@@ -217,7 +217,9 @@ const ReferenceCounter = ({
 
       const oldCollNames = Object.values(currentReferences).map((r) => r.name);
       const newCollNames = Object.values(references).map((r) => r.name);
-      const affected = [...new Set([...oldCollNames, ...newCollNames])];
+      const affected = [
+        ...new Set([...oldCollNames, ...newCollNames, collectionName]),
+      ];
       if (affected.length > 0) {
         invalidateCollections(affected);
       }
