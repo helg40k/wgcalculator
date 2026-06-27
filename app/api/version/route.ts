@@ -1,19 +1,16 @@
 import fs from "fs";
-import { NextApiRequest, NextApiResponse } from "next";
+import { NextResponse } from "next/server";
 import path from "path";
 
-// internal function to get the app version
-const version = (req: NextApiRequest, res: NextApiResponse) => {
+export const GET = () => {
   try {
     const filePath = path.join(process.cwd(), "package.json");
     const fileContents = fs.readFileSync(filePath, "utf8");
     const json = JSON.parse(fileContents);
 
-    res.status(200).json({ version: json.version });
+    return NextResponse.json({ version: json.version });
   } catch (error) {
     console.error("Cannot read package.json:", error);
-    res.status(500).json({ error: "Cannot read version" });
+    return NextResponse.json({ error: "Cannot read version" }, { status: 500 });
   }
 };
-
-export default version;
