@@ -12,7 +12,6 @@ import {
   PaperClipIcon,
 } from "@heroicons/react/24/outline";
 import { theme, Tooltip } from "antd";
-import { SessionProvider, useSession } from "next-auth/react";
 
 import { invalidateCollections } from "@/app/lib/collectionInvalidation";
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
@@ -56,7 +55,6 @@ const ReferenceCounter = ({
   } = theme.useToken();
   const [, utils] = useContext(GameSystemContext);
   const mentionsCtx = useContext(MentionsContext);
-  const { data: session } = useSession();
   const { loadEntities } = useEntities();
   const entitiesCtx = useContext(EntitiesUpdateContext);
   const [currentReferences, setCurrentReferences] = useState<References>(
@@ -226,19 +224,17 @@ const ReferenceCounter = ({
     };
 
     root.render(
-      <SessionProvider session={session}>
-        <CrudReferenceModal
-          showModal={true}
-          entityId={entity._id}
-          entityName={entity.name}
-          onOk={handleSaved}
-          onCancel={closeModal}
-          references={currentReferences}
-          mentions={mentions}
-          collectionName={collectionName}
-          allowedToRefer={allowedToRefer}
-        />
-      </SessionProvider>,
+      <CrudReferenceModal
+        showModal={true}
+        entityId={entity._id}
+        entityName={entity.name}
+        onOk={handleSaved}
+        onCancel={closeModal}
+        references={currentReferences}
+        mentions={mentions}
+        collectionName={collectionName}
+        allowedToRefer={allowedToRefer}
+      />,
     );
   };
 

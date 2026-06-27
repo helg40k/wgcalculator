@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { SessionProvider } from "next-auth/react";
 
 import TemplatePageLayout, { MenuInfo } from "@/app/ui/TemplatePageLayout";
 
@@ -11,14 +10,12 @@ const Page = () => {
   };
 
   return (
-    <SessionProvider>
-      <TemplatePageLayout
-        definedHeaderMenuKey="config"
-        onClickSiderMenu={onClickSiderMenu}
-      >
-        <p>Hello Test of Honour Admin</p>
-      </TemplatePageLayout>
-    </SessionProvider>
+    <TemplatePageLayout
+      definedHeaderMenuKey="config"
+      onClickSiderMenu={onClickSiderMenu}
+    >
+      <p>Hello Test of Honour Admin</p>
+    </TemplatePageLayout>
   );
 };
 

@@ -11,7 +11,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon as Icon } from "@fortawesome/react-fontawesome";
 import { Tabs } from "antd";
-import { SessionProvider } from "next-auth/react";
 
 import CosAdminArmors from "@/app/clashofspears/admin/ui/CosAdminArmors";
 import CosAdminKeywords from "@/app/clashofspears/admin/ui/CosAdminKeywords";
@@ -135,22 +134,20 @@ const Page = () => {
   }, [activeTabContent]);
 
   return (
-    <SessionProvider>
-      <TemplatePageLayout
-        definedHeaderMenuKey="config"
-        siderMenuItems={adminSiderMenuItems}
-        onClickSiderMenu={onClickSiderMenu}
-        contentHeader={contentHeader}
-      >
-        <Tabs
-          tabPosition="top"
-          animated={false}
-          activeKey={activeTabContent}
-          renderTabBar={() => <></>}
-          items={tabsContent}
-        />
-      </TemplatePageLayout>
-    </SessionProvider>
+    <TemplatePageLayout
+      definedHeaderMenuKey="config"
+      siderMenuItems={adminSiderMenuItems}
+      onClickSiderMenu={onClickSiderMenu}
+      contentHeader={contentHeader}
+    >
+      <Tabs
+        tabPosition="top"
+        animated={false}
+        activeKey={activeTabContent}
+        renderTabBar={() => <></>}
+        items={tabsContent}
+      />
+    </TemplatePageLayout>
   );
 };
 

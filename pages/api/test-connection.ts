@@ -1,12 +1,10 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { getServerSession } from "next-auth";
 
+import { auth } from "@/auth";
 import getDocumentById from "@/components/firestore/getDocumentById";
 
-import authOptions from "./auth/[...nextauth]";
-
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-  const session = await getServerSession(req, res, authOptions);
+  const session = await auth(req, res);
 
   if (!session) {
     return res.status(401).json({ error: "Unauthorized" });

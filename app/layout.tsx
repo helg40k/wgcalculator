@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { Providers } from "@/app/providers";
 import { inter } from "@/app/ui/fonts";
 
 import "@/app/ui/globals.css";
@@ -16,7 +17,9 @@ const RootLayout = ({
 }>) => {
   return (
     <html lang="en" className="bg-layout">
-      <body className={`${inter.className} antialiased`}>{children}</body>
+      <body className={`${inter.className} antialiased`}>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 };

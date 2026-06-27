@@ -18,7 +18,7 @@ const useUser = () => {
     [isAuthenticated, data],
   );
   const isAdmin = useMemo(
-    () => isAuthenticated && !!(data?.user as any)?.admin,
+    () => isAuthenticated && !!data?.user?.admin,
     [isAuthenticated, data],
   );
 

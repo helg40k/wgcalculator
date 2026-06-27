@@ -10,7 +10,6 @@ import {
 } from "@ant-design/icons";
 import { theme } from "antd";
 import Link from "next/link";
-import { SessionProvider } from "next-auth/react";
 
 import { getMenuItems, MenuItemConst } from "@/app/ui/shared";
 import TemplatePageLayout, { MenuInfo } from "@/app/ui/TemplatePageLayout";
@@ -141,16 +140,14 @@ const Home = () => {
   };
 
   return (
-    <SessionProvider>
-      <TemplatePageLayout
-        headerMenuItems={headerMenuItems}
-        onClickHeaderMenu={onClickHeaderMenu}
-        siderMenuItems={siderMenuItems}
-        onClickSiderMenu={onClickSiderMenu}
-      >
-        Home
-      </TemplatePageLayout>
-    </SessionProvider>
+    <TemplatePageLayout
+      headerMenuItems={headerMenuItems}
+      onClickHeaderMenu={onClickHeaderMenu}
+      siderMenuItems={siderMenuItems}
+      onClickSiderMenu={onClickSiderMenu}
+    >
+      Home
+    </TemplatePageLayout>
   );
 };
 
