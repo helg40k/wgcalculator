@@ -93,6 +93,11 @@ describe("CrudReferenceLink.View", () => {
     fireEvent.click(screen.getByTestId("ant-tag"));
     expect(onClick).toHaveBeenCalledTimes(1);
   });
+
+  it("applies className to the tag", () => {
+    render(<CrudReferenceLink.View link="p.1" className="!bg-red-50" />);
+    expect(screen.getByTestId("ant-tag")).toHaveClass("!bg-red-50");
+  });
 });
 
 describe("CrudReferenceLink.Edit", () => {

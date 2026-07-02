@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 
 import "@testing-library/jest-dom";
@@ -2744,6 +2745,294 @@ describe("CrudReferenceModal", () => {
       expect(container.textContent).not.toContain("References were changed");
       expect(container.textContent).toContain(
         "Would you like to ignore changes?",
+      );
+    });
+  });
+
+  describe("Broken references in title", () => {
+    it("should show singular broken message when one reference is broken", async () => {
+      mockLoadReferences.mockImplementation((colName) => {
+        if (colName === "PROFILES") {
+          return Promise.resolve([
+            {
+              _id: "ref1",
+              description: "Test description",
+              name: "Test Profile",
+              status: "active",
+            },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      render(
+        <CrudReferenceModal
+          {...defaultProps}
+          references={{
+            ref1: { name: mockCollectionName.PROFILES as CollectionName },
+            ref2: { name: mockCollectionName.WEAPONS as CollectionName },
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("modal-title")).toHaveTextContent(
+          "1 reference is broken",
+        );
+      });
+    });
+
+    it("should show plural broken message when multiple references are broken", async () => {
+      mockLoadReferences.mockImplementation((colName) => {
+        if (colName === "PROFILES") {
+          return Promise.resolve([]);
+        }
+        return Promise.resolve([]);
+      });
+
+      render(
+        <CrudReferenceModal
+          {...defaultProps}
+          references={{
+            ref1: { name: mockCollectionName.PROFILES as CollectionName },
+            ref2: { name: mockCollectionName.WEAPONS as CollectionName },
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("modal-title")).toHaveTextContent(
+          "2 references are broken",
+        );
+      });
+    });
+
+    it("should not show broken message when all references are valid", async () => {
+      render(<CrudReferenceModal {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId("modal-title")).toHaveTextContent(
+          "'Test Entity' references",
+        );
+      });
+      expect(screen.getByTestId("modal-title")).not.toHaveTextContent(
+        "reference is broken",
+      );
+      expect(screen.getByTestId("modal-title")).not.toHaveTextContent(
+        "references are broken",
+      );
+    });
+  });
+
+  describe("Broken references in expand lists", () => {
+    const getProfilesReferenceContent = () =>
+      within(
+        screen.getByTestId("collapse-item-reference-PROFILES"),
+      ).getByTestId("collapse-content");
+
+    it("should render broken reference with default title and red styling", async () => {
+      mockLoadReferences.mockImplementation((colName) => {
+        if (colName === "PROFILES") {
+          return Promise.resolve([
+            {
+              _id: "ref1",
+              description: "Test description",
+              name: "Test Profile",
+              status: "active",
+            },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      render(
+        <CrudReferenceModal
+          {...defaultProps}
+          references={{
+            "broken-ref": {
+              name: mockCollectionName.PROFILES as CollectionName,
+            },
+            ref1: { name: mockCollectionName.PROFILES as CollectionName },
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Broken reference...")).toBeInTheDocument();
+      });
+
+      const brokenRow = screen.getByText("Broken reference...").closest("div");
+      expect(brokenRow?.className).toContain("bg-red-200");
+    });
+
+    it("should render broken reference with stored title", async () => {
+      mockLoadReferences.mockResolvedValue([]);
+
+      render(
+        <CrudReferenceModal
+          {...defaultProps}
+          references={{
+            "broken-ref": {
+              name: mockCollectionName.PROFILES as CollectionName,
+              title: "Old Profile Name",
+            },
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Old Profile Name")).toBeInTheDocument();
+      });
+      expect(screen.queryByText("Broken reference...")).not.toBeInTheDocument();
+    });
+
+    it("should render read-only link for broken reference", async () => {
+      mockLoadReferences.mockResolvedValue([]);
+
+      render(
+        <CrudReferenceModal
+          {...defaultProps}
+          references={{
+            "broken-ref": {
+              link: "p.42",
+              name: mockCollectionName.PROFILES as CollectionName,
+              title: "Missing Profile",
+            },
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Missing Profile")).toBeInTheDocument();
+      });
+
+      const linkTag = screen.getByTestId("ant-tag");
+      expect(linkTag).toHaveTextContent("p.42");
+      expect(linkTag).toHaveClass("!bg-red-50");
+    });
+
+    it("should sort broken references alphabetically by title", async () => {
+      mockLoadReferences.mockResolvedValue([]);
+
+      render(
+        <CrudReferenceModal
+          {...defaultProps}
+          references={{
+            "broken-a": {
+              name: mockCollectionName.PROFILES as CollectionName,
+              title: "Alpha Ref",
+            },
+            "broken-z": {
+              name: mockCollectionName.PROFILES as CollectionName,
+              title: "Zebra Ref",
+            },
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Alpha Ref")).toBeInTheDocument();
+      });
+
+      const contentText = getProfilesReferenceContent().textContent ?? "";
+      expect(contentText.indexOf("Alpha Ref")).toBeLessThan(
+        contentText.indexOf("Zebra Ref"),
+      );
+    });
+
+    it("should show broken references before valid references in the same collection", async () => {
+      mockLoadReferences.mockImplementation((colName) => {
+        if (colName === "PROFILES") {
+          return Promise.resolve([
+            {
+              _id: "ref1",
+              description: "Test description",
+              name: "Test Profile",
+              status: "active",
+            },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      render(
+        <CrudReferenceModal
+          {...defaultProps}
+          references={{
+            "broken-ref": {
+              name: mockCollectionName.PROFILES as CollectionName,
+              title: "Broken First",
+            },
+            ref1: { name: mockCollectionName.PROFILES as CollectionName },
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Broken First")).toBeInTheDocument();
+        expect(screen.getByText("Test Profile")).toBeInTheDocument();
+      });
+
+      const contentText = getProfilesReferenceContent().textContent ?? "";
+      expect(contentText.indexOf("Broken First")).toBeLessThan(
+        contentText.indexOf("Test Profile"),
+      );
+    });
+
+    it("should not show Loading placeholder when collection has only broken references", async () => {
+      mockLoadReferences.mockResolvedValue([]);
+
+      render(
+        <CrudReferenceModal
+          {...defaultProps}
+          references={{
+            "broken-ref": {
+              name: mockCollectionName.PROFILES as CollectionName,
+              title: "Only Broken",
+            },
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Only Broken")).toBeInTheDocument();
+      });
+      expect(getProfilesReferenceContent().textContent).not.toContain(
+        "Loading...",
+      );
+    });
+
+    it("should remove broken reference when delete is clicked", async () => {
+      mockLoadReferences.mockResolvedValue([]);
+
+      render(
+        <CrudReferenceModal
+          {...defaultProps}
+          references={{
+            "broken-ref": {
+              name: mockCollectionName.PROFILES as CollectionName,
+              title: "Remove Me",
+            },
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Remove Me")).toBeInTheDocument();
+      });
+
+      const brokenRow = screen.getByText("Remove Me").closest("div")!;
+      const deleteButton = brokenRow
+        .querySelector('[data-testid="trash-icon"]')!
+        .closest("button")!;
+
+      await act(async () => {
+        fireEvent.click(deleteButton);
+      });
+
+      expect(screen.queryByText("Remove Me")).not.toBeInTheDocument();
+      expect(screen.getByTestId("modal-title")).not.toHaveTextContent(
+        "reference is broken",
       );
     });
   });

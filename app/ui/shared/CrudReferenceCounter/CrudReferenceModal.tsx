@@ -31,6 +31,7 @@ import {
   EntityStatusRegistry,
   Mentions,
   Playable,
+  Reference,
   References,
 } from "@/app/lib/definitions";
 import usePlayableReferences from "@/app/lib/hooks/usePlayableReferences";
@@ -148,6 +149,9 @@ const DescriptionTooltip = ({
     {children}
   </Tooltip>
 );
+
+const getBrokenRefTitle = (ref?: Reference): string =>
+  ref?.title || "Broken reference...";
 
 interface CrudReferenceModalProps {
   showModal: boolean;
@@ -288,6 +292,21 @@ const CrudReferenceModal = ({
     return results;
   }, [allowedToRefer, references]);
 
+  const brokenRefCount = useMemo(() => {
+    if (loading) return 0;
+
+    let count = 0;
+    for (const [colName, entIds] of Object.entries(groupedRefIds)) {
+      if (loadingRef.current.has(colName) || entIds.length === 0) continue;
+
+      const loadedIds = new Set(
+        (loadedEntities[colName as CollectionName] || []).map((e) => e._id),
+      );
+      count += entIds.filter((id) => !loadedIds.has(id)).length;
+    }
+    return count;
+  }, [groupedRefIds, loadedEntities, loading]);
+
   useEffect(() => {
     const entriesToLoad = Object.entries(groupedRefIds).filter(
       ([colName, entIds]) =>
@@ -352,9 +371,54 @@ const CrudReferenceModal = ({
           (ent) => !oldReferences[ent._id],
         );
         const sortedEntities = [...savedEntities, ...unsavedEntities];
+
+        const loadedIds = new Set(entities.map((e) => e._id));
+        const isCollectionLoaded = !loadingRef.current.has(colName) && !loading;
+        const brokenIds = isCollectionLoaded
+          ? entIds
+              .filter((id) => !loadedIds.has(id))
+              .sort((a, b) => {
+                return getBrokenRefTitle(references[a]).localeCompare(
+                  getBrokenRefTitle(references[b]),
+                );
+              })
+          : [];
+
         return {
           children: (
             <div className="-mt-5">
+              {brokenIds.map((brokenId) => {
+                const ref = references[brokenId];
+                const title = getBrokenRefTitle(ref);
+                return (
+                  <div
+                    key={`${colName}-broken-${brokenId}`}
+                    className="my-0.5 py-0.5 pl-12 flex items-center justify-between bg-red-200 hover:bg-red-400"
+                  >
+                    <span style={{ color: colorText }}>{title}</span>
+                    <div className="flex items-center gap-1">
+                      {ref?.link && (
+                        <CrudReferenceLink.View
+                          link={ref.link}
+                          className="!bg-red-50"
+                        />
+                      )}
+                      <DeleteButton
+                        onDelete={() => {
+                          setReferences((prev) => {
+                            const updated = { ...prev };
+                            delete updated[brokenId];
+                            return updated;
+                          });
+                        }}
+                        name="reference"
+                        disabled={loading || disableModal}
+                      />
+                      <div className="pr-2" />
+                    </div>
+                  </div>
+                );
+              })}
               {sortedEntities.length > 0
                 ? sortedEntities.map((ent) => {
                     const isUnsaved = !oldReferences[ent._id];
@@ -437,14 +501,16 @@ const CrudReferenceModal = ({
                       </div>
                     );
                   })
-                : entIds.map((id) => (
-                    <div
-                      key={`${colName}-${id}`}
-                      className="my-0.5 py-0.5 pl-12 flex items-center justify-between"
-                    >
-                      Loading...
-                    </div>
-                  ))}
+                : !isCollectionLoaded
+                  ? entIds.map((id) => (
+                      <div
+                        key={`${colName}-${id}`}
+                        className="my-0.5 py-0.5 pl-12 flex items-center justify-between"
+                      >
+                        Loading...
+                      </div>
+                    ))
+                  : null}
               {showingSelect === colName ? (
                 <div className="flex justify-start py-1 pr-3 w-full gap-1">
                   <Select
@@ -815,10 +881,19 @@ const CrudReferenceModal = ({
     <Modal
       open={showModal}
       title={
-        <span>
-          {`'${entityName}' references `}
-          <Spin spinning={loading} />
-        </span>
+        <div>
+          <span>
+            {`'${entityName}' references `}
+            <Spin spinning={loading} />
+          </span>
+          {brokenRefCount > 0 && (
+            <div className="text-red-600 text-sm font-normal mt-1 pl-2">
+              {brokenRefCount === 1
+                ? "1 reference is broken"
+                : `${brokenRefCount} references are broken`}
+            </div>
+          )}
+        </div>
       }
       onOk={async () => {
         setLoading(true);

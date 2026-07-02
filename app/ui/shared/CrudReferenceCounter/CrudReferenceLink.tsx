@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import { Input, Tag } from "antd";
 
 interface CrudReferenceLinkViewProps {
+  className?: string;
   highlighted?: boolean;
   link?: string;
   onClick?: () => void;
 }
 
 const CrudReferenceLinkView: React.FC<CrudReferenceLinkViewProps> = ({
+  className,
   highlighted,
   link,
   onClick,
@@ -17,7 +19,8 @@ const CrudReferenceLinkView: React.FC<CrudReferenceLinkViewProps> = ({
     <Tag
       onClick={onClick}
       color={highlighted ? "volcano" : undefined}
-      style={{ cursor: "pointer" }}
+      className={className}
+      style={{ cursor: onClick ? "pointer" : "default" }}
     >
       {entityLink || "..."}
     </Tag>
