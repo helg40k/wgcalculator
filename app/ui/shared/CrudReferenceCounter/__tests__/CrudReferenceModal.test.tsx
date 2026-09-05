@@ -698,7 +698,7 @@ describe("CrudReferenceModal", () => {
       expect(screen.queryByTestId("ant-select")).not.toBeInTheDocument();
     });
 
-    it("should close select without adding when nothing is selected", async () => {
+    it("should keep confirm disabled and the select open when nothing is selected", async () => {
       await act(async () => {
         render(<CrudReferenceModal {...defaultProps} />);
       });
@@ -717,13 +717,19 @@ describe("CrudReferenceModal", () => {
         expect(screen.getByTestId("ant-select")).toBeInTheDocument();
       });
 
+      expect(screen.getByTestId("crud-reference-select-row")).not.toHaveClass(
+        "bg-red-200",
+      );
+
+      const checkButton = screen.getByTestId("check-icon").closest("button")!;
+      expect(checkButton).toBeDisabled();
+
       await act(async () => {
-        const checkButton = screen.getByTestId("check-icon").closest("button")!;
         fireEvent.click(checkButton);
       });
 
       expect(screen.getByText("References (2 added)")).toBeInTheDocument();
-      expect(screen.queryByTestId("ant-select")).not.toBeInTheDocument();
+      expect(screen.getByTestId("ant-select")).toBeInTheDocument();
     });
 
     it("should pass updated references to onOk after adding", async () => {
@@ -3207,6 +3213,37 @@ describe("CrudReferenceModal", () => {
           ),
         ),
       ).toBe(true);
+      expect(
+        within(wrongPanel).queryByTestId("pencil-square-icon"),
+      ).not.toBeInTheDocument();
+      expect(within(wrongPanel).getByTestId("trash-icon")).toBeInTheDocument();
+    });
+
+    it("should show the repair button on a broken ref in a known collection", async () => {
+      mockLoadReferences.mockResolvedValue([]);
+
+      render(
+        <CrudReferenceModal
+          {...defaultProps}
+          references={{
+            "broken-ref": {
+              name: mockCollectionName.PROFILES as CollectionName,
+              title: "Missing Profile",
+            },
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Missing Profile")).toBeInTheDocument();
+      });
+
+      const profilesPanel = screen.getByTestId(
+        "collapse-item-reference-PROFILES",
+      );
+      expect(
+        within(profilesPanel).getByTestId("pencil-square-icon"),
+      ).toBeInTheDocument();
     });
 
     it("should keep Add more and omit collection tooltip for a known collection with a broken entity", async () => {
@@ -3272,6 +3309,179 @@ describe("CrudReferenceModal", () => {
       );
       expect(loadedCollections).not.toContain("wrong");
       expect(loadedCollections).toContain("PROFILES");
+    });
+  });
+
+  describe("Repair broken reference", () => {
+    const brokenReferences = {
+      "broken-ref": {
+        link: "p.12",
+        name: mockCollectionName.PROFILES as CollectionName,
+        title: "Broken Title",
+      },
+    };
+
+    const openRepairSelect = async () => {
+      mockLoadReferences.mockResolvedValue([]);
+
+      render(
+        <CrudReferenceModal {...defaultProps} references={brokenReferences} />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Broken Title")).toBeInTheDocument();
+      });
+
+      const profilesPanel = screen.getByTestId(
+        "collapse-item-reference-PROFILES",
+      );
+      const repairButton = within(profilesPanel)
+        .getByTestId("pencil-square-icon")
+        .closest("button")!;
+
+      await act(async () => {
+        fireEvent.click(repairButton);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+    };
+
+    it("should replace the broken row with the select row and prefill the link", async () => {
+      await openRepairSelect();
+
+      expect(screen.getByTestId("ant-input")).toHaveValue("p.12");
+      expect(screen.getByTestId("check-icon").closest("button")).toBeDisabled();
+      expect(screen.getByTestId("modal-ok-button")).toBeDisabled();
+      expect(
+        screen.queryByTestId("pencil-square-icon"),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("crud-reference-select-row")).toHaveClass(
+        "bg-red-200",
+      );
+    });
+
+    it("should keep confirm disabled until an option is chosen", async () => {
+      await openRepairSelect();
+
+      const checkButton = screen.getByTestId("check-icon").closest("button")!;
+      expect(checkButton).toBeDisabled();
+
+      await act(async () => {
+        fireEvent.click(checkButton);
+      });
+
+      expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      expect(checkButton).toBeDisabled();
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "available1" },
+        });
+      });
+
+      expect(
+        screen.getByTestId("check-icon").closest("button"),
+      ).not.toBeDisabled();
+    });
+
+    it("should replace the broken id with the selected entity on confirm", async () => {
+      await openRepairSelect();
+
+      mockLoadReferences.mockResolvedValue([
+        {
+          _id: "available1",
+          description: "Available description",
+          name: "Available Entity 1",
+          status: "active",
+        },
+      ]);
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("ant-select"), {
+          target: { value: "available1" },
+        });
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("check-icon").closest("button")!);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Available Entity 1")).toBeInTheDocument();
+      });
+      expect(screen.queryByText("Broken Title")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("ant-select")).not.toBeInTheDocument();
+      expect(screen.getByTestId("modal-title")).not.toHaveTextContent(
+        "reference is broken",
+      );
+    });
+
+    it("should restore the broken title when repair is cancelled", async () => {
+      await openRepairSelect();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("x-mark-icon").closest("button")!);
+      });
+
+      expect(screen.getByText("Broken Title")).toBeInTheDocument();
+      expect(screen.queryByTestId("ant-select")).not.toBeInTheDocument();
+      expect(screen.getByTestId("pencil-square-icon")).toBeInTheDocument();
+    });
+
+    it("should exclude other current refs but not the broken id when loading options", async () => {
+      mockLoadReferences.mockImplementation((colName) => {
+        if (colName === "PROFILES") {
+          return Promise.resolve([
+            {
+              _id: "ref1",
+              description: "Test description",
+              name: "Test Profile",
+              status: "active",
+            },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      render(
+        <CrudReferenceModal
+          {...defaultProps}
+          references={{
+            ...defaultProps.references,
+            "broken-ref": {
+              name: mockCollectionName.PROFILES as CollectionName,
+              title: "Broken Title",
+            },
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Broken Title")).toBeInTheDocument();
+      });
+
+      const profilesPanel = screen.getByTestId(
+        "collapse-item-reference-PROFILES",
+      );
+      await act(async () => {
+        fireEvent.click(
+          within(profilesPanel)
+            .getByTestId("pencil-square-icon")
+            .closest("button")!,
+        );
+      });
+
+      await waitFor(() => {
+        expect(mockLoadEntitiesForReferences).toHaveBeenCalled();
+      });
+
+      const profilesCall = mockLoadEntitiesForReferences.mock.calls.find(
+        (call) => call[0] === mockCollectionName.PROFILES,
+      );
+      expect(profilesCall?.[1]).toEqual(["ref1"]);
+      expect(profilesCall?.[1]).not.toContain("broken-ref");
     });
   });
 

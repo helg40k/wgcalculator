@@ -8,19 +8,15 @@ import React, {
 import { CaretRightOutlined } from "@ant-design/icons";
 import {
   ArrowPathIcon,
-  CheckIcon,
   PencilSquareIcon,
   TrashIcon,
-  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import {
   Button,
   Collapse,
   CollapseProps,
   Divider,
-  Input,
   Modal,
-  Select,
   Spin,
   theme,
   Tooltip,
@@ -38,6 +34,7 @@ import {
 } from "@/app/lib/definitions";
 import usePlayableReferences from "@/app/lib/hooks/usePlayableReferences";
 import CrudReferenceLink from "@/app/ui/shared/CrudReferenceCounter/CrudReferenceLink";
+import CrudReferenceSelectRow from "@/app/ui/shared/CrudReferenceCounter/CrudReferenceSelectRow";
 import EntityStatusUI from "@/app/ui/shared/EntityStatusUI";
 
 const COLLAPSE_DISABLED_STYLE_ID = "collapse-disabled-styles";
@@ -85,9 +82,10 @@ const DeleteButton = ({ onDelete, name, disabled }: DeleteButtonProps) => (
 
 interface RepairButtonProps {
   disabled: boolean;
+  onRepair: () => void;
 }
 
-const RepairButton = ({ disabled }: RepairButtonProps) => (
+const RepairButton = ({ disabled, onRepair }: RepairButtonProps) => (
   <Tooltip
     color="blue"
     title={!disabled ? "Repair this reference" : undefined}
@@ -98,7 +96,7 @@ const RepairButton = ({ disabled }: RepairButtonProps) => (
         height: "22px",
         width: "22px",
       }}
-      onClick={() => {}}
+      onClick={onRepair}
       icon={
         <span className="text-black hover:text-blue-900 transition-colors">
           <PencilSquareIcon className="w-3" />
@@ -238,6 +236,7 @@ const CrudReferenceModal = ({
   >([]);
   const [availableEntities, setAvailableEntities] = useState<Playable[]>([]);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  const [repairingRefId, setRepairingRefId] = useState<string | null>(null);
   const [linkInput, setLinkInput] = useState("");
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
   const [exhaustedCollections, setExhaustedCollections] = useState<
@@ -255,6 +254,86 @@ const CrudReferenceModal = ({
   } = usePlayableReferences();
   const loadingRef = useRef<Set<string>>(new Set());
   const referencesScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const resetSelectUi = () => {
+    setSelectedEntityId(null);
+    setLinkInput("");
+    setShowingSelect(null);
+    setRepairingRefId(null);
+    setSelectOptions([]);
+    setAvailableEntities([]);
+    setDisableModal(false);
+  };
+
+  const applyLoadedSelectOptions = (entities: Playable[]) => {
+    const sortedOptions = [...entities].sort((ent1, ent2) =>
+      ent1.name.localeCompare(ent2.name),
+    );
+    setAvailableEntities(sortedOptions);
+    setSelectOptions(
+      sortedOptions.map((ent) => ({
+        label: ent.name,
+        value: ent._id,
+      })),
+    );
+    setDisableModal(true);
+  };
+
+  const loadAvailableEntities = async (
+    colName: CollectionName,
+    excludeIds: string[],
+  ): Promise<Playable[]> => {
+    const entToRefs = await loadEntitiesForReferences(colName, excludeIds);
+    return entToRefs.filter((ent) => !references[ent._id]);
+  };
+
+  const markCollectionExhaustedIfEmpty = (
+    colName: CollectionName,
+    entities: Playable[],
+  ) => {
+    if (entities.length > 0) return false;
+    setExhaustedCollections((prev) => new Set(prev).add(colName));
+    return true;
+  };
+
+  const buildSelectedReference = (colName: CollectionName): Reference => {
+    const selectedEntity = availableEntities.find(
+      (ent) => ent._id === selectedEntityId,
+    );
+    return {
+      name: colName,
+      ...(linkInput.trim() && { link: linkInput.trim() }),
+      ...(selectedEntity && { title: selectedEntity.name }),
+    };
+  };
+
+  const appendLoadedEntity = (colName: CollectionName) => {
+    const selectedEntity = availableEntities.find(
+      (ent) => ent._id === selectedEntityId,
+    );
+    if (!selectedEntity) return;
+    setLoadedEntities((prev) => ({
+      ...prev,
+      [colName]: [...(prev[colName] || []), selectedEntity],
+    }));
+  };
+
+  const confirmSelect = (colName: CollectionName) => {
+    if (!selectedEntityId) return;
+    setReferences((prev) => {
+      const next = { ...prev };
+      if (repairingRefId) delete next[repairingRefId];
+      next[selectedEntityId] = buildSelectedReference(colName);
+      return next;
+    });
+    appendLoadedEntity(colName);
+    const remaining = availableEntities.filter(
+      (ent) => ent._id !== selectedEntityId,
+    );
+    markCollectionExhaustedIfEmpty(colName, remaining);
+    if (!repairingRefId) setScrollToBottom(true);
+    resetSelectUi();
+  };
 
   const refNumber = useMemo(() => {
     return Object.keys(references).filter((id) => oldReferences[id]).length;
@@ -446,6 +525,23 @@ const CrudReferenceModal = ({
               {brokenIds.map((brokenId) => {
                 const ref = references[brokenId];
                 const title = getBrokenRefTitle(ref);
+                if (repairingRefId === brokenId) {
+                  return (
+                    <CrudReferenceSelectRow
+                      key={`${colName}-repair-${brokenId}`}
+                      availableEntities={availableEntities}
+                      selectOptions={selectOptions}
+                      selectedEntityId={selectedEntityId}
+                      linkInput={linkInput}
+                      placeholder={title}
+                      onSelect={setSelectedEntityId}
+                      onLinkChange={setLinkInput}
+                      onConfirm={() => confirmSelect(colName as CollectionName)}
+                      onCancel={resetSelectUi}
+                      className="pl-1 bg-red-200"
+                    />
+                  );
+                }
                 return (
                   <div
                     key={`${colName}-broken-${brokenId}`}
@@ -459,7 +555,32 @@ const CrudReferenceModal = ({
                           className="!bg-red-50 !mr-0"
                         />
                       )}
-                      <RepairButton disabled={loading || disableModal} />
+                      {isKnownCollection(colName) && (
+                        <RepairButton
+                          disabled={loading || disableModal}
+                          onRepair={async () => {
+                            const colNameTyped = colName as CollectionName;
+                            const existingIds = (
+                              groupedRefIds[colNameTyped] || []
+                            ).filter((id) => id !== brokenId);
+                            const filtered = await loadAvailableEntities(
+                              colNameTyped,
+                              existingIds,
+                            );
+                            if (
+                              markCollectionExhaustedIfEmpty(
+                                colNameTyped,
+                                filtered,
+                              )
+                            ) {
+                              return;
+                            }
+                            applyLoadedSelectOptions(filtered);
+                            setRepairingRefId(brokenId);
+                            setLinkInput(ref?.link ?? "");
+                          }}
+                        />
+                      )}
                       <DeleteButton
                         onDelete={() => {
                           setReferences((prev) => {
@@ -573,173 +694,17 @@ const CrudReferenceModal = ({
                     ))
                   : null}
               {showingSelect === colName ? (
-                <div className="flex justify-start py-1 pr-3 w-full gap-1">
-                  <Select
-                    placeholder="Select a new reference..."
-                    options={selectOptions}
-                    value={selectedEntityId}
-                    onChange={(value) => setSelectedEntityId(value)}
-                    style={{ flex: "1", minWidth: "0" }}
-                    showSearch
-                    filterOption={(input, option) =>
-                      (option?.label ?? "")
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }
-                    optionRender={(option) => {
-                      const entity = availableEntities.find(
-                        (ent) => ent._id === option.value,
-                      );
-                      return (
-                        <div className="relative w-full">
-                          <span>{option.label}</span>
-                          {entity &&
-                            entity.status !== EntityStatusRegistry.ACTIVE && (
-                              <div
-                                className="absolute -right-1"
-                                style={{ top: -1 }}
-                              >
-                                <EntityStatusUI.Tag
-                                  entityId={entity._id}
-                                  status={entity.status}
-                                  editable={false}
-                                />
-                              </div>
-                            )}
-                        </div>
-                      );
-                    }}
-                    labelRender={(props) => {
-                      const entity = availableEntities.find(
-                        (ent) => ent._id === props.value,
-                      );
-                      return (
-                        <div className="relative w-full">
-                          <span className="block truncate pr-16">
-                            {props.label}
-                          </span>
-                          {entity &&
-                            entity.status !== EntityStatusRegistry.ACTIVE && (
-                              <div
-                                className="absolute -right-2"
-                                style={{ top: -1 }}
-                              >
-                                <EntityStatusUI.Tag
-                                  entityId={entity._id}
-                                  status={entity.status}
-                                  editable={false}
-                                />
-                              </div>
-                            )}
-                        </div>
-                      );
-                    }}
-                    autoFocus
-                  />
-                  <Tooltip
-                    title="If you have a precise link (page, paragraph, etc.), type it here"
-                    mouseEnterDelay={0.5}
-                  >
-                    <Input
-                      allowClear
-                      className="[&_.ant-input-suffix]:pl !pl-1.5 !pr-1.5"
-                      placeholder="Ref..."
-                      value={linkInput}
-                      onChange={(e) => setLinkInput(e.target.value)}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => e.stopPropagation()}
-                      style={{ width: "65px" }}
-                    />
-                  </Tooltip>
-                  <Tooltip
-                    color="darkGreen"
-                    title="Confirm selection"
-                    mouseEnterDelay={0.5}
-                  >
-                    <Button
-                      className="flex-shrink-0"
-                      style={{
-                        height: "32px",
-                        width: "32px",
-                      }}
-                      onClick={() => {
-                        if (selectedEntityId) {
-                          const colNameTyped = colName as CollectionName;
-                          const selectedEntity = availableEntities.find(
-                            (ent) => ent._id === selectedEntityId,
-                          );
-                          setReferences((prev) => ({
-                            ...prev,
-                            [selectedEntityId]: {
-                              name: colNameTyped,
-                              ...(linkInput.trim() && {
-                                link: linkInput.trim(),
-                              }),
-                              ...(selectedEntity && {
-                                title: selectedEntity.name,
-                              }),
-                            },
-                          }));
-                          if (selectedEntity) {
-                            setLoadedEntities((prev) => ({
-                              ...prev,
-                              [colNameTyped]: [
-                                ...(prev[colNameTyped] || []),
-                                selectedEntity,
-                              ],
-                            }));
-                          }
-                          const remaining = availableEntities.filter(
-                            (ent) => ent._id !== selectedEntityId,
-                          );
-                          if (remaining.length === 0) {
-                            setExhaustedCollections((prev) =>
-                              new Set(prev).add(colNameTyped),
-                            );
-                          }
-                          setScrollToBottom(true);
-                        }
-                        setSelectedEntityId(null);
-                        setLinkInput("");
-                        setShowingSelect(null);
-                        setSelectOptions([]);
-                        setAvailableEntities([]);
-                        setDisableModal(false);
-                      }}
-                      icon={
-                        <span className="text-gray-500 hover:text-green-900 transition-colors">
-                          <CheckIcon className="w-5" />
-                        </span>
-                      }
-                    />
-                  </Tooltip>
-                  <Tooltip
-                    color="darkRed"
-                    title="Cancel selection"
-                    mouseEnterDelay={0.5}
-                  >
-                    <Button
-                      className="flex-shrink-0"
-                      style={{
-                        height: "32px",
-                        width: "32px",
-                      }}
-                      onClick={() => {
-                        setSelectedEntityId(null);
-                        setLinkInput("");
-                        setShowingSelect(null);
-                        setSelectOptions([]);
-                        setAvailableEntities([]);
-                        setDisableModal(false);
-                      }}
-                      icon={
-                        <span className="text-gray-500 hover:text-red-900 transition-colors">
-                          <XMarkIcon className="w-5" />
-                        </span>
-                      }
-                    />
-                  </Tooltip>
-                </div>
+                <CrudReferenceSelectRow
+                  availableEntities={availableEntities}
+                  selectOptions={selectOptions}
+                  selectedEntityId={selectedEntityId}
+                  linkInput={linkInput}
+                  placeholder="Select a new reference..."
+                  onSelect={setSelectedEntityId}
+                  onLinkChange={setLinkInput}
+                  onConfirm={() => confirmSelect(colName as CollectionName)}
+                  onCancel={resetSelectUi}
+                />
               ) : (
                 !exhaustedCollections.has(colName as CollectionName) &&
                 !isUnknownCollection && (
@@ -759,30 +724,20 @@ const CrudReferenceModal = ({
                         onClick={async () => {
                           const colNameTyped = colName as CollectionName;
                           const existingIds = groupedRefIds[colNameTyped] || [];
-                          const entToRefs = await loadEntitiesForReferences(
+                          const filtered = await loadAvailableEntities(
                             colNameTyped,
                             existingIds,
                           );
-                          const filtered = entToRefs.filter(
-                            (ent) => !references[ent._id],
-                          );
-                          if (filtered.length === 0) {
-                            setExhaustedCollections((prev) =>
-                              new Set(prev).add(colNameTyped),
-                            );
+                          if (
+                            markCollectionExhaustedIfEmpty(
+                              colNameTyped,
+                              filtered,
+                            )
+                          ) {
                             return;
                           }
-                          const sortedOptions = filtered.sort((ent1, ent2) =>
-                            ent1.name.localeCompare(ent2.name),
-                          );
-                          const options = sortedOptions.map((ent) => ({
-                            label: ent.name,
-                            value: ent._id,
-                          }));
-                          setAvailableEntities(sortedOptions);
-                          setSelectOptions(options);
+                          applyLoadedSelectOptions(filtered);
                           setShowingSelect(colNameTyped);
-                          setDisableModal(true);
                         }}
                         disabled={loading || disableModal}
                       >
@@ -816,8 +771,13 @@ const CrudReferenceModal = ({
     selectOptions,
     availableEntities,
     selectedEntityId,
+    repairingRefId,
     exhaustedCollections,
-    loadEntitiesForReferences,
+    loadAvailableEntities,
+    applyLoadedSelectOptions,
+    markCollectionExhaustedIfEmpty,
+    confirmSelect,
+    resetSelectUi,
     oldReferences,
     references,
     allowedToRefer,
