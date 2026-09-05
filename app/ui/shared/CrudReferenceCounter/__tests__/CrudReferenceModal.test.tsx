@@ -32,6 +32,7 @@ jest.mock("@heroicons/react/24/outline", () => {
   return {
     ArrowPathIcon: createIcon("arrow-path-icon"),
     CheckIcon: createIcon("check-icon"),
+    PencilSquareIcon: createIcon("pencil-square-icon"),
     TrashIcon: createIcon("trash-icon"),
     XMarkIcon: createIcon("x-mark-icon"),
   };
@@ -191,6 +192,9 @@ jest.mock("antd", () => {
     React.createElement(
       "div",
       { "data-testid": "ant-tooltip", title },
+      title
+        ? React.createElement("div", { "data-testid": "tooltip-title" }, title)
+        : null,
       children,
     );
   Tooltip.displayName = "Tooltip";
@@ -199,6 +203,7 @@ jest.mock("antd", () => {
     useToken: jest.fn(() => ({
       token: {
         colorBgBase: "#ffffff",
+        colorError: "#ff4d4f",
         colorText: "#000000",
         colorTextDisabled: "#cccccc",
         colorTextSecondary: "#666666",
@@ -230,6 +235,11 @@ const mockCollectionName = {
 
 jest.mock("../../../../lib/definitions", () => ({
   CollectionName: {
+    ARMORS: "ARMORS",
+    PROFILES: "PROFILES",
+    WEAPONS: "WEAPONS",
+  },
+  CollectionRegistry: {
     ARMORS: "ARMORS",
     PROFILES: "PROFILES",
     WEAPONS: "WEAPONS",
@@ -1556,6 +1566,44 @@ describe("CrudReferenceModal", () => {
       const input = screen.getByDisplayValue("p.5");
       expect(input).toBeInTheDocument();
       expect(input).toHaveAttribute("placeholder", "Ref...");
+    });
+
+    it("should not open link edit while Add more is active", async () => {
+      const props = {
+        ...defaultProps,
+        references: {
+          ref1: {
+            link: "p.5",
+            name: mockCollectionName.PROFILES as CollectionName,
+          },
+          ref2: { name: mockCollectionName.WEAPONS as CollectionName },
+        },
+      };
+
+      await act(async () => {
+        render(<CrudReferenceModal {...props} />);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Test Profile")).toBeInTheDocument();
+        expect(screen.getByText("p.5")).toBeInTheDocument();
+      });
+
+      const addButtons = screen.getAllByText("Add more");
+      await act(async () => {
+        fireEvent.click(addButtons[0]);
+      });
+
+      await waitFor(() => {
+        expect(mockLoadEntitiesForReferences).toHaveBeenCalled();
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("p.5"));
+      });
+
+      expect(screen.queryByDisplayValue("p.5")).not.toBeInTheDocument();
+      expect(screen.getByText("p.5")).toBeInTheDocument();
     });
 
     it("should show placeholder for empty link in edit mode", async () => {
@@ -2911,6 +2959,97 @@ describe("CrudReferenceModal", () => {
       expect(linkTag).toHaveClass("!bg-red-50");
     });
 
+    it("should place the repair button between the link and delete on a broken row", async () => {
+      mockLoadReferences.mockResolvedValue([]);
+
+      render(
+        <CrudReferenceModal
+          {...defaultProps}
+          references={{
+            "broken-ref": {
+              link: "p.42",
+              name: mockCollectionName.PROFILES as CollectionName,
+              title: "Missing Profile",
+            },
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Missing Profile")).toBeInTheDocument();
+      });
+
+      const brokenRow = screen.getByText("Missing Profile").closest("div")!;
+      const linkTag = within(brokenRow).getByTestId("ant-tag");
+      const pencil = within(brokenRow).getByTestId("pencil-square-icon");
+      const trash = within(brokenRow).getByTestId("trash-icon");
+
+      expect(linkTag.compareDocumentPosition(pencil)).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+      expect(pencil.compareDocumentPosition(trash)).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    });
+
+    it("should show the repair button before delete when a broken row has no link", async () => {
+      mockLoadReferences.mockResolvedValue([]);
+
+      render(
+        <CrudReferenceModal
+          {...defaultProps}
+          references={{
+            "broken-ref": {
+              name: mockCollectionName.PROFILES as CollectionName,
+              title: "No Link Broken",
+            },
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("No Link Broken")).toBeInTheDocument();
+      });
+
+      const brokenRow = screen.getByText("No Link Broken").closest("div")!;
+      expect(
+        within(brokenRow).queryByTestId("ant-tag"),
+      ).not.toBeInTheDocument();
+
+      const pencil = within(brokenRow).getByTestId("pencil-square-icon");
+      const trash = within(brokenRow).getByTestId("trash-icon");
+      expect(pencil.compareDocumentPosition(trash)).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    });
+
+    it("should show a Repair this reference tooltip on the repair button", async () => {
+      mockLoadReferences.mockResolvedValue([]);
+
+      render(
+        <CrudReferenceModal
+          {...defaultProps}
+          references={{
+            "broken-ref": {
+              name: mockCollectionName.PROFILES as CollectionName,
+              title: "Missing Profile",
+            },
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Missing Profile")).toBeInTheDocument();
+      });
+
+      const pencil = screen.getByTestId("pencil-square-icon");
+      const tooltip = pencil.closest('[data-testid="ant-tooltip"]');
+      expect(tooltip).not.toBeNull();
+      expect(
+        within(tooltip as HTMLElement).getByTestId("tooltip-title"),
+      ).toHaveTextContent("Repair this reference");
+    });
+
     it("should sort broken references alphabetically by title", async () => {
       mockLoadReferences.mockResolvedValue([]);
 
@@ -3034,6 +3173,105 @@ describe("CrudReferenceModal", () => {
       expect(screen.getByTestId("modal-title")).not.toHaveTextContent(
         "reference is broken",
       );
+    });
+  });
+
+  describe("Unknown collection", () => {
+    it("should hide Add more and show tooltip for an unknown collection", async () => {
+      render(
+        <CrudReferenceModal
+          {...defaultProps}
+          references={{
+            "broken-ref": {
+              name: "wrong" as CollectionName,
+              title: "Ghost Entity",
+            },
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Ghost Entity")).toBeInTheDocument();
+      });
+
+      const wrongPanel = screen.getByTestId("collapse-item-reference-wrong");
+      expect(
+        within(wrongPanel).queryByText("Add more"),
+      ).not.toBeInTheDocument();
+
+      const tooltipTitles = within(wrongPanel).getAllByTestId("tooltip-title");
+      expect(
+        tooltipTitles.some((el) =>
+          (el.textContent ?? "").includes(
+            "wrong does not exist, please delete all entities",
+          ),
+        ),
+      ).toBe(true);
+    });
+
+    it("should keep Add more and omit collection tooltip for a known collection with a broken entity", async () => {
+      mockLoadReferences.mockImplementation((colName) => {
+        if (colName === "PROFILES") {
+          return Promise.resolve([]);
+        }
+        return Promise.resolve([]);
+      });
+
+      render(
+        <CrudReferenceModal
+          {...defaultProps}
+          references={{
+            "broken-ref": {
+              name: mockCollectionName.PROFILES as CollectionName,
+              title: "Missing Profile",
+            },
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Missing Profile")).toBeInTheDocument();
+      });
+
+      const profilesPanel = screen.getByTestId(
+        "collapse-item-reference-PROFILES",
+      );
+      expect(within(profilesPanel).getByText("Add more")).toBeInTheDocument();
+
+      const tooltipTitles =
+        within(profilesPanel).queryAllByTestId("tooltip-title");
+      expect(
+        tooltipTitles.some((el) =>
+          (el.textContent ?? "").includes(
+            "does not exist, please delete all entities",
+          ),
+        ),
+      ).toBe(false);
+    });
+
+    it("should not call loadReferences for an unknown collection", async () => {
+      render(
+        <CrudReferenceModal
+          {...defaultProps}
+          references={{
+            "broken-ref": {
+              name: "wrong" as CollectionName,
+              title: "Ghost Entity",
+            },
+            ref1: { name: mockCollectionName.PROFILES as CollectionName },
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText("Ghost Entity")).toBeInTheDocument();
+      });
+
+      const loadedCollections = mockLoadReferences.mock.calls.map(
+        (call) => call[0],
+      );
+      expect(loadedCollections).not.toContain("wrong");
+      expect(loadedCollections).toContain("PROFILES");
     });
   });
 

@@ -9,6 +9,7 @@ import { CaretRightOutlined } from "@ant-design/icons";
 import {
   ArrowPathIcon,
   CheckIcon,
+  PencilSquareIcon,
   TrashIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
@@ -28,6 +29,7 @@ import {
 import { invalidateCollections } from "@/app/lib/collectionInvalidation";
 import {
   CollectionName,
+  CollectionRegistry,
   EntityStatusRegistry,
   Mentions,
   Playable,
@@ -74,6 +76,32 @@ const DeleteButton = ({ onDelete, name, disabled }: DeleteButtonProps) => (
       icon={
         <span className="text-black hover:text-red-900 transition-colors">
           <TrashIcon className="w-3" />
+        </span>
+      }
+      disabled={disabled}
+    />
+  </Tooltip>
+);
+
+interface RepairButtonProps {
+  disabled: boolean;
+}
+
+const RepairButton = ({ disabled }: RepairButtonProps) => (
+  <Tooltip
+    color="blue"
+    title={!disabled ? "Repair this reference" : undefined}
+    mouseEnterDelay={0.5}
+  >
+    <Button
+      style={{
+        height: "22px",
+        width: "22px",
+      }}
+      onClick={() => {}}
+      icon={
+        <span className="text-black hover:text-blue-900 transition-colors">
+          <PencilSquareIcon className="w-3" />
         </span>
       }
       disabled={disabled}
@@ -177,8 +205,12 @@ const CrudReferenceModal = ({
   allowedToRefer,
 }: CrudReferenceModalProps) => {
   const {
-    token: { colorText, colorTextSecondary },
+    token: { colorError, colorText, colorTextSecondary },
   } = theme.useToken();
+
+  const isKnownCollection = (colName: string): boolean =>
+    (Object.values(CollectionRegistry) as string[]).includes(colName) ||
+    allowedToRefer.includes(colName as CollectionName);
 
   useInsertionEffect(() => {
     if (document.getElementById(COLLAPSE_DISABLED_STYLE_ID)) return;
@@ -310,7 +342,9 @@ const CrudReferenceModal = ({
   useEffect(() => {
     const entriesToLoad = Object.entries(groupedRefIds).filter(
       ([colName, entIds]) =>
-        entIds.length > 0 && !loadingRef.current.has(colName),
+        entIds.length > 0 &&
+        isKnownCollection(colName) &&
+        !loadingRef.current.has(colName),
     );
 
     if (entriesToLoad.length === 0) {
@@ -373,7 +407,9 @@ const CrudReferenceModal = ({
         const sortedEntities = [...savedEntities, ...unsavedEntities];
 
         const loadedIds = new Set(entities.map((e) => e._id));
-        const isCollectionLoaded = !loadingRef.current.has(colName) && !loading;
+        const isUnknownCollection = !isKnownCollection(colName);
+        const isCollectionLoaded =
+          isUnknownCollection || (!loadingRef.current.has(colName) && !loading);
         const brokenIds = isCollectionLoaded
           ? entIds
               .filter((id) => !loadedIds.has(id))
@@ -384,8 +420,28 @@ const CrudReferenceModal = ({
               })
           : [];
 
+        const unknownCollectionTooltip = (
+          <span>
+            <span className="font-mono">{colName}</span>
+            {" does not exist, please delete all entities"}
+          </span>
+        );
+        const wrapUnknownCollection = (node: React.ReactNode) =>
+          isUnknownCollection ? (
+            <Tooltip
+              color="white"
+              title={unknownCollectionTooltip}
+              styles={{ body: { color: colorError } }}
+              mouseEnterDelay={0.5}
+            >
+              <div className="block w-full">{node}</div>
+            </Tooltip>
+          ) : (
+            node
+          );
+
         return {
-          children: (
+          children: wrapUnknownCollection(
             <div className="-mt-5">
               {brokenIds.map((brokenId) => {
                 const ref = references[brokenId];
@@ -400,9 +456,10 @@ const CrudReferenceModal = ({
                       {ref?.link && (
                         <CrudReferenceLink.View
                           link={ref.link}
-                          className="!bg-red-50"
+                          className="!bg-red-50 !mr-0"
                         />
                       )}
+                      <RepairButton disabled={loading || disableModal} />
                       <DeleteButton
                         onDelete={() => {
                           setReferences((prev) => {
@@ -467,10 +524,14 @@ const CrudReferenceModal = ({
                                 (references[ent._id]?.link?.trim() ?? "") !==
                                 (oldReferences[ent._id]?.link?.trim() ?? "")
                               }
-                              onClick={() => {
-                                setEditingLinkId(ent._id);
-                                setDisableModal(true);
-                              }}
+                              onClick={
+                                loading || disableModal
+                                  ? undefined
+                                  : () => {
+                                      setEditingLinkId(ent._id);
+                                      setDisableModal(true);
+                                    }
+                              }
                             />
                           )}
                           <DeleteButton
@@ -680,7 +741,8 @@ const CrudReferenceModal = ({
                   </Tooltip>
                 </div>
               ) : (
-                !exhaustedCollections.has(colName as CollectionName) && (
+                !exhaustedCollections.has(colName as CollectionName) &&
+                !isUnknownCollection && (
                   <div className="flex justify-start py-1 pr-3">
                     <Tooltip
                       color="white"
@@ -730,13 +792,13 @@ const CrudReferenceModal = ({
                   </div>
                 )
               )}
-            </div>
+            </div>,
           ),
           key: `reference-${colName}`,
-          label: (
+          label: wrapUnknownCollection(
             <span>
               {entIds.length} <span className="font-mono">{colName}</span>
-            </span>
+            </span>,
           ),
         };
       });
@@ -747,6 +809,7 @@ const CrudReferenceModal = ({
     loadedEntities,
     loading,
     disableModal,
+    colorError,
     colorText,
     colorTextSecondary,
     showingSelect,
@@ -757,6 +820,7 @@ const CrudReferenceModal = ({
     loadEntitiesForReferences,
     oldReferences,
     references,
+    allowedToRefer,
   ]);
   useEffect(() => {
     if (!hasUserInteracted) {
