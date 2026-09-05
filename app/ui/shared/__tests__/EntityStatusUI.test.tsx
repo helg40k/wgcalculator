@@ -822,6 +822,9 @@ describe("EntityStatusUI", () => {
 
         const badgeElement = container.querySelector(".ant-ribbon");
         expect(badgeElement).toHaveClass("border-red-400");
+        expect(badgeElement).toHaveClass(
+          "[&_.ant-ribbon-corner]:!text-red-400",
+        );
         expect(badgeElement).not.toHaveClass("border-gray-300");
       });
 

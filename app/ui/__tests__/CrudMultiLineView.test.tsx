@@ -413,14 +413,22 @@ describe("CrudMultiLineView", () => {
       );
     });
 
-    it("deletes an existing row after confirmation", async () => {
-      const user = userEvent.setup();
-      let list = [makePlayable({ _id: "e1", name: "Nuke" })];
-      const setEntities = jest.fn((update: any) => {
-        list = typeof update === "function" ? update([...list]) : [...update];
-      });
-      const onDelete = jest.fn().mockResolvedValue(undefined);
+    const openListDeleteConfirm = async (
+      user: ReturnType<typeof userEvent.setup>,
+    ) => {
+      const rowHost = screen.getByTestId("list-view-e1").closest("div");
+      fireEvent.mouseEnter(rowHost!.parentElement!);
+      const trash = screen
+        .getAllByRole("button")
+        .filter((b) => b.querySelector("svg"))[1];
+      await user.click(trash);
+    };
 
+    const renderListWithDelete = (
+      onDelete = jest.fn().mockResolvedValue(undefined),
+    ) => {
+      const list = [makePlayable({ _id: "e1", name: "Nuke" })];
+      const setEntities = jest.fn();
       render(
         <CrudMultiLineView.List
           edit={function E() {
@@ -436,16 +444,49 @@ describe("CrudMultiLineView", () => {
           view={ListView}
         />,
       );
+      return { list, onDelete, setEntities };
+    };
 
-      const rowHost = screen.getByTestId("list-view-e1").closest("div");
-      fireEvent.mouseEnter(rowHost!.parentElement!);
+    it("opens the delete confirm modal with the entity name", async () => {
+      const user = userEvent.setup();
+      renderListWithDelete();
 
-      const trash = screen
-        .getAllByRole("button")
-        .filter((b) => b.querySelector("svg"))[1];
-      await user.click(trash);
+      await openListDeleteConfirm(user);
+
+      expect(screen.getByText("Delete item")).toBeInTheDocument();
+      expect(screen.getByText("'Nuke'")).toBeInTheDocument();
+      expect(screen.getByText("'Nuke'").tagName).toBe("B");
+      expect(
+        screen.getByRole("button", { name: "Delete" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Cancel" }),
+      ).toBeInTheDocument();
+    });
+
+    it("deletes an existing row after confirmation", async () => {
+      const user = userEvent.setup();
+      const onDelete = jest.fn().mockResolvedValue(undefined);
+      renderListWithDelete(onDelete);
+
+      await openListDeleteConfirm(user);
+      await user.click(screen.getByRole("button", { name: "Delete" }));
 
       await waitFor(() => expect(onDelete).toHaveBeenCalledWith("e1"));
+    });
+
+    it("does not delete when the confirm modal is cancelled", async () => {
+      const user = userEvent.setup();
+      const onDelete = jest.fn().mockResolvedValue(undefined);
+      renderListWithDelete(onDelete);
+
+      await openListDeleteConfirm(user);
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+      expect(onDelete).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      });
     });
 
     it("exposes EntitiesUpdateContext.updateEntity and reloadEntities", async () => {

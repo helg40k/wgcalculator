@@ -36,6 +36,7 @@ import { CollectionName, EntityStatus, Playable } from "@/app/lib/definitions";
 import errorMessage from "@/app/lib/errorMessage";
 import useBrokenReferences from "@/app/lib/hooks/useBrokenReferences";
 import { NEW_ENTITY_TEMP_ID } from "@/app/lib/services/firebase/helpers/getDocumentCreationBase";
+import CrudDeleteConfirmModal from "@/app/ui/CrudDeleteConfirmModal";
 import {
   equalDeep,
   getNewEntity,
@@ -261,6 +262,10 @@ const useMultiLineViewLogic = <T extends Playable>({
   const [filterText, setFilterText] = useState<string>("");
   const [sortSelection, setSortSelection] = useState<SortSelection<T>[]>([]);
   const [editingStatus, setEditingStatus] = useState<EntityStatus | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const {
     token: {
       colorTextSecondary,
@@ -457,33 +462,35 @@ const useMultiLineViewLogic = <T extends Playable>({
   };
 
   const onClickDelete = (id: string, name: string) => {
-    if (id) {
-      if (NEW_ENTITY_TEMP_ID !== id) {
-        Modal.confirm({
-          content: (
-            <>
-              The item <b>&#39;{name}&#39;</b> will be deleted.
-              <br />
-              Are you sure?
-            </>
-          ),
-          okText: "Delete",
-          onOk: () => {
-            deleteItem(id, () => {
-              throw new Error(
-                `Unable to save ${singleName}: the save function is undefined!`,
-              );
-            });
-          },
-          title: `Delete ${singleName}`,
-        });
-      } else {
-        cleanNewItem(id);
-      }
-    } else {
+    if (!id) {
       throw new Error(`Unable to delete ${singleName}: the ID is lost!`);
     }
+    if (NEW_ENTITY_TEMP_ID === id) {
+      cleanNewItem(id);
+      return;
+    }
+    setDeleteTarget({ id, name });
   };
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    deleteItem(deleteTarget.id, () => {
+      throw new Error(
+        `Unable to save ${singleName}: the save function is undefined!`,
+      );
+    });
+    setDeleteTarget(null);
+  };
+
+  const deleteConfirmModal = (
+    <CrudDeleteConfirmModal
+      open={!!deleteTarget}
+      singleName={singleName}
+      entityName={deleteTarget?.name ?? ""}
+      onOk={confirmDelete}
+      onCancel={() => setDeleteTarget(null)}
+    />
+  );
 
   const onClickSave = () => {
     const id = edit;
@@ -709,6 +716,7 @@ const useMultiLineViewLogic = <T extends Playable>({
     colorTextSecondary,
     createTableToolbar,
     createToolbar,
+    deleteConfirmModal,
     deleteItem,
     // State
     edit,
@@ -823,6 +831,7 @@ const CrudMultiLineViewList = <T extends Playable>({
     colorBgContainer,
     rowHoverBg,
     createToolbar,
+    deleteConfirmModal,
     edit,
     filteredAndSortedEntities,
     getCurrentStatus,
@@ -979,6 +988,7 @@ const CrudMultiLineViewList = <T extends Playable>({
       {(toolbarPosition === ToolbarPosition.DOWN ||
         singleToolbarUntil <= entities.length) &&
         createToolbar(ToolbarPosition.DOWN, !!EditComponent)}
+      {deleteConfirmModal}
     </EntitiesUpdateContext.Provider>
   );
 };
@@ -1005,6 +1015,7 @@ const CrudMultiLineViewTable = <T extends Playable>({
     cleanNewItem,
     colorBgContainer,
     createTableToolbar,
+    deleteConfirmModal,
     edit,
     editingStatus,
     filteredAndSortedEntities,
@@ -1474,6 +1485,7 @@ const CrudMultiLineViewTable = <T extends Playable>({
       {(toolbarPosition === ToolbarPosition.DOWN ||
         singleToolbarUntil <= entities.length) &&
         createTableToolbar(ToolbarPosition.DOWN, isEditable)}
+      {deleteConfirmModal}
     </EntitiesUpdateContext.Provider>
   );
 };

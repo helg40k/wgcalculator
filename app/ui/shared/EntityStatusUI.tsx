@@ -200,7 +200,9 @@ const EntityStatusBadge: React.FC<EntityStatusBadgeProps> = ({
     <Badge.Ribbon
       className={clsx(
         "border-1",
-        isBroken ? "border-red-400" : getBorderColorBadge(status),
+        isBroken
+          ? "border-red-400 [&_.ant-ribbon-corner]:!text-red-400"
+          : getBorderColorBadge(status),
       )}
       text={
         <EntityStatusView
