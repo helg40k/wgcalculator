@@ -589,6 +589,77 @@ describe("CrudDeleteConfirmModal", () => {
     expect(values).not.toContain("kw-2");
   });
 
+  it("should omit entities the mentioner already references", async () => {
+    renderWithMentions({
+      [CollectionRegistry.Source]: [
+        {
+          ...mentionEntity,
+          references: {
+            "kw-1": { name: CollectionRegistry.Keyword },
+            "kw-3": { name: CollectionRegistry.Keyword },
+          },
+        } as any,
+      ],
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("pencil-square-icon").closest("button")!,
+      );
+    });
+
+    await screen.findByTestId("crud-reference-select-row");
+    expect(mockLoadEntitiesForReferences).toHaveBeenCalledWith(
+      CollectionRegistry.Keyword,
+      ["kw-1", "kw-3"],
+    );
+    const values = Array.from(
+      screen.getByTestId("ant-select").querySelectorAll("option"),
+    ).map((option) => option.getAttribute("value"));
+    expect(values).toContain("kw-4");
+    expect(values).not.toContain("kw-3");
+    expect(values).not.toContain("kw-1");
+  });
+
+  it("should keep a pending Confirm choice in the selector when editing", async () => {
+    renderWithMentions({
+      [CollectionRegistry.Source]: [
+        {
+          ...mentionEntity,
+          references: {
+            "kw-1": { name: CollectionRegistry.Keyword },
+            "kw-3": { name: CollectionRegistry.Keyword },
+          },
+        } as any,
+      ],
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("pencil-square-icon").closest("button")!,
+      );
+    });
+    await screen.findByTestId("crud-reference-select-row");
+    fireEvent.change(screen.getByTestId("ant-select"), {
+      target: { value: "kw-4" },
+    });
+    fireEvent.click(screen.getByTestId("check-icon").closest("button")!);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTitle("Edit this mention").querySelector("button")!,
+      );
+    });
+    await screen.findByTestId("crud-reference-select-row");
+
+    const values = Array.from(
+      screen.getByTestId("ant-select").querySelectorAll("option"),
+    ).map((option) => option.getAttribute("value"));
+    expect(screen.getByTestId("ant-select")).toHaveValue("kw-4");
+    expect(values).toContain("kw-4");
+    expect(values).not.toContain("kw-3");
+  });
+
   it("should restore the unmarked mention row when Cancel selection is clicked after filling", async () => {
     renderWithMentions(mentionsWithEntity);
 

@@ -436,15 +436,16 @@ const CrudDeleteConfirmModal = ({
   }, []);
 
   const loadReplacementOptions = useCallback(
-    async (mentionId: string, mentionCollection: CollectionName) => {
+    async (mention: Playable, mentionCollection: CollectionName) => {
       if (!collectionName || !entityId) return [];
-      const excludedIds = [entityId];
-      if (mentionCollection === collectionName) excludedIds.push(mentionId);
+      const excluded = new Set<string>([entityId]);
+      if (mentionCollection === collectionName) excluded.add(mention._id);
+      Object.keys(mention.references ?? {}).forEach((id) => excluded.add(id));
+      const excludedIds = [...excluded];
       const loaded = await loadEntitiesForReferences<Playable>(
         collectionName,
         excludedIds,
       );
-      const excluded = new Set(excludedIds);
       return loaded
         .filter((ent) => !excluded.has(ent._id))
         .sort((ent1, ent2) => ent1.name.localeCompare(ent2.name));
@@ -454,12 +455,12 @@ const CrudDeleteConfirmModal = ({
 
   const startReassign = useCallback(
     async (
-      mentionId: string,
+      mention: Playable,
       mentionCollection: CollectionName,
       existing?: PendingReassignment,
     ) => {
       if (!collectionName || !entityId || isSubmitting) return;
-      const sorted = await loadReplacementOptions(mentionId, mentionCollection);
+      const sorted = await loadReplacementOptions(mention, mentionCollection);
       setAvailableEntities(sorted);
       setSelectOptions(
         sorted.map((ent) => ({ label: ent.name, value: ent._id })),
@@ -467,7 +468,7 @@ const CrudDeleteConfirmModal = ({
       setSelectedEntityId(existing?.selectedEntityId ?? null);
       setLinkInput(existing?.link ?? "");
       setReassigningMentionCollection(mentionCollection);
-      setReassigningMentionId(mentionId);
+      setReassigningMentionId(mention._id);
     },
     [collectionName, entityId, isSubmitting, loadReplacementOptions],
   );
@@ -565,7 +566,7 @@ const CrudDeleteConfirmModal = ({
                             name="mention"
                             onEdit={() =>
                               startReassign(
-                                ent._id,
+                                ent,
                                 colName as CollectionName,
                                 reassignment,
                               )
@@ -583,7 +584,7 @@ const CrudDeleteConfirmModal = ({
                             disabled={areControlsLocked}
                             name="mention"
                             onReassign={() =>
-                              startReassign(ent._id, colName as CollectionName)
+                              startReassign(ent, colName as CollectionName)
                             }
                           />
                           <DeleteButton
@@ -702,7 +703,7 @@ const CrudDeleteConfirmModal = ({
           <div className="text-base font-semibold">
             Delete {singleName} <Spin spinning={isSubmitting} />
           </div>
-          <div className="mt-2">
+          <div className="mt-6">
             The item <b>&#39;{entityName}&#39;</b> will be deleted.
             <br />
             Are you sure?
