@@ -37,6 +37,7 @@ jest.mock("@/app/lib/hooks/useEntities", () => ({
 jest.mock("@/app/lib/hooks/usePlayableReferences", () => ({
   __esModule: true,
   default: () => ({
+    loadEntitiesForReferences: jest.fn().mockResolvedValue([]),
     removeIncomingReferences: mockRemoveIncomingReferences,
   }),
 }));

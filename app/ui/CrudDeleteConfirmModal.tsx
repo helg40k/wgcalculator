@@ -33,6 +33,7 @@ import {
 } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
 import usePlayableReferences from "@/app/lib/hooks/usePlayableReferences";
+import CrudReferenceSelectRow from "@/app/ui/shared/CrudReferenceCounter/CrudReferenceSelectRow";
 import EntityStatusUI from "@/app/ui/shared/EntityStatusUI";
 
 const COLLAPSE_DISABLED_STYLE_ID = "collapse-disabled-styles";
@@ -110,9 +111,10 @@ const CancelMentionActionButton = ({
 interface ReasignButtonProps {
   disabled: boolean;
   name: string;
+  onReasign: () => void;
 }
 
-const ReasignButton = ({ disabled, name }: ReasignButtonProps) => (
+const ReasignButton = ({ disabled, name, onReasign }: ReasignButtonProps) => (
   <Tooltip
     color="blue"
     title={!disabled ? `Reassign this ${name}` : undefined}
@@ -120,6 +122,7 @@ const ReasignButton = ({ disabled, name }: ReasignButtonProps) => (
   >
     <Button
       style={{ height: "22px", width: "22px" }}
+      onClick={onReasign}
       icon={
         <span className="text-black hover:text-blue-900 transition-colors">
           <PencilSquareIcon className="w-3" />
@@ -193,7 +196,8 @@ const CrudDeleteConfirmModal = ({
   const [, utils] = useContext(GameSystemContext);
   const mentionsCtx = useContext(MentionsContext);
   const { loadEntities } = useEntities();
-  const { removeIncomingReferences } = usePlayableReferences();
+  const { loadEntitiesForReferences, removeIncomingReferences } =
+    usePlayableReferences();
 
   const [mentions, setMentions] = useState<Mentions>({});
   const [mentionsReady, setMentionsReady] = useState(false);
@@ -202,6 +206,15 @@ const CrudDeleteConfirmModal = ({
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
+  const [reassigningMentionId, setReassigningMentionId] = useState<
+    string | null
+  >(null);
+  const [availableEntities, setAvailableEntities] = useState<Playable[]>([]);
+  const [selectOptions, setSelectOptions] = useState<
+    Array<{ label: string; value: string }>
+  >([]);
+  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  const [linkInput, setLinkInput] = useState("");
 
   useInsertionEffect(() => {
     if (document.getElementById(COLLAPSE_DISABLED_STYLE_ID)) return;
@@ -227,10 +240,19 @@ const CrudDeleteConfirmModal = ({
     return loaded;
   }, [collectionName, entityId, loadEntities, utils]);
 
+  const resetReassignState = useCallback(() => {
+    setReassigningMentionId(null);
+    setAvailableEntities([]);
+    setSelectOptions([]);
+    setSelectedEntityId(null);
+    setLinkInput("");
+  }, []);
+
   useEffect(() => {
     setRemovedMentionIds(new Set());
     setSubmitError(false);
-  }, [open, entityId]);
+    resetReassignState();
+  }, [open, entityId, resetReassignState]);
 
   const getMentions = mentionsCtx?.getMentions;
   const contextMentionsLoaded = mentionsCtx?.mentionsLoaded;
@@ -276,6 +298,7 @@ const CrudDeleteConfirmModal = ({
   );
   const removedMentionCount = removedMentionIds.size;
   const hasMentions = mentionsReady && mentNumber > 0;
+  const areControlsLocked = isSubmitting || !!reassigningMentionId;
 
   const removedMentionUpdates = useMemo(() => {
     const list: Array<{ collectionName: CollectionName; documentId: string }> =
@@ -306,13 +329,39 @@ const CrudDeleteConfirmModal = ({
     setRemovedMentionIds((prev) => new Set(prev).add(id));
   };
 
-  const cancelMentionAction = (id: string) => {
+  const cancelMentionAction = useCallback((id: string) => {
     setRemovedMentionIds((prev) => {
       const updated = new Set(prev);
       updated.delete(id);
       return updated;
     });
-  };
+  }, []);
+
+  const startReassign = useCallback(
+    async (mentionId: string, mentionCollection: CollectionName) => {
+      if (!collectionName || !entityId || isSubmitting) return;
+      const excludedIds = [entityId];
+      if (mentionCollection === collectionName) excludedIds.push(mentionId);
+      const loaded = await loadEntitiesForReferences<Playable>(
+        collectionName,
+        excludedIds,
+      );
+      const excluded = new Set(excludedIds);
+      const sorted = loaded
+        .filter((ent) => !excluded.has(ent._id))
+        .sort((ent1, ent2) => ent1.name.localeCompare(ent2.name));
+      setAvailableEntities(sorted);
+      setSelectOptions(
+        sorted.map((ent) => ({ label: ent.name, value: ent._id })),
+      );
+      setSelectedEntityId(null);
+      setLinkInput("");
+      setReassigningMentionId(mentionId);
+    },
+    [collectionName, entityId, isSubmitting, loadEntitiesForReferences],
+  );
+
+  const confirmReassign = useCallback(() => {}, []);
 
   const mentionCollections: CollapseProps["items"] = useMemo(() => {
     return Object.entries(mentions)
@@ -325,6 +374,23 @@ const CrudDeleteConfirmModal = ({
               .sort((ent1, ent2) => ent1.name.localeCompare(ent2.name))
               .map((ent) => {
                 const isRemoved = removedMentionIds.has(ent._id);
+                if (reassigningMentionId === ent._id) {
+                  return (
+                    <CrudReferenceSelectRow
+                      key={`${colName}-${ent._id}`}
+                      availableEntities={availableEntities}
+                      className="pl-1"
+                      linkInput={linkInput}
+                      onCancel={resetReassignState}
+                      onConfirm={confirmReassign}
+                      onLinkChange={setLinkInput}
+                      onSelect={setSelectedEntityId}
+                      placeholder="Select a replacement..."
+                      selectOptions={selectOptions}
+                      selectedEntityId={selectedEntityId}
+                    />
+                  );
+                }
                 return (
                   <div
                     key={`${colName}-${ent._id}`}
@@ -348,18 +414,21 @@ const CrudDeleteConfirmModal = ({
                         <CancelMentionActionButton
                           onCancelAction={() => cancelMentionAction(ent._id)}
                           name="mention"
-                          disabled={isSubmitting}
+                          disabled={areControlsLocked}
                         />
                       ) : (
                         <>
                           <ReasignButton
-                            disabled={isSubmitting}
+                            disabled={areControlsLocked}
                             name="mention"
+                            onReasign={() =>
+                              startReassign(ent._id, colName as CollectionName)
+                            }
                           />
                           <DeleteButton
                             onDelete={() => markMentionRemoved(ent._id)}
                             name="mention"
-                            disabled={isSubmitting}
+                            disabled={areControlsLocked}
                           />
                         </>
                       )}
@@ -377,7 +446,21 @@ const CrudDeleteConfirmModal = ({
           </span>
         ),
       }));
-  }, [mentions, colorTextSecondary, removedMentionIds, isSubmitting]);
+  }, [
+    availableEntities,
+    cancelMentionAction,
+    colorTextSecondary,
+    confirmReassign,
+    areControlsLocked,
+    linkInput,
+    mentions,
+    reassigningMentionId,
+    removedMentionIds,
+    resetReassignState,
+    selectOptions,
+    selectedEntityId,
+    startReassign,
+  ]);
 
   const applyMentionRemovals = async (): Promise<boolean> => {
     if (!entityId || removedMentionUpdates.length === 0) return true;
@@ -392,6 +475,7 @@ const CrudDeleteConfirmModal = ({
   };
 
   const handleOk = async () => {
+    if (reassigningMentionId) return;
     setSubmitError(false);
     setIsSubmitting(true);
     try {
@@ -408,7 +492,7 @@ const CrudDeleteConfirmModal = ({
   };
 
   const handleCancel = () => {
-    if (isSubmitting) return;
+    if (areControlsLocked) return;
     onCancel();
   };
 
@@ -423,8 +507,8 @@ const CrudDeleteConfirmModal = ({
       width={580}
       maskClosable={false}
       keyboard={false}
-      okButtonProps={{ disabled: isSubmitting }}
-      cancelButtonProps={{ disabled: isSubmitting }}
+      okButtonProps={{ disabled: areControlsLocked }}
+      cancelButtonProps={{ disabled: areControlsLocked }}
     >
       <div className="flex items-start gap-4">
         <ExclamationCircleFilled
@@ -455,7 +539,7 @@ const CrudDeleteConfirmModal = ({
             {removedMentionCount > 0 && ` (${removedMentionCount} removed)`}
           </div>
           <div style={{ maxHeight: "224px", overflowY: "auto" }}>
-            <div className={isSubmitting ? "collapse-disabled" : ""}>
+            <div className={areControlsLocked ? "collapse-disabled" : ""}>
               <Collapse
                 ghost
                 items={mentionCollections}
@@ -463,7 +547,7 @@ const CrudDeleteConfirmModal = ({
                   <CaretRightOutlined rotate={isActive ? 90 : 0} />
                 )}
                 defaultActiveKey={mentionExpandedKeys}
-                onChange={isSubmitting ? () => {} : undefined}
+                onChange={areControlsLocked ? () => {} : undefined}
               />
             </div>
           </div>

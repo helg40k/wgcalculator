@@ -34,8 +34,10 @@ jest.mock("@heroicons/react/24/outline", () => {
   };
   return {
     ArrowPathIcon: createIcon("arrow-path-icon"),
+    CheckIcon: createIcon("check-icon"),
     PencilSquareIcon: createIcon("pencil-square-icon"),
     TrashIcon: createIcon("trash-icon"),
+    XMarkIcon: createIcon("x-mark-icon"),
   };
 });
 
@@ -79,6 +81,36 @@ jest.mock("antd", () => {
       ),
     );
   Collapse.displayName = "Collapse";
+
+  const Input = ({
+    placeholder,
+    value,
+    onChange,
+    allowClear,
+    onMouseDown,
+    onKeyDown,
+    ...props
+  }: any) =>
+    React.createElement(
+      "span",
+      { "data-testid": "ant-input-wrapper" },
+      React.createElement("input", {
+        "data-testid": "ant-input",
+        onChange,
+        onKeyDown,
+        onMouseDown,
+        placeholder,
+        value,
+        ...props,
+      }),
+      allowClear && value
+        ? React.createElement("button", {
+            "data-testid": "ant-input-clear",
+            onClick: () => onChange?.({ target: { value: "" } }),
+          })
+        : null,
+    );
+  Input.displayName = "Input";
 
   const Modal = ({
     open,
@@ -138,6 +170,25 @@ jest.mock("antd", () => {
       : null;
   Modal.displayName = "Modal";
 
+  const Select = ({ options, placeholder, onChange, value }: any) =>
+    React.createElement(
+      "select",
+      {
+        "data-testid": "ant-select",
+        onChange: (e: any) => onChange?.(e.target.value),
+        value: value ?? "",
+      },
+      React.createElement("option", { value: "" }, placeholder),
+      options?.map((option: any) =>
+        React.createElement(
+          "option",
+          { key: option.value, value: option.value },
+          option.label,
+        ),
+      ),
+    );
+  Select.displayName = "Select";
+
   const Spin = ({ spinning, children }: any) =>
     spinning
       ? React.createElement("div", { "data-testid": "ant-spin" }, "Loading...")
@@ -162,13 +213,15 @@ jest.mock("antd", () => {
     }),
   };
 
-  return { Button, Collapse, Modal, Spin, Tooltip, theme };
+  return { Button, Collapse, Input, Modal, Select, Spin, Tooltip, theme };
 });
 
 const mockRemoveIncomingReferences = jest.fn();
+const mockLoadEntitiesForReferences = jest.fn();
 jest.mock("@/app/lib/hooks/usePlayableReferences", () => ({
   __esModule: true,
   default: () => ({
+    loadEntitiesForReferences: mockLoadEntitiesForReferences,
     removeIncomingReferences: mockRemoveIncomingReferences,
   }),
 }));
@@ -260,6 +313,10 @@ describe("CrudDeleteConfirmModal", () => {
     jest.clearAllMocks();
     mockRemoveIncomingReferences.mockResolvedValue(true);
     mockLoadEntities.mockResolvedValue([]);
+    mockLoadEntitiesForReferences.mockResolvedValue([
+      { _id: "kw-1", name: "Actions", status: "active" },
+      { _id: "kw-3", name: "Charge", status: "active" },
+    ]);
   });
 
   it("should not render when closed", () => {
@@ -473,5 +530,141 @@ describe("CrudDeleteConfirmModal", () => {
       screen.queryByText(/mention is found|mentions are found/),
     ).not.toBeInTheDocument();
     expect(screen.queryByText("Core Rulebook")).not.toBeInTheDocument();
+  });
+
+  it("should replace the mention row with a selector that omits the deleted entity", async () => {
+    renderWithMentions(mentionsWithEntity);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("pencil-square-icon").closest("button")!,
+      );
+    });
+
+    expect(
+      await screen.findByTestId("crud-reference-select-row"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Core Rulebook")).not.toBeInTheDocument();
+    expect(mockLoadEntitiesForReferences).toHaveBeenCalledWith(
+      CollectionRegistry.Keyword,
+      ["kw-1"],
+    );
+    const options = screen.getByTestId("ant-select").querySelectorAll("option");
+    const values = Array.from(options).map((option) =>
+      option.getAttribute("value"),
+    );
+    expect(values).toContain("kw-3");
+    expect(values).not.toContain("kw-1");
+  });
+
+  it("should also omit the mention when it belongs to the deleted entity collection", async () => {
+    renderWithMentions({
+      [CollectionRegistry.Keyword]: [
+        {
+          ...mentionEntity,
+          _id: "kw-2",
+          name: "Other Keyword",
+        } as any,
+      ],
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("pencil-square-icon").closest("button")!,
+      );
+    });
+
+    await screen.findByTestId("crud-reference-select-row");
+    expect(mockLoadEntitiesForReferences).toHaveBeenCalledWith(
+      CollectionRegistry.Keyword,
+      ["kw-1", "kw-2"],
+    );
+    const values = Array.from(
+      screen.getByTestId("ant-select").querySelectorAll("option"),
+    ).map((option) => option.getAttribute("value"));
+    expect(values).not.toContain("kw-2");
+  });
+
+  it("should restore the mention row when Cancel selection is clicked", async () => {
+    renderWithMentions(mentionsWithEntity);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("pencil-square-icon").closest("button")!,
+      );
+    });
+    await screen.findByTestId("crud-reference-select-row");
+
+    fireEvent.click(screen.getByTestId("x-mark-icon").closest("button")!);
+
+    expect(
+      screen.queryByTestId("crud-reference-select-row"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Core Rulebook")).toBeInTheDocument();
+    expect(screen.getByTestId("pencil-square-icon")).toBeInTheDocument();
+    expect(screen.getByTestId("trash-icon")).toBeInTheDocument();
+  });
+
+  it("should not call onOk or removeIncomingReferences when Confirm selection is clicked", async () => {
+    const onOk = jest.fn();
+    renderWithMentions(mentionsWithEntity, { onOk });
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("pencil-square-icon").closest("button")!,
+      );
+    });
+    await screen.findByTestId("crud-reference-select-row");
+
+    fireEvent.change(screen.getByTestId("ant-select"), {
+      target: { value: "kw-3" },
+    });
+    fireEvent.click(screen.getByTestId("check-icon").closest("button")!);
+
+    expect(onOk).not.toHaveBeenCalled();
+    expect(mockRemoveIncomingReferences).not.toHaveBeenCalled();
+    expect(screen.getByTestId("crud-reference-select-row")).toBeInTheDocument();
+  });
+
+  it("should lock footer, other mention actions, and collapse while the selector is open", async () => {
+    const onOk = jest.fn();
+    const onCancel = jest.fn();
+    renderWithMentions(mentionsWithTwoEntities, { onCancel, onOk });
+
+    const pencils = screen.getAllByTestId("pencil-square-icon");
+    await act(async () => {
+      fireEvent.click(pencils[0].closest("button")!);
+    });
+    await screen.findByTestId("crud-reference-select-row");
+
+    expect(screen.getByTestId("modal-ok-button")).toBeDisabled();
+    expect(screen.getByTestId("modal-cancel-button")).toBeDisabled();
+    expect(document.querySelector(".collapse-disabled")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("pencil-square-icon").closest("button"),
+    ).toBeDisabled();
+    expect(screen.getByTestId("trash-icon").closest("button")).toBeDisabled();
+    expect(
+      screen.getByTestId("x-mark-icon").closest("button"),
+    ).not.toBeDisabled();
+
+    fireEvent.click(screen.getByTestId("modal-ok-button"));
+    fireEvent.click(screen.getByTestId("modal-cancel-button"));
+    expect(onOk).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId("x-mark-icon").closest("button")!);
+
+    expect(screen.getByTestId("modal-ok-button")).not.toBeDisabled();
+    expect(screen.getByTestId("modal-cancel-button")).not.toBeDisabled();
+    expect(
+      document.querySelector(".collapse-disabled"),
+    ).not.toBeInTheDocument();
+    screen.getAllByTestId("pencil-square-icon").forEach((icon) => {
+      expect(icon.closest("button")).not.toBeDisabled();
+    });
+    screen.getAllByTestId("trash-icon").forEach((icon) => {
+      expect(icon.closest("button")).not.toBeDisabled();
+    });
   });
 });
