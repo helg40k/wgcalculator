@@ -9,9 +9,10 @@ import {
 
 import { MentionsContext } from "@/app/lib/contexts/MentionsContext";
 import { CollectionRegistry, Mentions } from "@/app/lib/definitions";
-import CrudDeleteConfirmModal from "@/app/ui/CrudDeleteConfirmModal";
 
 import "@testing-library/jest-dom";
+
+import CrudDeleteConfirmModal from "..";
 
 jest.mock("@ant-design/icons", () => {
   const CaretRightOutlined = () =>

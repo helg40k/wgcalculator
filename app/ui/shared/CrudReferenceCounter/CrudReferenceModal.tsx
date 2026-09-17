@@ -34,7 +34,7 @@ import {
 } from "@/app/lib/definitions";
 import usePlayableReferences from "@/app/lib/hooks/usePlayableReferences";
 import CrudReferenceLink from "@/app/ui/shared/CrudReferenceCounter/CrudReferenceLink";
-import CrudReferenceSelectRow from "@/app/ui/shared/CrudReferenceCounter/CrudReferenceSelectRow";
+import CrudReferenceSelectRow from "@/app/ui/shared/CrudReferenceSelectRow";
 import EntityStatusUI from "@/app/ui/shared/EntityStatusUI";
 
 const COLLAPSE_DISABLED_STYLE_ID = "collapse-disabled-styles";

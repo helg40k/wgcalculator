@@ -141,7 +141,7 @@ jest.mock("../../EntityStatusUI", () => ({
   },
 }));
 
-import CrudReferenceSelectRow from "../CrudReferenceSelectRow";
+import CrudReferenceSelectRow from "..";
 
 const timestamp = {
   nanoseconds: 0,
