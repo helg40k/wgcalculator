@@ -243,6 +243,7 @@ interface TableProps<T extends Playable = Playable>
 
 // Shared logic hook
 const useMultiLineViewLogic = <T extends Playable>({
+  collectionName,
   singleName = "item",
   pluralNames = "items",
   entities,
@@ -402,15 +403,14 @@ const useMultiLineViewLogic = <T extends Playable>({
     setValues({});
   };
 
-  const deleteItem = (id: string, negativeCallback: () => void) => {
-    if (onDelete) {
-      onDelete(id).then(() => {
-        message.success(`The ${singleName} has been deleted`);
-        setEntities((prev) => [...prev.filter((item) => item._id !== id)]);
-      });
-    } else {
+  const deleteItem = async (id: string, negativeCallback: () => void) => {
+    if (!onDelete) {
       negativeCallback();
+      return;
     }
+    await onDelete(id);
+    message.success(`The ${singleName} has been deleted`);
+    setEntities((prev) => [...prev.filter((item) => item._id !== id)]);
   };
 
   const saveItem = (entityToSave: T) => {
@@ -472,14 +472,13 @@ const useMultiLineViewLogic = <T extends Playable>({
     setDeleteTarget({ id, name });
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleteTarget) return;
-    deleteItem(deleteTarget.id, () => {
+    await deleteItem(deleteTarget.id, () => {
       throw new Error(
         `Unable to save ${singleName}: the save function is undefined!`,
       );
     });
-    setDeleteTarget(null);
   };
 
   const deleteConfirmModal = (
@@ -487,6 +486,8 @@ const useMultiLineViewLogic = <T extends Playable>({
       open={!!deleteTarget}
       singleName={singleName}
       entityName={deleteTarget?.name ?? ""}
+      entityId={deleteTarget?.id ?? null}
+      collectionName={collectionName}
       onOk={confirmDelete}
       onCancel={() => setDeleteTarget(null)}
     />
@@ -849,6 +850,7 @@ const CrudMultiLineViewList = <T extends Playable>({
     setValues,
     updateEntityPartial,
   } = useMultiLineViewLogic({
+    collectionName,
     entities,
     filterableFields,
     onDelete,
@@ -1038,6 +1040,7 @@ const CrudMultiLineViewTable = <T extends Playable>({
     updateEntityPartial,
     values,
   } = useMultiLineViewLogic({
+    collectionName,
     entities,
     filterableFields,
     onDelete,

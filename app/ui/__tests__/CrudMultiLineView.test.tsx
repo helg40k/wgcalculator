@@ -26,6 +26,21 @@ jest.mock("@/app/lib/contexts/GameSystemContext", () => ({
   ]),
 }));
 
+const mockLoadEntities = jest.fn().mockResolvedValue([]);
+const mockRemoveIncomingReferences = jest.fn().mockResolvedValue(true);
+
+jest.mock("@/app/lib/hooks/useEntities", () => ({
+  __esModule: true,
+  default: () => ({ loadEntities: mockLoadEntities }),
+}));
+
+jest.mock("@/app/lib/hooks/usePlayableReferences", () => ({
+  __esModule: true,
+  default: () => ({
+    removeIncomingReferences: mockRemoveIncomingReferences,
+  }),
+}));
+
 jest.mock("@ant-design/v5-patch-for-react-19", () => ({}));
 
 jest.mock("@/app/lib/errorMessage", () => jest.fn());
