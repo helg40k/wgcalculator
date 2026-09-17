@@ -217,11 +217,13 @@ jest.mock("antd", () => {
 });
 
 const mockRemoveIncomingReferences = jest.fn();
+const mockReassignIncomingReferences = jest.fn();
 const mockLoadEntitiesForReferences = jest.fn();
 jest.mock("@/app/lib/hooks/usePlayableReferences", () => ({
   __esModule: true,
   default: () => ({
     loadEntitiesForReferences: mockLoadEntitiesForReferences,
+    reassignIncomingReferences: mockReassignIncomingReferences,
     removeIncomingReferences: mockRemoveIncomingReferences,
   }),
 }));
@@ -312,10 +314,12 @@ describe("CrudDeleteConfirmModal", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockRemoveIncomingReferences.mockResolvedValue(true);
+    mockReassignIncomingReferences.mockResolvedValue(true);
     mockLoadEntities.mockResolvedValue([]);
     mockLoadEntitiesForReferences.mockResolvedValue([
       { _id: "kw-1", name: "Actions", status: "active" },
       { _id: "kw-3", name: "Charge", status: "active" },
+      { _id: "kw-4", name: "Retreat", status: "active" },
     ]);
   });
 
@@ -585,7 +589,7 @@ describe("CrudDeleteConfirmModal", () => {
     expect(values).not.toContain("kw-2");
   });
 
-  it("should restore the mention row when Cancel selection is clicked", async () => {
+  it("should restore the unmarked mention row when Cancel selection is clicked after filling", async () => {
     renderWithMentions(mentionsWithEntity);
 
     await act(async () => {
@@ -595,17 +599,27 @@ describe("CrudDeleteConfirmModal", () => {
     });
     await screen.findByTestId("crud-reference-select-row");
 
+    fireEvent.change(screen.getByTestId("ant-select"), {
+      target: { value: "kw-3" },
+    });
+    fireEvent.change(screen.getByTestId("ant-input"), {
+      target: { value: "p.12" },
+    });
     fireEvent.click(screen.getByTestId("x-mark-icon").closest("button")!);
 
     expect(
       screen.queryByTestId("crud-reference-select-row"),
     ).not.toBeInTheDocument();
     expect(screen.getByText("Core Rulebook")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Core Rulebook (Charge, p.12)"),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId("pencil-square-icon")).toBeInTheDocument();
     expect(screen.getByTestId("trash-icon")).toBeInTheDocument();
+    expect(screen.queryByTestId("arrow-path-icon")).not.toBeInTheDocument();
   });
 
-  it("should not call onOk or removeIncomingReferences when Confirm selection is clicked", async () => {
+  it("should mark a mention reassigned on Confirm without writing yet", async () => {
     const onOk = jest.fn();
     renderWithMentions(mentionsWithEntity, { onOk });
 
@@ -623,7 +637,185 @@ describe("CrudDeleteConfirmModal", () => {
 
     expect(onOk).not.toHaveBeenCalled();
     expect(mockRemoveIncomingReferences).not.toHaveBeenCalled();
-    expect(screen.getByTestId("crud-reference-select-row")).toBeInTheDocument();
+    expect(mockReassignIncomingReferences).not.toHaveBeenCalled();
+    expect(
+      screen.queryByTestId("crud-reference-select-row"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Core Rulebook (Charge)")).toBeInTheDocument();
+    expect(
+      screen.getByText("Core Rulebook (Charge)").closest(".bg-green-200"),
+    ).toBeInTheDocument();
+    expect(screen.getByTitle("Edit this mention")).toBeInTheDocument();
+    expect(screen.getByTitle("Cancel this mention action")).toBeInTheDocument();
+    expect(screen.queryByTestId("trash-icon")).not.toBeInTheDocument();
+  });
+
+  it("should include the link in the reassigned mention label", async () => {
+    renderWithMentions(mentionsWithEntity);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("pencil-square-icon").closest("button")!,
+      );
+    });
+    await screen.findByTestId("crud-reference-select-row");
+
+    fireEvent.change(screen.getByTestId("ant-select"), {
+      target: { value: "kw-3" },
+    });
+    fireEvent.change(screen.getByTestId("ant-input"), {
+      target: { value: "p.12" },
+    });
+    fireEvent.click(screen.getByTestId("check-icon").closest("button")!);
+
+    expect(
+      screen.getByText("Core Rulebook (Charge, p.12)"),
+    ).toBeInTheDocument();
+  });
+
+  it("should restore the previous reassignment when Cancel selection is clicked while editing", async () => {
+    renderWithMentions(mentionsWithEntity);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("pencil-square-icon").closest("button")!,
+      );
+    });
+    await screen.findByTestId("crud-reference-select-row");
+    fireEvent.change(screen.getByTestId("ant-select"), {
+      target: { value: "kw-3" },
+    });
+    fireEvent.change(screen.getByTestId("ant-input"), {
+      target: { value: "p.12" },
+    });
+    fireEvent.click(screen.getByTestId("check-icon").closest("button")!);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTitle("Edit this mention").querySelector("button")!,
+      );
+    });
+    await screen.findByTestId("crud-reference-select-row");
+    expect(screen.getByTestId("ant-select")).toHaveValue("kw-3");
+    expect(screen.getByTestId("ant-input")).toHaveValue("p.12");
+
+    fireEvent.change(screen.getByTestId("ant-select"), {
+      target: { value: "kw-4" },
+    });
+    fireEvent.change(screen.getByTestId("ant-input"), {
+      target: { value: "p.99" },
+    });
+    fireEvent.click(screen.getByTestId("x-mark-icon").closest("button")!);
+
+    expect(
+      screen.queryByTestId("crud-reference-select-row"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Core Rulebook (Charge, p.12)"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Core Rulebook (Retreat, p.99)"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("should restore the unmarked mention row when CancelMentionActionButton is clicked on a reassigned mention", async () => {
+    renderWithMentions(mentionsWithEntity);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("pencil-square-icon").closest("button")!,
+      );
+    });
+    await screen.findByTestId("crud-reference-select-row");
+    fireEvent.change(screen.getByTestId("ant-select"), {
+      target: { value: "kw-3" },
+    });
+    fireEvent.click(screen.getByTestId("check-icon").closest("button")!);
+
+    fireEvent.click(screen.getByTestId("arrow-path-icon").closest("button")!);
+
+    expect(screen.getByText("Core Rulebook")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Core Rulebook (Charge)"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTitle("Reassign this mention")).toBeInTheDocument();
+    expect(screen.getByTestId("trash-icon")).toBeInTheDocument();
+    expect(screen.queryByTestId("arrow-path-icon")).not.toBeInTheDocument();
+  });
+
+  it("should apply reassignments then onOk when Delete is confirmed", async () => {
+    const onOk = jest.fn();
+    const onCancel = jest.fn();
+    renderWithMentions(mentionsWithEntity, { onCancel, onOk });
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("pencil-square-icon").closest("button")!,
+      );
+    });
+    await screen.findByTestId("crud-reference-select-row");
+    fireEvent.change(screen.getByTestId("ant-select"), {
+      target: { value: "kw-3" },
+    });
+    fireEvent.change(screen.getByTestId("ant-input"), {
+      target: { value: "p.12" },
+    });
+    fireEvent.click(screen.getByTestId("check-icon").closest("button")!);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-ok-button"));
+    });
+
+    expect(mockRemoveIncomingReferences).not.toHaveBeenCalled();
+    expect(mockReassignIncomingReferences).toHaveBeenCalledWith("kw-1", [
+      {
+        collectionName: CollectionRegistry.Source,
+        documentId: "src-1",
+        newReferencedId: "kw-3",
+        reference: {
+          link: "p.12",
+          name: CollectionRegistry.Keyword,
+          title: "Charge",
+        },
+      },
+    ]);
+    expect(onOk).toHaveBeenCalled();
+    expect(onCancel).toHaveBeenCalled();
+  });
+
+  it("should show a retry message above Mentions and skip onOk when reassignment fails", async () => {
+    mockReassignIncomingReferences.mockResolvedValueOnce(false);
+    const onOk = jest.fn();
+    const onCancel = jest.fn();
+    renderWithMentions(mentionsWithEntity, { onCancel, onOk });
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("pencil-square-icon").closest("button")!,
+      );
+    });
+    await screen.findByTestId("crud-reference-select-row");
+    fireEvent.change(screen.getByTestId("ant-select"), {
+      target: { value: "kw-3" },
+    });
+    fireEvent.click(screen.getByTestId("check-icon").closest("button")!);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-ok-button"));
+    });
+
+    const error = await screen.findByText(
+      "Sorry, something went wrong. Please try again",
+    );
+    const mentionsHeader = screen.getByText("1 mention is found");
+    expect(
+      error.compareDocumentPosition(mentionsHeader) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(onOk).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(screen.getByTestId("ant-modal")).toBeInTheDocument();
+    expect(screen.getByTestId("modal-ok-button")).not.toBeDisabled();
   });
 
   it("should lock footer, other mention actions, and collapse while the selector is open", async () => {

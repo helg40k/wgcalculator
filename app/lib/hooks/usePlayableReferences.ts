@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { deleteField } from "firebase/firestore";
 
-import { CollectionName, Playable, References } from "@/app/lib/definitions";
+import {
+  CollectionName,
+  Playable,
+  Reference,
+  References,
+} from "@/app/lib/definitions";
 import errorMessage from "@/app/lib/errorMessage";
 import useUser from "@/app/lib/hooks/useUser";
 import getDocumentsByExcludedIds from "@/app/lib/services/firebase/helpers/getDocumentsByExcludedIds";
@@ -146,10 +151,56 @@ const usePlayableReferences = () => {
     [email],
   );
 
+  const reassignIncomingReferences = useCallback(
+    async (
+      oldReferencedId: string,
+      assignments: Array<{
+        collectionName: CollectionName;
+        documentId: string;
+        newReferencedId: string;
+        reference: Reference;
+      }>,
+    ): Promise<boolean> => {
+      checkEmail();
+      if (!oldReferencedId) {
+        setError(new Error("Saved document ID is unknown!"));
+        return false;
+      }
+      if (assignments.length === 0) {
+        return true;
+      }
+
+      try {
+        setLoading(true);
+        for (const {
+          collectionName,
+          documentId,
+          newReferencedId,
+          reference,
+        } of assignments) {
+          await updateDocument(collectionName, documentId, {
+            _updatedBy: email as string,
+            [`references.${oldReferencedId}`]: deleteField(),
+            [`references.${newReferencedId}`]: reference,
+          });
+        }
+        return true;
+      } catch (err: any) {
+        console.error(err);
+        setError(err);
+        return false;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [email],
+  );
+
   return {
     loadEntitiesForReferences,
     loadReferences,
     loading,
+    reassignIncomingReferences,
     removeIncomingReferences,
     saveReferences,
   };
