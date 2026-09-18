@@ -14,6 +14,7 @@ import {
 } from "@heroicons/react/24/outline";
 import {
   Button,
+  Checkbox,
   Collapse,
   CollapseProps,
   Modal,
@@ -21,6 +22,7 @@ import {
   theme,
   Tooltip,
 } from "antd";
+import type { CheckboxProps } from "antd";
 
 import { invalidateCollections } from "@/app/lib/collectionInvalidation";
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
@@ -288,6 +290,9 @@ const CrudDeleteConfirmModal = ({
   >([]);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [linkInput, setLinkInput] = useState("");
+  const [selectedMentionIds, setSelectedMentionIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   useInsertionEffect(() => {
     if (document.getElementById(COLLAPSE_DISABLED_STYLE_ID)) return;
@@ -325,6 +330,7 @@ const CrudDeleteConfirmModal = ({
   useEffect(() => {
     setRemovedMentionIds(new Set());
     setReassignedMentions({});
+    setSelectedMentionIds(new Set());
     setSubmitError(false);
     resetReassignState();
   }, [open, entityId, resetReassignState]);
@@ -366,11 +372,14 @@ const CrudDeleteConfirmModal = ({
     loadMentionsFallback,
   ]);
 
-  const mentNumber = useMemo(
+  const mentionIds = useMemo(
     () =>
-      Object.values(mentions).reduce((total, array) => total + array.length, 0),
+      Object.values(mentions).flatMap((entities) =>
+        entities.map((ent) => ent._id),
+      ),
     [mentions],
   );
+  const mentNumber = mentionIds.length;
   const removedMentionCount = removedMentionIds.size;
   const reassignedMentionCount = Object.keys(reassignedMentions).length;
   const unreviewedMentionCount =
@@ -378,6 +387,10 @@ const CrudDeleteConfirmModal = ({
   const hasMentions = mentionsReady && mentNumber > 0;
   const areControlsLocked = isSubmitting || !!reassigningMentionId;
   const isOkDisabled = areControlsLocked || unreviewedMentionCount > 0;
+  const isAllMentionsSelected =
+    mentionIds.length > 0 && selectedMentionIds.size === mentionIds.length;
+  const isSomeMentionsSelected =
+    selectedMentionIds.size > 0 && !isAllMentionsSelected;
 
   const removedMentionUpdates = useMemo(() => {
     const list: Array<{ collectionName: CollectionName; documentId: string }> =
@@ -425,6 +438,23 @@ const CrudDeleteConfirmModal = ({
 
   const markMentionRemoved = (id: string) => {
     setRemovedMentionIds((prev) => new Set(prev).add(id));
+  };
+
+  const toggleMentionSelected = useCallback((id: string) => {
+    setSelectedMentionIds((prev) => {
+      if (prev.has(id)) {
+        const updated = new Set(prev);
+        updated.delete(id);
+        return updated;
+      }
+      return new Set(prev).add(id);
+    });
+  }, []);
+
+  const onCheckAllMentions: CheckboxProps["onChange"] = (event) => {
+    setSelectedMentionIds(
+      event.target.checked ? new Set(mentionIds) : new Set(),
+    );
   };
 
   const cancelMentionAction = useCallback((id: string) => {
@@ -543,14 +573,26 @@ const CrudDeleteConfirmModal = ({
                 return (
                   <div
                     key={`${colName}-${ent._id}`}
-                    className={`my-0.5 py-0.5 pl-12 flex items-center justify-between ${mentionRowClassName(isRemoved, !!reassignment)}`}
+                    className={`my-0.5 py-0.5 ${mentNumber > 1 ? "pl-6" : "pl-12"} flex items-center justify-between ${mentionRowClassName(isRemoved, !!reassignment)}`}
                   >
-                    <DescriptionTooltip
-                      content={ent.description}
-                      colorText={colorTextSecondary}
-                    >
-                      <span>{formatMentionLabel(ent.name, reassignment)}</span>
-                    </DescriptionTooltip>
+                    <div className="flex items-start gap-3">
+                      {mentNumber > 1 && (
+                        <Checkbox
+                          checked={selectedMentionIds.has(ent._id)}
+                          data-testid="mention-checkbox"
+                          disabled={areControlsLocked}
+                          onChange={() => toggleMentionSelected(ent._id)}
+                        />
+                      )}
+                      <DescriptionTooltip
+                        content={ent.description}
+                        colorText={colorTextSecondary}
+                      >
+                        <span>
+                          {formatMentionLabel(ent.name, reassignment)}
+                        </span>
+                      </DescriptionTooltip>
+                    </div>
                     <div className="flex items-center gap-1">
                       {ent.status !== EntityStatusRegistry.ACTIVE && (
                         <EntityStatusUI.Tag
@@ -619,13 +661,16 @@ const CrudDeleteConfirmModal = ({
     areControlsLocked,
     linkInput,
     mentions,
+    mentNumber,
     reassignedMentions,
     reassigningMentionId,
     removedMentionIds,
     resetReassignState,
     selectOptions,
     selectedEntityId,
+    selectedMentionIds,
     startReassign,
+    toggleMentionSelected,
   ]);
 
   const applyMentionRemovals = async (): Promise<boolean> => {
@@ -696,6 +741,22 @@ const CrudDeleteConfirmModal = ({
       keyboard={false}
       okButtonProps={{ disabled: isOkDisabled }}
       cancelButtonProps={{ disabled: areControlsLocked }}
+      footer={(_, { OkBtn, CancelBtn }) => (
+        <div className="flex items-center justify-between gap-4">
+          <div style={{ color: colorError }}>
+            {unreviewedMentionCount > 0 && (
+              <>
+                Unreviewed {mentionNoun(unreviewedMentionCount)}:{" "}
+                {unreviewedMentionCount}
+              </>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <CancelBtn />
+            <OkBtn />
+          </div>
+        </div>
+      )}
     >
       <div className="flex items-start gap-4">
         <ExclamationCircleFilled
@@ -713,8 +774,8 @@ const CrudDeleteConfirmModal = ({
           </div>
           {hasMentions && (
             <div className="mt-2">
-              The item is mentioned {mentNumber} times. Please review and manage
-              the mentions before deleting.
+              The item is mentioned {mentNumber} times. Please address the
+              mentions before deleting.
             </div>
           )}
         </div>
@@ -733,10 +794,18 @@ const CrudDeleteConfirmModal = ({
               reassignedMentionCount,
             )}
           </div>
-          {unreviewedMentionCount > 0 && (
-            <div className="mt-2 ml-10 mb-1" style={{ color: colorError }}>
-              Unreviewed {mentionNoun(unreviewedMentionCount)}:{" "}
-              {unreviewedMentionCount}
+          {mentNumber > 1 && (
+            <div className="mt-2 pl-10 flex items-start gap-4">
+              <Checkbox
+                checked={isAllMentionsSelected}
+                data-testid="mention-check-all"
+                disabled={areControlsLocked}
+                indeterminate={isSomeMentionsSelected}
+                onChange={onCheckAllMentions}
+              >
+                Check all
+              </Checkbox>
+              TEST
             </div>
           )}
           <div style={{ maxHeight: "224px", overflowY: "auto" }}>

@@ -125,9 +125,42 @@ jest.mock("antd", () => {
     keyboard,
     okButtonProps,
     cancelButtonProps,
+    footer,
     width,
-  }: any) =>
-    open
+  }: any) => {
+    const OkBtn = () =>
+      React.createElement(
+        "button",
+        {
+          "data-testid": "modal-ok-button",
+          disabled: okButtonProps?.disabled,
+          onClick: onOk,
+        },
+        okText ?? "OK",
+      );
+    OkBtn.displayName = "OkBtn";
+    const CancelBtn = () =>
+      React.createElement(
+        "button",
+        {
+          "data-testid": "modal-cancel-button",
+          disabled: cancelButtonProps?.disabled,
+          onClick: onCancel,
+        },
+        "Cancel",
+      );
+    CancelBtn.displayName = "CancelBtn";
+    const footerNode =
+      typeof footer === "function"
+        ? footer(null, { CancelBtn, OkBtn })
+        : (footer ??
+          React.createElement(
+            React.Fragment,
+            null,
+            React.createElement(OkBtn),
+            React.createElement(CancelBtn),
+          ));
+    return open
       ? React.createElement(
           "div",
           {
@@ -145,30 +178,14 @@ jest.mock("antd", () => {
               )
             : null,
           children,
-          React.createElement(
-            "button",
-            {
-              "data-testid": "modal-ok-button",
-              disabled: okButtonProps?.disabled,
-              onClick: onOk,
-            },
-            okText ?? "OK",
-          ),
-          React.createElement(
-            "button",
-            {
-              "data-testid": "modal-cancel-button",
-              disabled: cancelButtonProps?.disabled,
-              onClick: onCancel,
-            },
-            "Cancel",
-          ),
+          footerNode,
           React.createElement("button", {
             "data-testid": "modal-mask",
             onClick: maskClosable === false ? undefined : onCancel,
           }),
         )
       : null;
+  };
   Modal.displayName = "Modal";
 
   const Select = ({ options, placeholder, onChange, value }: any) =>
@@ -204,6 +221,30 @@ jest.mock("antd", () => {
     );
   Tooltip.displayName = "Tooltip";
 
+  const Checkbox = ({
+    checked = false,
+    children,
+    disabled,
+    indeterminate,
+    onChange,
+    ...props
+  }: any) =>
+    React.createElement(
+      "label",
+      null,
+      React.createElement("input", {
+        checked,
+        "data-indeterminate": String(!!indeterminate),
+        "data-testid": props["data-testid"] ?? "ant-checkbox",
+        disabled,
+        onChange: (e: any) =>
+          onChange?.({ target: { checked: e.target.checked } }),
+        type: "checkbox",
+      }),
+      children,
+    );
+  Checkbox.displayName = "Checkbox";
+
   const theme = {
     useToken: () => ({
       token: {
@@ -214,7 +255,17 @@ jest.mock("antd", () => {
     }),
   };
 
-  return { Button, Collapse, Input, Modal, Select, Spin, Tooltip, theme };
+  return {
+    Button,
+    Checkbox,
+    Collapse,
+    Input,
+    Modal,
+    Select,
+    Spin,
+    Tooltip,
+    theme,
+  };
 });
 
 const mockRemoveIncomingReferences = jest.fn();
@@ -416,6 +467,11 @@ describe("CrudDeleteConfirmModal", () => {
       screen.getByText(/The item is mentioned 1 times/),
     ).toBeInTheDocument();
     expect(screen.getByText("Core Rulebook")).toBeInTheDocument();
+    expect(screen.queryByTestId("mention-checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("mention-check-all")).not.toBeInTheDocument();
+    expect(screen.queryByText("Check all")).not.toBeInTheDocument();
+    expect(screen.getByText("Core Rulebook").closest(".pl-12")).toBeTruthy();
+    expect(screen.getByText("Core Rulebook").closest(".pl-6")).toBeNull();
     expect(screen.getByTestId("pencil-square-icon")).toBeInTheDocument();
     expect(
       screen.getByTestId("collapse-item-mention-sources"),
@@ -434,6 +490,47 @@ describe("CrudDeleteConfirmModal", () => {
       screen.getByText(/The item is mentioned 2 times/),
     ).toBeInTheDocument();
     expect(screen.queryByText("1 mention")).not.toBeInTheDocument();
+    expect(screen.getByTestId("mention-check-all")).toBeInTheDocument();
+    expect(screen.getByText("Check all")).toBeInTheDocument();
+    expect(screen.getByText("TEST")).toBeInTheDocument();
+    expect(screen.getAllByTestId("mention-checkbox")).toHaveLength(2);
+    expect(screen.getByText("Core Rulebook").closest(".pl-6")).toBeTruthy();
+    expect(screen.getByText("Core Rulebook").closest(".pl-12")).toBeNull();
+  });
+
+  it("should select all mentions from the master checkbox and show indeterminate when partial", () => {
+    renderWithMentions(mentionsWithTwoEntities);
+
+    const master = () => screen.getByTestId("mention-check-all");
+    const rows = () => screen.getAllByTestId("mention-checkbox");
+    expect(master()).not.toBeChecked();
+    expect(master()).toHaveAttribute("data-indeterminate", "false");
+    rows().forEach((row) => expect(row).not.toBeChecked());
+
+    fireEvent.click(master());
+    expect(master()).toBeChecked();
+    expect(master()).toHaveAttribute("data-indeterminate", "false");
+    rows().forEach((row) => expect(row).toBeChecked());
+
+    fireEvent.click(rows()[0]);
+    expect(master()).not.toBeChecked();
+    expect(master()).toHaveAttribute("data-indeterminate", "true");
+    expect(rows()[0]).not.toBeChecked();
+    expect(rows()[1]).toBeChecked();
+
+    fireEvent.click(master());
+    expect(master()).toBeChecked();
+    rows().forEach((row) => expect(row).toBeChecked());
+
+    fireEvent.click(master());
+    expect(master()).not.toBeChecked();
+    expect(master()).toHaveAttribute("data-indeterminate", "false");
+    rows().forEach((row) => expect(row).not.toBeChecked());
+
+    fireEvent.click(rows()[0]);
+    fireEvent.click(rows()[1]);
+    expect(master()).toBeChecked();
+    expect(master()).toHaveAttribute("data-indeterminate", "false");
   });
 
   it("should mark a mention removed and cancel the action", () => {
@@ -953,6 +1050,8 @@ describe("CrudDeleteConfirmModal", () => {
       screen.getByTestId("pencil-square-icon").closest("button"),
     ).toBeDisabled();
     expect(screen.getByTestId("trash-icon").closest("button")).toBeDisabled();
+    expect(screen.getByTestId("mention-check-all")).toBeDisabled();
+    expect(screen.getByTestId("mention-checkbox")).toBeDisabled();
     expect(
       screen.getByTestId("x-mark-icon").closest("button"),
     ).not.toBeDisabled();
@@ -974,6 +1073,10 @@ describe("CrudDeleteConfirmModal", () => {
     });
     screen.getAllByTestId("trash-icon").forEach((icon) => {
       expect(icon.closest("button")).not.toBeDisabled();
+    });
+    expect(screen.getByTestId("mention-check-all")).not.toBeDisabled();
+    screen.getAllByTestId("mention-checkbox").forEach((box) => {
+      expect(box).not.toBeDisabled();
     });
   });
 });
