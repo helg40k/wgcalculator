@@ -61,6 +61,19 @@ interface PendingReassignment {
   link: string;
 }
 
+const mentionNoun = (count: number) => (count === 1 ? "mention" : "mentions");
+
+const formatMentionActionSummary = (
+  removedCount: number,
+  reassignedCount: number,
+) => {
+  const parts: string[] = [];
+  if (removedCount > 0) parts.push(`${removedCount} removed`);
+  if (reassignedCount > 0) parts.push(`${reassignedCount} reassigned`);
+  if (parts.length === 0) return "";
+  return ` (${parts.join(", ")})`;
+};
+
 const formatMentionLabel = (
   mentionName: string,
   reassignment?: PendingReassignment,
@@ -84,14 +97,13 @@ const mentionRowClassName = (isRemoved: boolean, isReassigned: boolean) => {
 
 interface DeleteButtonProps {
   onDelete: () => void;
-  name: string;
   disabled: boolean;
 }
 
-const DeleteButton = ({ onDelete, name, disabled }: DeleteButtonProps) => (
+const DeleteButton = ({ onDelete, disabled }: DeleteButtonProps) => (
   <Tooltip
     color="darkRed"
-    title={!disabled ? `Remove this ${name}` : undefined}
+    title={!disabled ? "Remove mention" : undefined}
     mouseEnterDelay={0.5}
   >
     <Button
@@ -109,18 +121,18 @@ const DeleteButton = ({ onDelete, name, disabled }: DeleteButtonProps) => (
 
 interface CancelMentionActionButtonProps {
   onCancelAction: () => void;
-  name: string;
+  title: string;
   disabled: boolean;
 }
 
 const CancelMentionActionButton = ({
   onCancelAction,
-  name,
+  title,
   disabled,
 }: CancelMentionActionButtonProps) => (
   <Tooltip
     color="blue"
-    title={!disabled ? `Cancel this ${name} action` : undefined}
+    title={!disabled ? title : undefined}
     mouseEnterDelay={0.5}
   >
     <Button
@@ -139,18 +151,13 @@ const CancelMentionActionButton = ({
 
 interface ReassignButtonProps {
   disabled: boolean;
-  name: string;
   onReassign: () => void;
 }
 
-const ReassignButton = ({
-  disabled,
-  name,
-  onReassign,
-}: ReassignButtonProps) => (
+const ReassignButton = ({ disabled, onReassign }: ReassignButtonProps) => (
   <Tooltip
     color="blue"
-    title={!disabled ? `Reassign this ${name}` : undefined}
+    title={!disabled ? "Reassign mention" : undefined}
     mouseEnterDelay={0.5}
   >
     <Button
@@ -168,18 +175,13 @@ const ReassignButton = ({
 
 interface EditReassignButtonProps {
   disabled: boolean;
-  name: string;
   onEdit: () => void;
 }
 
-const EditReassignButton = ({
-  disabled,
-  name,
-  onEdit,
-}: EditReassignButtonProps) => (
+const EditReassignButton = ({ disabled, onEdit }: EditReassignButtonProps) => (
   <Tooltip
     color="blue"
-    title={!disabled ? `Edit this ${name}` : undefined}
+    title={!disabled ? "Edit reassigned mention" : undefined}
     mouseEnterDelay={0.5}
   >
     <Button
@@ -370,8 +372,12 @@ const CrudDeleteConfirmModal = ({
     [mentions],
   );
   const removedMentionCount = removedMentionIds.size;
+  const reassignedMentionCount = Object.keys(reassignedMentions).length;
+  const unreviewedMentionCount =
+    mentNumber - removedMentionCount - reassignedMentionCount;
   const hasMentions = mentionsReady && mentNumber > 0;
   const areControlsLocked = isSubmitting || !!reassigningMentionId;
+  const isOkDisabled = areControlsLocked || unreviewedMentionCount > 0;
 
   const removedMentionUpdates = useMemo(() => {
     const list: Array<{ collectionName: CollectionName; documentId: string }> =
@@ -556,14 +562,13 @@ const CrudDeleteConfirmModal = ({
                       {isRemoved ? (
                         <CancelMentionActionButton
                           onCancelAction={() => cancelMentionAction(ent._id)}
-                          name="mention"
+                          title="Cancel removing"
                           disabled={areControlsLocked}
                         />
                       ) : reassignment ? (
                         <>
                           <EditReassignButton
                             disabled={areControlsLocked}
-                            name="mention"
                             onEdit={() =>
                               startReassign(
                                 ent,
@@ -574,7 +579,7 @@ const CrudDeleteConfirmModal = ({
                           />
                           <CancelMentionActionButton
                             onCancelAction={() => cancelMentionAction(ent._id)}
-                            name="mention"
+                            title="Cancel reassigning"
                             disabled={areControlsLocked}
                           />
                         </>
@@ -582,14 +587,12 @@ const CrudDeleteConfirmModal = ({
                         <>
                           <ReassignButton
                             disabled={areControlsLocked}
-                            name="mention"
                             onReassign={() =>
                               startReassign(ent, colName as CollectionName)
                             }
                           />
                           <DeleteButton
                             onDelete={() => markMentionRemoved(ent._id)}
-                            name="mention"
                             disabled={areControlsLocked}
                           />
                         </>
@@ -659,7 +662,7 @@ const CrudDeleteConfirmModal = ({
   };
 
   const handleOk = async () => {
-    if (reassigningMentionId) return;
+    if (reassigningMentionId || unreviewedMentionCount > 0) return;
     setSubmitError(false);
     setIsSubmitting(true);
     try {
@@ -691,7 +694,7 @@ const CrudDeleteConfirmModal = ({
       width={580}
       maskClosable={false}
       keyboard={false}
-      okButtonProps={{ disabled: areControlsLocked }}
+      okButtonProps={{ disabled: isOkDisabled }}
       cancelButtonProps={{ disabled: areControlsLocked }}
     >
       <div className="flex items-start gap-4">
@@ -708,6 +711,12 @@ const CrudDeleteConfirmModal = ({
             <br />
             Are you sure?
           </div>
+          {hasMentions && (
+            <div className="mt-2">
+              The item is mentioned {mentNumber} times. Please review and manage
+              the mentions before deleting.
+            </div>
+          )}
         </div>
       </div>
       {hasMentions && (
@@ -718,10 +727,18 @@ const CrudDeleteConfirmModal = ({
             </div>
           )}
           <div className="font-bold">
-            {mentNumber} {mentNumber === 1 ? "mention is" : "mentions are"}{" "}
-            found
-            {removedMentionCount > 0 && ` (${removedMentionCount} removed)`}
+            {mentNumber} {mentionNoun(mentNumber)}
+            {formatMentionActionSummary(
+              removedMentionCount,
+              reassignedMentionCount,
+            )}
           </div>
+          {unreviewedMentionCount > 0 && (
+            <div className="mt-2 ml-10 mb-1" style={{ color: colorError }}>
+              Unreviewed {mentionNoun(unreviewedMentionCount)}:{" "}
+              {unreviewedMentionCount}
+            </div>
+          )}
           <div style={{ maxHeight: "224px", overflowY: "auto" }}>
             <div className={areControlsLocked ? "collapse-disabled" : ""}>
               <Collapse

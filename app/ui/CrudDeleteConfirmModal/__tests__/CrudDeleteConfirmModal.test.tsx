@@ -401,28 +401,39 @@ describe("CrudDeleteConfirmModal", () => {
   it("should not show Mentions when context returns empty", () => {
     renderWithMentions({});
 
-    expect(
-      screen.queryByText(/mention is found|mentions are found/),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/The item is mentioned/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Unreviewed mention/)).not.toBeInTheDocument();
     expect(screen.queryByTestId("ant-collapse")).not.toBeInTheDocument();
   });
 
   it("should show Mentions header and entity name when mentions exist", () => {
-    renderWithMentions(mentionsWithEntity);
+    const onOk = jest.fn();
+    renderWithMentions(mentionsWithEntity, { onOk });
 
-    expect(screen.getByText("1 mention is found")).toBeInTheDocument();
+    expect(screen.getByText("1 mention")).toBeInTheDocument();
+    expect(screen.getByText("Unreviewed mention: 1")).toBeInTheDocument();
+    expect(
+      screen.getByText(/The item is mentioned 1 times/),
+    ).toBeInTheDocument();
     expect(screen.getByText("Core Rulebook")).toBeInTheDocument();
     expect(screen.getByTestId("pencil-square-icon")).toBeInTheDocument();
     expect(
       screen.getByTestId("collapse-item-mention-sources"),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("modal-ok-button")).toBeDisabled();
+    fireEvent.click(screen.getByTestId("modal-ok-button"));
+    expect(onOk).not.toHaveBeenCalled();
   });
 
   it("should use plural copy when more than one mention exists", () => {
     renderWithMentions(mentionsWithTwoEntities);
 
-    expect(screen.getByText("2 mentions are found")).toBeInTheDocument();
-    expect(screen.queryByText("1 mention is found")).not.toBeInTheDocument();
+    expect(screen.getByText("2 mentions")).toBeInTheDocument();
+    expect(screen.getByText("Unreviewed mentions: 2")).toBeInTheDocument();
+    expect(
+      screen.getByText(/The item is mentioned 2 times/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("1 mention")).not.toBeInTheDocument();
   });
 
   it("should mark a mention removed and cancel the action", () => {
@@ -430,19 +441,46 @@ describe("CrudDeleteConfirmModal", () => {
 
     fireEvent.click(screen.getByTestId("trash-icon").closest("button")!);
 
-    expect(
-      screen.getByText("1 mention is found (1 removed)"),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId("arrow-path-icon")).toBeInTheDocument();
+    expect(screen.getByText("1 mention (1 removed)")).toBeInTheDocument();
+    expect(screen.queryByText(/Unreviewed mention/)).not.toBeInTheDocument();
+    expect(screen.getByTestId("modal-ok-button")).not.toBeDisabled();
+    expect(screen.getByTitle("Cancel removing")).toBeInTheDocument();
     expect(screen.queryByTestId("trash-icon")).not.toBeInTheDocument();
     expect(screen.queryByTestId("pencil-square-icon")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("arrow-path-icon").closest("button")!);
 
-    expect(screen.getByText("1 mention is found")).toBeInTheDocument();
+    expect(screen.getByText("1 mention")).toBeInTheDocument();
+    expect(
+      screen.getByText(/The item is mentioned 1 times/),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("trash-icon")).toBeInTheDocument();
     expect(screen.getByTestId("pencil-square-icon")).toBeInTheDocument();
     expect(screen.queryByTestId("arrow-path-icon")).not.toBeInTheDocument();
+    expect(screen.getByTestId("modal-ok-button")).toBeDisabled();
+  });
+
+  it("should show removed and reassigned counts together in the header", async () => {
+    renderWithMentions(mentionsWithTwoEntities);
+
+    fireEvent.click(screen.getAllByTestId("trash-icon")[0].closest("button")!);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("pencil-square-icon").closest("button")!,
+      );
+    });
+    await screen.findByTestId("crud-reference-select-row");
+    fireEvent.change(screen.getByTestId("ant-select"), {
+      target: { value: "kw-3" },
+    });
+    fireEvent.click(screen.getByTestId("check-icon").closest("button")!);
+
+    expect(
+      screen.getByText("2 mentions (1 removed, 1 reassigned)"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Unreviewed mention/)).not.toBeInTheDocument();
+    expect(screen.getByTestId("modal-ok-button")).not.toBeDisabled();
   });
 
   it("should await mention removals then onOk, keeping controls disabled until both finish", async () => {
@@ -517,7 +555,7 @@ describe("CrudDeleteConfirmModal", () => {
     const error = await screen.findByText(
       "Sorry, something went wrong. Please try again",
     );
-    const mentionsHeader = screen.getByText("1 mention is found (1 removed)");
+    const mentionsHeader = screen.getByText("1 mention (1 removed)");
     expect(
       error.compareDocumentPosition(mentionsHeader) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -531,9 +569,8 @@ describe("CrudDeleteConfirmModal", () => {
   it("should hide Mentions when open but collectionName is missing", () => {
     renderWithMentions(mentionsWithEntity, { collectionName: undefined });
 
-    expect(
-      screen.queryByText(/mention is found|mentions are found/),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/The item is mentioned/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Unreviewed mention/)).not.toBeInTheDocument();
     expect(screen.queryByText("Core Rulebook")).not.toBeInTheDocument();
   });
 
@@ -648,7 +685,7 @@ describe("CrudDeleteConfirmModal", () => {
 
     await act(async () => {
       fireEvent.click(
-        screen.getByTitle("Edit this mention").querySelector("button")!,
+        screen.getByTitle("Edit reassigned mention").querySelector("button")!,
       );
     });
     await screen.findByTestId("crud-reference-select-row");
@@ -717,9 +754,12 @@ describe("CrudDeleteConfirmModal", () => {
     expect(
       screen.getByText("Core Rulebook (Charge)").closest(".bg-green-200"),
     ).toBeInTheDocument();
-    expect(screen.getByTitle("Edit this mention")).toBeInTheDocument();
-    expect(screen.getByTitle("Cancel this mention action")).toBeInTheDocument();
+    expect(screen.getByTitle("Edit reassigned mention")).toBeInTheDocument();
+    expect(screen.getByTitle("Cancel reassigning")).toBeInTheDocument();
     expect(screen.queryByTestId("trash-icon")).not.toBeInTheDocument();
+    expect(screen.getByText("1 mention (1 reassigned)")).toBeInTheDocument();
+    expect(screen.queryByText(/Unreviewed mention/)).not.toBeInTheDocument();
+    expect(screen.getByTestId("modal-ok-button")).not.toBeDisabled();
   });
 
   it("should include the link in the reassigned mention label", async () => {
@@ -764,7 +804,7 @@ describe("CrudDeleteConfirmModal", () => {
 
     await act(async () => {
       fireEvent.click(
-        screen.getByTitle("Edit this mention").querySelector("button")!,
+        screen.getByTitle("Edit reassigned mention").querySelector("button")!,
       );
     });
     await screen.findByTestId("crud-reference-select-row");
@@ -810,9 +850,14 @@ describe("CrudDeleteConfirmModal", () => {
     expect(
       screen.queryByText("Core Rulebook (Charge)"),
     ).not.toBeInTheDocument();
-    expect(screen.getByTitle("Reassign this mention")).toBeInTheDocument();
+    expect(screen.getByTitle("Reassign mention")).toBeInTheDocument();
     expect(screen.getByTestId("trash-icon")).toBeInTheDocument();
     expect(screen.queryByTestId("arrow-path-icon")).not.toBeInTheDocument();
+    expect(screen.getByText("1 mention")).toBeInTheDocument();
+    expect(
+      screen.queryByText("1 mention (1 reassigned)"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("modal-ok-button")).toBeDisabled();
   });
 
   it("should apply reassignments then onOk when Delete is confirmed", async () => {
@@ -879,7 +924,7 @@ describe("CrudDeleteConfirmModal", () => {
     const error = await screen.findByText(
       "Sorry, something went wrong. Please try again",
     );
-    const mentionsHeader = screen.getByText("1 mention is found");
+    const mentionsHeader = screen.getByText("1 mention (1 reassigned)");
     expect(
       error.compareDocumentPosition(mentionsHeader) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -919,7 +964,7 @@ describe("CrudDeleteConfirmModal", () => {
 
     fireEvent.click(screen.getByTestId("x-mark-icon").closest("button")!);
 
-    expect(screen.getByTestId("modal-ok-button")).not.toBeDisabled();
+    expect(screen.getByTestId("modal-ok-button")).toBeDisabled();
     expect(screen.getByTestId("modal-cancel-button")).not.toBeDisabled();
     expect(
       document.querySelector(".collapse-disabled"),
