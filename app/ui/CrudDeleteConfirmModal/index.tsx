@@ -12,6 +12,7 @@ import {
   PencilSquareIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
+import type { CheckboxProps } from "antd";
 import {
   Button,
   Checkbox,
@@ -22,7 +23,6 @@ import {
   theme,
   Tooltip,
 } from "antd";
-import type { CheckboxProps } from "antd";
 
 import { invalidateCollections } from "@/app/lib/collectionInvalidation";
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
@@ -53,6 +53,24 @@ const COLLAPSE_DISABLED_CSS = `
     pointer-events: none !important;
   }
 `;
+const MENTION_CHECK_ALL_STYLE_ID = "mention-check-all-styles";
+const MENTION_CHECK_ALL_CSS = `
+  .mention-check-all:not(.ant-checkbox-wrapper-disabled) > span:not(.ant-checkbox) {
+    color: var(--mention-check-all-color);
+    transition: color 0.2s;
+  }
+  .mention-check-all:not(.ant-checkbox-wrapper-disabled):hover > span:not(.ant-checkbox) {
+    color: var(--mention-check-all-hover);
+  }
+`;
+
+const injectStyle = (id: string, css: string) => {
+  if (document.getElementById(id)) return;
+  const style = document.createElement("style");
+  style.id = id;
+  style.textContent = css;
+  document.head.appendChild(style);
+};
 
 const MENTION_ERROR = "Sorry, something went wrong. Please try again";
 
@@ -95,6 +113,36 @@ const mentionRowClassName = (isRemoved: boolean, isReassigned: boolean) => {
     return "bg-green-200 hover:bg-green-100 has-[.cancel-mention-action-btn:hover]:bg-blue-100";
   }
   return "hover:bg-blue-50";
+};
+
+const canApplyBulkReassignment = (mention: Playable, replacementId: string) => {
+  if (mention._id === replacementId) return false;
+  if (mention.references?.[replacementId]) return false;
+  return true;
+};
+
+const buildBulkReassignments = (
+  mentions: Mentions,
+  selectedIds: Set<string>,
+  replacementId: string,
+  selectedName: string,
+  link: string,
+) => {
+  const updates: Record<string, PendingReassignment> = {};
+  for (const [colName, entities] of Object.entries(mentions)) {
+    if (!entities?.length) continue;
+    for (const ent of entities) {
+      if (!selectedIds.has(ent._id)) continue;
+      if (!canApplyBulkReassignment(ent, replacementId)) continue;
+      updates[ent._id] = {
+        collectionName: colName as CollectionName,
+        link,
+        selectedEntityId: replacementId,
+        selectedName,
+      };
+    }
+  }
+  return updates;
 };
 
 interface DeleteButtonProps {
@@ -258,7 +306,13 @@ const CrudDeleteConfirmModal = ({
   onCancel,
 }: CrudDeleteConfirmModalProps) => {
   const {
-    token: { colorWarning, colorError, colorTextSecondary },
+    token: {
+      colorError,
+      colorLink,
+      colorLinkHover,
+      colorTextSecondary,
+      colorWarning,
+    },
   } = theme.useToken();
   const [, utils] = useContext(GameSystemContext);
   const mentionsCtx = useContext(MentionsContext);
@@ -293,13 +347,11 @@ const CrudDeleteConfirmModal = ({
   const [selectedMentionIds, setSelectedMentionIds] = useState<Set<string>>(
     new Set(),
   );
+  const [isBulkReassigning, setIsBulkReassigning] = useState(false);
 
   useInsertionEffect(() => {
-    if (document.getElementById(COLLAPSE_DISABLED_STYLE_ID)) return;
-    const style = document.createElement("style");
-    style.id = COLLAPSE_DISABLED_STYLE_ID;
-    style.textContent = COLLAPSE_DISABLED_CSS;
-    document.head.appendChild(style);
+    injectStyle(COLLAPSE_DISABLED_STYLE_ID, COLLAPSE_DISABLED_CSS);
+    injectStyle(MENTION_CHECK_ALL_STYLE_ID, MENTION_CHECK_ALL_CSS);
   }, []);
 
   const loadMentionsFallback = useCallback(async () => {
@@ -325,6 +377,7 @@ const CrudDeleteConfirmModal = ({
     setSelectOptions([]);
     setSelectedEntityId(null);
     setLinkInput("");
+    setIsBulkReassigning(false);
   }, []);
 
   useEffect(() => {
@@ -385,12 +438,25 @@ const CrudDeleteConfirmModal = ({
   const unreviewedMentionCount =
     mentNumber - removedMentionCount - reassignedMentionCount;
   const hasMentions = mentionsReady && mentNumber > 0;
-  const areControlsLocked = isSubmitting || !!reassigningMentionId;
+  const areControlsLocked =
+    isSubmitting || !!reassigningMentionId || isBulkReassigning;
   const isOkDisabled = areControlsLocked || unreviewedMentionCount > 0;
   const isAllMentionsSelected =
     mentionIds.length > 0 && selectedMentionIds.size === mentionIds.length;
   const isSomeMentionsSelected =
     selectedMentionIds.size > 0 && !isAllMentionsSelected;
+  const hasSelectedNotRemovedMention = [...selectedMentionIds].some(
+    (id) => !removedMentionIds.has(id),
+  );
+  const hasSelectedNonDefaultMention = [...selectedMentionIds].some(
+    (id) => removedMentionIds.has(id) || id in reassignedMentions,
+  );
+  const isDeleteAllDisabled =
+    areControlsLocked || !hasSelectedNotRemovedMention;
+  const isCancelAllDisabled =
+    areControlsLocked || !hasSelectedNonDefaultMention;
+  const isReassignAllDisabled =
+    areControlsLocked || selectedMentionIds.size === 0;
 
   const removedMentionUpdates = useMemo(() => {
     const list: Array<{ collectionName: CollectionName; documentId: string }> =
@@ -457,6 +523,42 @@ const CrudDeleteConfirmModal = ({
     );
   };
 
+  const deleteSelectedMentions = () => {
+    const ids = [...selectedMentionIds];
+    if (ids.length === 0) return;
+    setRemovedMentionIds((prev) => {
+      const updated = new Set(prev);
+      ids.forEach((id) => updated.add(id));
+      return updated;
+    });
+    setReassignedMentions((prev) => {
+      if (!ids.some((id) => id in prev)) return prev;
+      const next = { ...prev };
+      ids.forEach((id) => {
+        delete next[id];
+      });
+      return next;
+    });
+  };
+
+  const cancelSelectedMentionActions = () => {
+    const ids = [...selectedMentionIds];
+    if (ids.length === 0) return;
+    setRemovedMentionIds((prev) => {
+      const updated = new Set(prev);
+      ids.forEach((id) => updated.delete(id));
+      return updated;
+    });
+    setReassignedMentions((prev) => {
+      if (!ids.some((id) => id in prev)) return prev;
+      const next = { ...prev };
+      ids.forEach((id) => {
+        delete next[id];
+      });
+      return next;
+    });
+  };
+
   const cancelMentionAction = useCallback((id: string) => {
     setRemovedMentionIds((prev) => {
       const updated = new Set(prev);
@@ -508,6 +610,51 @@ const CrudDeleteConfirmModal = ({
     },
     [collectionName, entityId, isSubmitting, loadReplacementOptions],
   );
+
+  const startBulkReassign = async () => {
+    if (!collectionName || !entityId || isSubmitting) return;
+    if (reassigningMentionId) return;
+    const excluded = [entityId];
+    const loaded = await loadEntitiesForReferences<Playable>(
+      collectionName,
+      excluded,
+    );
+    const sorted = loaded
+      .filter((ent) => ent._id !== entityId)
+      .sort((ent1, ent2) => ent1.name.localeCompare(ent2.name));
+    setAvailableEntities(sorted);
+    setSelectOptions(
+      sorted.map((ent) => ({ label: ent.name, value: ent._id })),
+    );
+    setSelectedEntityId(null);
+    setLinkInput("");
+    setIsBulkReassigning(true);
+  };
+
+  const confirmBulkReassign = () => {
+    if (!isBulkReassigning || !selectedEntityId) return;
+    const selected = availableEntities.find(
+      (ent) => ent._id === selectedEntityId,
+    );
+    if (!selected) return;
+    const updates = buildBulkReassignments(
+      mentions,
+      selectedMentionIds,
+      selectedEntityId,
+      selected.name,
+      linkInput.trim(),
+    );
+    const appliedIds = Object.keys(updates);
+    if (appliedIds.length > 0) {
+      setReassignedMentions((prev) => ({ ...prev, ...updates }));
+      setRemovedMentionIds((prev) => {
+        const updated = new Set(prev);
+        appliedIds.forEach((id) => updated.delete(id));
+        return updated;
+      });
+    }
+    resetReassignState();
+  };
 
   const confirmReassign = useCallback(() => {
     if (!reassigningMentionId || !selectedEntityId) return;
@@ -707,7 +854,8 @@ const CrudDeleteConfirmModal = ({
   };
 
   const handleOk = async () => {
-    if (reassigningMentionId || unreviewedMentionCount > 0) return;
+    if (reassigningMentionId || isBulkReassigning || unreviewedMentionCount > 0)
+      return;
     setSubmitError(false);
     setIsSubmitting(true);
     try {
@@ -795,18 +943,100 @@ const CrudDeleteConfirmModal = ({
             )}
           </div>
           {mentNumber > 1 && (
-            <div className="mt-2 pl-10 flex items-start gap-4">
-              <Checkbox
-                checked={isAllMentionsSelected}
-                data-testid="mention-check-all"
-                disabled={areControlsLocked}
-                indeterminate={isSomeMentionsSelected}
-                onChange={onCheckAllMentions}
-              >
-                Check all
-              </Checkbox>
-              TEST
-            </div>
+            <>
+              <div className="mt-2 pl-10 flex items-center gap-4">
+                <Checkbox
+                  checked={isAllMentionsSelected}
+                  className="mention-check-all"
+                  data-testid="mention-check-all"
+                  disabled={areControlsLocked}
+                  indeterminate={isSomeMentionsSelected}
+                  onChange={onCheckAllMentions}
+                  style={
+                    {
+                      "--mention-check-all-color": colorLink,
+                      "--mention-check-all-hover": colorLinkHover,
+                    } as React.CSSProperties
+                  }
+                >
+                  Check all
+                </Checkbox>
+                <Tooltip
+                  color="blue"
+                  mouseEnterDelay={0.5}
+                  title={
+                    !isReassignAllDisabled
+                      ? "Reassign all selected mentions"
+                      : undefined
+                  }
+                >
+                  <Button
+                    className="h-auto px-0"
+                    disabled={isReassignAllDisabled}
+                    onClick={startBulkReassign}
+                    size="small"
+                    style={{ height: "auto" }}
+                    type="link"
+                  >
+                    Reassign all
+                  </Button>
+                </Tooltip>
+                <Tooltip
+                  color="darkRed"
+                  mouseEnterDelay={0.5}
+                  title={
+                    !isDeleteAllDisabled
+                      ? "Remove all selected mentions"
+                      : undefined
+                  }
+                >
+                  <Button
+                    className="h-auto px-0"
+                    disabled={isDeleteAllDisabled}
+                    onClick={deleteSelectedMentions}
+                    size="small"
+                    style={{ height: "auto" }}
+                    type="link"
+                  >
+                    Delete all
+                  </Button>
+                </Tooltip>
+                <Tooltip
+                  color="blue"
+                  mouseEnterDelay={0.5}
+                  title={
+                    !isCancelAllDisabled
+                      ? "Cancel for all selected mentions"
+                      : undefined
+                  }
+                >
+                  <Button
+                    className="h-auto px-0"
+                    disabled={isCancelAllDisabled}
+                    onClick={cancelSelectedMentionActions}
+                    size="small"
+                    style={{ height: "auto" }}
+                    type="link"
+                  >
+                    Cancel all
+                  </Button>
+                </Tooltip>
+              </div>
+              {isBulkReassigning && (
+                <CrudReferenceSelectRow
+                  availableEntities={availableEntities}
+                  className="mt-2 pl-10"
+                  linkInput={linkInput}
+                  onCancel={resetReassignState}
+                  onConfirm={confirmBulkReassign}
+                  onLinkChange={setLinkInput}
+                  onSelect={setSelectedEntityId}
+                  placeholder="Select a replacement..."
+                  selectOptions={selectOptions}
+                  selectedEntityId={selectedEntityId}
+                />
+              )}
+            </>
           )}
           <div style={{ maxHeight: "224px", overflowY: "auto" }}>
             <div className={areControlsLocked ? "collapse-disabled" : ""}>
