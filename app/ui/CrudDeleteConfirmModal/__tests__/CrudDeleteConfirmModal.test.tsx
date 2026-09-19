@@ -479,9 +479,7 @@ describe("CrudDeleteConfirmModal", () => {
 
     expect(screen.getByText("1 mention")).toBeInTheDocument();
     expect(screen.getByText("Unreviewed mention: 1")).toBeInTheDocument();
-    expect(
-      screen.getByText(/The item is mentioned 1 times/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/The item is mentioned once/)).toBeInTheDocument();
     expect(screen.getByText("Core Rulebook")).toBeInTheDocument();
     expect(screen.queryByTestId("mention-checkbox")).not.toBeInTheDocument();
     expect(screen.queryByTestId("mention-check-all")).not.toBeInTheDocument();
@@ -861,6 +859,144 @@ describe("CrudDeleteConfirmModal", () => {
     expect(screen.getByTestId("ant-input")).toHaveValue("");
   });
 
+  it("should lock controls immediately when Reassign all is clicked before replacements load", async () => {
+    let resolveLoad: (value: unknown[]) => void = () => {};
+    mockLoadEntitiesForReferences.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveLoad = resolve;
+        }),
+    );
+    renderWithMentions(mentionsWithTwoEntities);
+
+    fireEvent.click(screen.getAllByTestId("mention-checkbox")[0]);
+    fireEvent.click(screen.getByText("Reassign all"));
+
+    expect(screen.getByTestId("crud-reference-select-row")).toBeInTheDocument();
+    expect(screen.getByText("Reassign all")).toBeDisabled();
+    expect(screen.getByText("Delete all")).toBeDisabled();
+    expect(screen.getByTestId("modal-ok-button")).toBeDisabled();
+    expect(screen.getByTestId("modal-cancel-button")).toBeDisabled();
+    expect(document.querySelector(".collapse-disabled")).toBeInTheDocument();
+
+    await act(async () => {
+      resolveLoad([
+        { _id: "kw-3", name: "Charge", status: "active" },
+        { _id: "kw-4", name: "Retreat", status: "active" },
+      ]);
+    });
+    expect(screen.getByTestId("ant-select")).toHaveValue("");
+  });
+
+  it("should lock controls immediately when row Reassign is clicked before replacements load", async () => {
+    let resolveLoad: (value: unknown[]) => void = () => {};
+    mockLoadEntitiesForReferences.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveLoad = resolve;
+        }),
+    );
+    renderWithMentions(mentionsWithEntity);
+
+    fireEvent.click(
+      screen.getByTestId("pencil-square-icon").closest("button")!,
+    );
+
+    expect(screen.getByTestId("crud-reference-select-row")).toBeInTheDocument();
+    expect(screen.queryByText("Core Rulebook")).not.toBeInTheDocument();
+    expect(screen.getByTestId("modal-ok-button")).toBeDisabled();
+    expect(screen.getByTestId("modal-cancel-button")).toBeDisabled();
+
+    await act(async () => {
+      resolveLoad([
+        { _id: "kw-3", name: "Charge", status: "active" },
+        { _id: "kw-4", name: "Retreat", status: "active" },
+      ]);
+    });
+    expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+  });
+
+  it("should unlock after a failed replacement load", async () => {
+    mockLoadEntitiesForReferences.mockRejectedValueOnce(new Error("fail"));
+    renderWithMentions(mentionsWithTwoEntities);
+
+    fireEvent.click(screen.getAllByTestId("mention-checkbox")[0]);
+    await act(async () => {
+      fireEvent.click(screen.getByText("Reassign all"));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("crud-reference-select-row"),
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getByText("Reassign all")).not.toBeDisabled();
+    expect(screen.getByTestId("modal-cancel-button")).not.toBeDisabled();
+    expect(screen.getByText("Core Rulebook")).toBeInTheDocument();
+  });
+
+  it("should reassign a selected removed mention from the bulk selector", async () => {
+    renderWithMentions(mentionsWithTwoEntities);
+
+    fireEvent.click(screen.getAllByTestId("mention-checkbox")[0]);
+    fireEvent.click(screen.getByText("Delete all"));
+    expect(screen.getByText("2 mentions (1 removed)")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Reassign all"));
+    });
+    await screen.findByTestId("crud-reference-select-row");
+    fireEvent.change(screen.getByTestId("ant-select"), {
+      target: { value: "kw-3" },
+    });
+    fireEvent.click(screen.getByTestId("check-icon").closest("button")!);
+
+    expect(screen.getByText("2 mentions (1 reassigned)")).toBeInTheDocument();
+    expect(screen.queryByText(/removed/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Core Rulebook \(Charge\)/)).toBeInTheDocument();
+  });
+
+  it("should close the bulk selector without changing rows when every selected mention is skipped", async () => {
+    renderWithMentions({
+      [CollectionRegistry.Source]: [
+        {
+          ...mentionEntity,
+          references: {
+            "kw-1": { name: CollectionRegistry.Keyword },
+            "kw-3": { name: CollectionRegistry.Keyword },
+          },
+        } as any,
+        {
+          ...mentionEntity,
+          _id: "src-2",
+          name: "Expansion Book",
+          references: {
+            "kw-1": { name: CollectionRegistry.Keyword },
+            "kw-3": { name: CollectionRegistry.Keyword },
+          },
+        } as any,
+      ],
+    });
+
+    fireEvent.click(screen.getByTestId("mention-check-all"));
+    await act(async () => {
+      fireEvent.click(screen.getByText("Reassign all"));
+    });
+    await screen.findByTestId("crud-reference-select-row");
+    fireEvent.change(screen.getByTestId("ant-select"), {
+      target: { value: "kw-3" },
+    });
+    fireEvent.click(screen.getByTestId("check-icon").closest("button")!);
+
+    expect(
+      screen.queryByTestId("crud-reference-select-row"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Core Rulebook")).toBeInTheDocument();
+    expect(screen.getByText("Expansion Book")).toBeInTheDocument();
+    expect(screen.queryByText(/\(Charge/)).not.toBeInTheDocument();
+    expect(screen.getByText("2 mentions")).toBeInTheDocument();
+  });
+
   it("should mark a mention removed and cancel the action", () => {
     renderWithMentions(mentionsWithEntity);
 
@@ -876,9 +1012,7 @@ describe("CrudDeleteConfirmModal", () => {
     fireEvent.click(screen.getByTestId("arrow-path-icon").closest("button")!);
 
     expect(screen.getByText("1 mention")).toBeInTheDocument();
-    expect(
-      screen.getByText(/The item is mentioned 1 times/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/The item is mentioned once/)).toBeInTheDocument();
     expect(screen.getByTestId("trash-icon")).toBeInTheDocument();
     expect(screen.getByTestId("pencil-square-icon")).toBeInTheDocument();
     expect(screen.queryByTestId("arrow-path-icon")).not.toBeInTheDocument();

@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useInsertionEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { CaretRightOutlined, ExclamationCircleFilled } from "@ant-design/icons";
@@ -145,106 +146,74 @@ const buildBulkReassignments = (
   return updates;
 };
 
-interface DeleteButtonProps {
-  onDelete: () => void;
+interface MentionIconButtonProps {
+  className?: string;
+  color: string;
   disabled: boolean;
-}
-
-const DeleteButton = ({ onDelete, disabled }: DeleteButtonProps) => (
-  <Tooltip
-    color="darkRed"
-    title={!disabled ? "Remove mention" : undefined}
-    mouseEnterDelay={0.5}
-  >
-    <Button
-      style={{ height: "22px", width: "22px" }}
-      onClick={onDelete}
-      icon={
-        <span className="text-black hover:text-red-900 transition-colors">
-          <TrashIcon className="w-3" />
-        </span>
-      }
-      disabled={disabled}
-    />
-  </Tooltip>
-);
-
-interface CancelMentionActionButtonProps {
-  onCancelAction: () => void;
+  hoverClassName: string;
+  icon: React.ReactNode;
+  onClick: () => void;
   title: string;
-  disabled: boolean;
 }
 
-const CancelMentionActionButton = ({
-  onCancelAction,
-  title,
+const MentionIconButton = ({
+  className,
+  color,
   disabled,
-}: CancelMentionActionButtonProps) => (
+  hoverClassName,
+  icon,
+  onClick,
+  title,
+}: MentionIconButtonProps) => (
   <Tooltip
-    color="blue"
+    color={color}
+    mouseEnterDelay={0.5}
     title={!disabled ? title : undefined}
-    mouseEnterDelay={0.5}
   >
     <Button
-      className="cancel-mention-action-btn"
-      style={{ height: "22px", width: "22px" }}
-      onClick={onCancelAction}
+      className={className}
+      disabled={disabled}
       icon={
-        <span className="text-black hover:text-blue-900 transition-colors">
-          <ArrowPathIcon className="w-3" />
+        <span className={`text-black ${hoverClassName} transition-colors`}>
+          {icon}
         </span>
       }
-      disabled={disabled}
+      onClick={onClick}
+      style={{ height: "22px", width: "22px" }}
     />
   </Tooltip>
 );
 
-interface ReassignButtonProps {
+interface BulkActionLinkProps {
+  children: React.ReactNode;
+  color: string;
   disabled: boolean;
-  onReassign: () => void;
+  onClick: () => void;
+  title: string;
 }
 
-const ReassignButton = ({ disabled, onReassign }: ReassignButtonProps) => (
+const BulkActionLink = ({
+  children,
+  color,
+  disabled,
+  onClick,
+  title,
+}: BulkActionLinkProps) => (
   <Tooltip
-    color="blue"
-    title={!disabled ? "Reassign mention" : undefined}
+    color={color}
     mouseEnterDelay={0.5}
+    title={!disabled ? title : undefined}
   >
     <Button
-      style={{ height: "22px", width: "22px" }}
-      onClick={onReassign}
-      icon={
-        <span className="text-black hover:text-blue-900 transition-colors">
-          <PencilSquareIcon className="w-3" />
-        </span>
-      }
+      className="h-auto px-0"
       disabled={disabled}
-    />
-  </Tooltip>
-);
-
-interface EditReassignButtonProps {
-  disabled: boolean;
-  onEdit: () => void;
-}
-
-const EditReassignButton = ({ disabled, onEdit }: EditReassignButtonProps) => (
-  <Tooltip
-    color="blue"
-    title={!disabled ? "Edit reassigned mention" : undefined}
-    mouseEnterDelay={0.5}
-  >
-    <Button
-      className="edit-reassign-btn"
-      style={{ height: "22px", width: "22px" }}
-      onClick={onEdit}
-      icon={
-        <span className="text-black hover:text-blue-900 transition-colors">
-          <PencilSquareIcon className="w-3" />
-        </span>
-      }
-      disabled={disabled}
-    />
+      onClick={onClick}
+      size="small"
+      style={{ height: "auto" }}
+      type="link"
+    >
+      {children}
+    </Button>
   </Tooltip>
 );
 
@@ -348,6 +317,15 @@ const CrudDeleteConfirmModal = ({
     new Set(),
   );
   const [isBulkReassigning, setIsBulkReassigning] = useState(false);
+  const replacementLoadIdRef = useRef(0);
+
+  const nextReplacementLoadId = () => {
+    replacementLoadIdRef.current += 1;
+    return replacementLoadIdRef.current;
+  };
+
+  const isCurrentReplacementLoad = (loadId: number) =>
+    loadId === replacementLoadIdRef.current;
 
   useInsertionEffect(() => {
     injectStyle(COLLAPSE_DISABLED_STYLE_ID, COLLAPSE_DISABLED_CSS);
@@ -357,20 +335,20 @@ const CrudDeleteConfirmModal = ({
   const loadMentionsFallback = useCallback(async () => {
     if (!entityId || !collectionName) return {};
     const canBeMentionedBy = utils.canBeMentionedBy(collectionName);
-    const loaded = {} as Mentions;
-    for (const mentionCollectionName of canBeMentionedBy) {
-      loaded[mentionCollectionName] = await loadEntities<Playable>(
-        mentionCollectionName,
-        {
+    const entries = await Promise.all(
+      canBeMentionedBy.map(async (mentionCollectionName) => {
+        const entities = await loadEntities<Playable>(mentionCollectionName, {
           filters: [[`references.${entityId}.name`, "==", collectionName]],
           withoutSort: true,
-        },
-      );
-    }
-    return loaded;
+        });
+        return [mentionCollectionName, entities] as const;
+      }),
+    );
+    return Object.fromEntries(entries) as Mentions;
   }, [collectionName, entityId, loadEntities, utils]);
 
   const resetReassignState = useCallback(() => {
+    replacementLoadIdRef.current += 1;
     setReassigningMentionId(null);
     setReassigningMentionCollection(null);
     setAvailableEntities([]);
@@ -379,6 +357,13 @@ const CrudDeleteConfirmModal = ({
     setLinkInput("");
     setIsBulkReassigning(false);
   }, []);
+
+  const setReplacementOptions = (sorted: Playable[]) => {
+    setAvailableEntities(sorted);
+    setSelectOptions(
+      sorted.map((ent) => ({ label: ent.name, value: ent._id })),
+    );
+  };
 
   useEffect(() => {
     setRemovedMentionIds(new Set());
@@ -432,6 +417,17 @@ const CrudDeleteConfirmModal = ({
       ),
     [mentions],
   );
+
+  useEffect(() => {
+    const validIds = new Set(mentionIds);
+    setSelectedMentionIds((prev) => {
+      const next = new Set([...prev].filter((id) => validIds.has(id)));
+      if (next.size === prev.size && [...next].every((id) => prev.has(id))) {
+        return prev;
+      }
+      return next;
+    });
+  }, [mentionIds]);
   const mentNumber = mentionIds.length;
   const removedMentionCount = removedMentionIds.size;
   const reassignedMentionCount = Object.keys(reassignedMentions).length;
@@ -597,39 +593,66 @@ const CrudDeleteConfirmModal = ({
       mentionCollection: CollectionName,
       existing?: PendingReassignment,
     ) => {
-      if (!collectionName || !entityId || isSubmitting) return;
-      const sorted = await loadReplacementOptions(mention, mentionCollection);
-      setAvailableEntities(sorted);
-      setSelectOptions(
-        sorted.map((ent) => ({ label: ent.name, value: ent._id })),
-      );
-      setSelectedEntityId(existing?.selectedEntityId ?? null);
-      setLinkInput(existing?.link ?? "");
+      if (!collectionName || !entityId || isSubmitting || isBulkReassigning) {
+        return;
+      }
+      const loadId = nextReplacementLoadId();
       setReassigningMentionCollection(mentionCollection);
       setReassigningMentionId(mention._id);
+      setSelectedEntityId(existing?.selectedEntityId ?? null);
+      setLinkInput(existing?.link ?? "");
+      setReplacementOptions([]);
+      try {
+        const sorted = await loadReplacementOptions(mention, mentionCollection);
+        if (!isCurrentReplacementLoad(loadId)) return;
+        setReplacementOptions(sorted);
+      } catch {
+        if (!isCurrentReplacementLoad(loadId)) return;
+        resetReassignState();
+      }
     },
-    [collectionName, entityId, isSubmitting, loadReplacementOptions],
+    [
+      collectionName,
+      entityId,
+      isBulkReassigning,
+      isSubmitting,
+      loadReplacementOptions,
+      resetReassignState,
+    ],
   );
 
-  const startBulkReassign = async () => {
+  const startBulkReassign = useCallback(async () => {
     if (!collectionName || !entityId || isSubmitting) return;
-    if (reassigningMentionId) return;
-    const excluded = [entityId];
-    const loaded = await loadEntitiesForReferences<Playable>(
-      collectionName,
-      excluded,
-    );
-    const sorted = loaded
-      .filter((ent) => ent._id !== entityId)
-      .sort((ent1, ent2) => ent1.name.localeCompare(ent2.name));
-    setAvailableEntities(sorted);
-    setSelectOptions(
-      sorted.map((ent) => ({ label: ent.name, value: ent._id })),
-    );
+    if (reassigningMentionId || isBulkReassigning) return;
+    const loadId = nextReplacementLoadId();
+    setIsBulkReassigning(true);
     setSelectedEntityId(null);
     setLinkInput("");
-    setIsBulkReassigning(true);
-  };
+    setReplacementOptions([]);
+    try {
+      const excluded = [entityId];
+      const loaded = await loadEntitiesForReferences<Playable>(
+        collectionName,
+        excluded,
+      );
+      if (!isCurrentReplacementLoad(loadId)) return;
+      const sorted = loaded
+        .filter((ent) => ent._id !== entityId)
+        .sort((ent1, ent2) => ent1.name.localeCompare(ent2.name));
+      setReplacementOptions(sorted);
+    } catch {
+      if (!isCurrentReplacementLoad(loadId)) return;
+      resetReassignState();
+    }
+  }, [
+    collectionName,
+    entityId,
+    isBulkReassigning,
+    isSubmitting,
+    loadEntitiesForReferences,
+    reassigningMentionId,
+    resetReassignState,
+  ]);
 
   const confirmBulkReassign = () => {
     if (!isBulkReassigning || !selectedEntityId) return;
@@ -695,7 +718,7 @@ const CrudDeleteConfirmModal = ({
       .map(([colName, entities]) => ({
         children: (
           <div className="-mt-5">
-            {entities
+            {[...entities]
               .sort((ent1, ent2) => ent1.name.localeCompare(ent2.name))
               .map((ent) => {
                 const isRemoved = removedMentionIds.has(ent._id);
@@ -749,40 +772,64 @@ const CrudDeleteConfirmModal = ({
                         />
                       )}
                       {isRemoved ? (
-                        <CancelMentionActionButton
-                          onCancelAction={() => cancelMentionAction(ent._id)}
-                          title="Cancel removing"
+                        <MentionIconButton
+                          className="cancel-mention-action-btn"
+                          color="blue"
                           disabled={areControlsLocked}
+                          hoverClassName="hover:text-blue-900"
+                          icon={<ArrowPathIcon className="w-3" />}
+                          onClick={() => cancelMentionAction(ent._id)}
+                          title="Cancel removing"
                         />
                       ) : reassignment ? (
                         <>
-                          <EditReassignButton
+                          <MentionIconButton
+                            className="edit-reassign-btn"
+                            color="blue"
                             disabled={areControlsLocked}
-                            onEdit={() =>
-                              startReassign(
+                            hoverClassName="hover:text-blue-900"
+                            icon={<PencilSquareIcon className="w-3" />}
+                            onClick={() => {
+                              void startReassign(
                                 ent,
                                 colName as CollectionName,
                                 reassignment,
-                              )
-                            }
+                              );
+                            }}
+                            title="Edit reassigned mention"
                           />
-                          <CancelMentionActionButton
-                            onCancelAction={() => cancelMentionAction(ent._id)}
-                            title="Cancel reassigning"
+                          <MentionIconButton
+                            className="cancel-mention-action-btn"
+                            color="blue"
                             disabled={areControlsLocked}
+                            hoverClassName="hover:text-blue-900"
+                            icon={<ArrowPathIcon className="w-3" />}
+                            onClick={() => cancelMentionAction(ent._id)}
+                            title="Cancel reassigning"
                           />
                         </>
                       ) : (
                         <>
-                          <ReassignButton
+                          <MentionIconButton
+                            color="blue"
                             disabled={areControlsLocked}
-                            onReassign={() =>
-                              startReassign(ent, colName as CollectionName)
-                            }
+                            hoverClassName="hover:text-blue-900"
+                            icon={<PencilSquareIcon className="w-3" />}
+                            onClick={() => {
+                              void startReassign(
+                                ent,
+                                colName as CollectionName,
+                              );
+                            }}
+                            title="Reassign mention"
                           />
-                          <DeleteButton
-                            onDelete={() => markMentionRemoved(ent._id)}
+                          <MentionIconButton
+                            color="darkRed"
                             disabled={areControlsLocked}
+                            hoverClassName="hover:text-red-900"
+                            icon={<TrashIcon className="w-3" />}
+                            onClick={() => markMentionRemoved(ent._id)}
+                            title="Remove mention"
                           />
                         </>
                       )}
@@ -922,8 +969,10 @@ const CrudDeleteConfirmModal = ({
           </div>
           {hasMentions && (
             <div className="mt-2">
-              The item is mentioned {mentNumber} times. Please address the
-              mentions before deleting.
+              {mentNumber === 1
+                ? "The item is mentioned once. "
+                : `The item is mentioned ${mentNumber} times. `}
+              Please address the mentions before deleting.
             </div>
           )}
         </div>
@@ -954,6 +1003,7 @@ const CrudDeleteConfirmModal = ({
                   onChange={onCheckAllMentions}
                   style={
                     {
+                      // Link tokens; custom properties are not on CSSProperties
                       "--mention-check-all-color": colorLink,
                       "--mention-check-all-hover": colorLinkHover,
                     } as React.CSSProperties
@@ -961,66 +1011,32 @@ const CrudDeleteConfirmModal = ({
                 >
                   Check all
                 </Checkbox>
-                <Tooltip
+                <BulkActionLink
                   color="blue"
-                  mouseEnterDelay={0.5}
-                  title={
-                    !isReassignAllDisabled
-                      ? "Reassign all selected mentions"
-                      : undefined
-                  }
+                  disabled={isReassignAllDisabled}
+                  onClick={() => {
+                    void startBulkReassign();
+                  }}
+                  title="Reassign all selected mentions"
                 >
-                  <Button
-                    className="h-auto px-0"
-                    disabled={isReassignAllDisabled}
-                    onClick={startBulkReassign}
-                    size="small"
-                    style={{ height: "auto" }}
-                    type="link"
-                  >
-                    Reassign all
-                  </Button>
-                </Tooltip>
-                <Tooltip
+                  Reassign all
+                </BulkActionLink>
+                <BulkActionLink
                   color="darkRed"
-                  mouseEnterDelay={0.5}
-                  title={
-                    !isDeleteAllDisabled
-                      ? "Remove all selected mentions"
-                      : undefined
-                  }
+                  disabled={isDeleteAllDisabled}
+                  onClick={deleteSelectedMentions}
+                  title="Remove all selected mentions"
                 >
-                  <Button
-                    className="h-auto px-0"
-                    disabled={isDeleteAllDisabled}
-                    onClick={deleteSelectedMentions}
-                    size="small"
-                    style={{ height: "auto" }}
-                    type="link"
-                  >
-                    Delete all
-                  </Button>
-                </Tooltip>
-                <Tooltip
+                  Delete all
+                </BulkActionLink>
+                <BulkActionLink
                   color="blue"
-                  mouseEnterDelay={0.5}
-                  title={
-                    !isCancelAllDisabled
-                      ? "Cancel for all selected mentions"
-                      : undefined
-                  }
+                  disabled={isCancelAllDisabled}
+                  onClick={cancelSelectedMentionActions}
+                  title="Cancel for all selected mentions"
                 >
-                  <Button
-                    className="h-auto px-0"
-                    disabled={isCancelAllDisabled}
-                    onClick={cancelSelectedMentionActions}
-                    size="small"
-                    style={{ height: "auto" }}
-                    type="link"
-                  >
-                    Cancel all
-                  </Button>
-                </Tooltip>
+                  Cancel all
+                </BulkActionLink>
               </div>
               {isBulkReassigning && (
                 <CrudReferenceSelectRow
