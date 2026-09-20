@@ -19,6 +19,7 @@ import Link from "next/link";
 import { redirect, usePathname } from "next/navigation";
 
 import { GameSystemProvider } from "@/app/lib/contexts/GameSystemContext";
+import GameSystemEdition from "@/app/ui/GameSystemEdition";
 import { getItem, MenuItem } from "@/app/ui/shared";
 import TemplateFooter from "@/app/ui/TemplateFooter";
 import TemplateHeader from "@/app/ui/TemplateHeader";
@@ -159,8 +160,9 @@ const TemplatePageLayout = ({
       />
       <div className="py-0 px-6">
         <GameSystemProvider>
-          <div className="my-4">
+          <div className="my-4 flex items-center justify-between gap-4">
             <Breadcrumb items={breadcrumbList} />
+            <GameSystemEdition />
           </div>
           <Layout>
             <Sider

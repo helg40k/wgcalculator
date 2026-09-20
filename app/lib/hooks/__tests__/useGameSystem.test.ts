@@ -50,6 +50,7 @@ const mockGameSystem: GameSystem = {
   _updatedAt: { nanoseconds: 0, seconds: 1234567890 } as any,
   _updatedBy: "updater@example.com",
   additional: [],
+  editions: {},
   key: "testgame",
   name: "Test Game System",
   owner: "test-owner",

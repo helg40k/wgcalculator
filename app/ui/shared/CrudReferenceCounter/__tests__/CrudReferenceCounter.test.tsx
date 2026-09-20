@@ -139,6 +139,7 @@ describe("CrudReferenceCounter Real Component", () => {
     jest.doMock("../../../../lib/contexts/GameSystemContext", () => ({
       GameSystemContext: React.createContext([
         {}, // gameSystem
+        undefined,
         {
           allowedToRefer: () => ["profiles"],
           canBeMentionedBy: () => ["WEAPONS", "ARMORS"],

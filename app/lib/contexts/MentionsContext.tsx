@@ -32,7 +32,7 @@ export const MentionsProvider = ({
   children,
   collectionName,
 }: MentionsProviderProps) => {
-  const [gameSystem, utils] = useContext(GameSystemContext);
+  const [gameSystem, , utils] = useContext(GameSystemContext);
   const { loadEntities } = useEntities();
   const [mentionsMap, setMentionsMap] = useState<Record<string, Mentions>>({});
   const [mentionsLoaded, setMentionsLoaded] = useState(false);

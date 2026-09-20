@@ -3,6 +3,7 @@ import firebase from "firebase/compat/app";
 // *** COMMON using types ***
 
 export const CollectionRegistry = {
+  Editions: "editions",
   GameSystem: "systems",
   Keyword: "keywords",
   Source: "sources",
@@ -55,6 +56,14 @@ export interface Entity {
   status: EntityStatus;
 }
 
+export interface Edition extends Entity {
+  order: number;
+}
+
+export interface Editions {
+  [key: string]: boolean;
+}
+
 export interface GameSystem extends Entity {
   key: string;
   owner: string;
@@ -68,6 +77,7 @@ export interface GameSystem extends Entity {
   supplements?: string[];
   additional: string[];
   referenceHierarchy?: ReferenceHierarchy;
+  editions: Editions;
 }
 
 export interface Playable extends Entity {

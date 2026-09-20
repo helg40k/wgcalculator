@@ -54,7 +54,7 @@ const ReferenceCounter = ({
       colorTextDisabled,
     },
   } = theme.useToken();
-  const [, utils] = useContext(GameSystemContext);
+  const [, , utils] = useContext(GameSystemContext);
   const mentionsCtx = useContext(MentionsContext);
   const { data: session } = useSession();
   const { loadEntities } = useEntities();

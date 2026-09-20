@@ -22,7 +22,13 @@ import "@testing-library/jest-dom";
 jest.mock("@/app/lib/contexts/GameSystemContext", () => ({
   GameSystemContext: createContext([
     undefined,
-    { canBeMentionedBy: () => [], getAllowedToRefer: () => [] },
+    undefined,
+    {
+      canBeMentionedBy: () => [],
+      getActiveEditions: () => [],
+      getAllowedToRefer: () => [],
+      setSelectedEdition: () => {},
+    },
   ]),
 }));
 

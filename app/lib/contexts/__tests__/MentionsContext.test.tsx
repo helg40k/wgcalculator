@@ -40,9 +40,12 @@ const mockGetAllowedToRefer = jest.fn().mockReturnValue([]);
 jest.mock("@/app/lib/contexts/GameSystemContext", () => ({
   GameSystemContext: React.createContext([
     { _id: "system-1" },
+    undefined,
     {
       canBeMentionedBy: (...args: unknown[]) => mockCanBeMentionedBy(...args),
+      getActiveEditions: () => [],
       getAllowedToRefer: (...args: unknown[]) => mockGetAllowedToRefer(...args),
+      setSelectedEdition: () => {},
     },
   ] as const),
 }));

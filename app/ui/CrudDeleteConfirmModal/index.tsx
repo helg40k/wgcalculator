@@ -283,7 +283,7 @@ const CrudDeleteConfirmModal = ({
       colorWarning,
     },
   } = theme.useToken();
-  const [, utils] = useContext(GameSystemContext);
+  const [, , utils] = useContext(GameSystemContext);
   const mentionsCtx = useContext(MentionsContext);
   const { loadEntities } = useEntities();
   const {

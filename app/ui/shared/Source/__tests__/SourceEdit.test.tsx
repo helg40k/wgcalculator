@@ -141,6 +141,7 @@ jest.mock("@/app/lib/contexts/GameSystemContext", () => ({
       _id: "game-system-123",
       name: "Test Game System",
     },
+    undefined,
     jest.fn(),
   ]),
 }));

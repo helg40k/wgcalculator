@@ -93,7 +93,13 @@ describe("useBrokenReferencesManager", () => {
     <GameSystemContext.Provider
       value={[
         mockGameSystem,
-        { canBeMentionedBy: () => [], getAllowedToRefer: () => [] },
+        undefined,
+        {
+          canBeMentionedBy: () => [],
+          getActiveEditions: () => [],
+          getAllowedToRefer: () => [],
+          setSelectedEdition: () => {},
+        },
       ]}
     >
       {children}
@@ -159,7 +165,13 @@ describe("useBrokenReferencesManager", () => {
       <GameSystemContext.Provider
         value={[
           undefined,
-          { canBeMentionedBy: () => [], getAllowedToRefer: () => [] },
+          undefined,
+          {
+            canBeMentionedBy: () => [],
+            getActiveEditions: () => [],
+            getAllowedToRefer: () => [],
+            setSelectedEdition: () => {},
+          },
         ]}
       >
         {children}
