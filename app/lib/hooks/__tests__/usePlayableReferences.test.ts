@@ -65,6 +65,7 @@ const mockPlayableEntity: Playable = {
   _isUpdated: false,
   _updatedAt: { nanoseconds: 0, seconds: 1234567890 } as any,
   _updatedBy: "updater@example.com",
+  editionId: "ed-1",
   name: "Test Entity",
   status: "active",
   systemId: "test-system",

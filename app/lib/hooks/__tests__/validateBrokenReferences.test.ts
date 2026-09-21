@@ -33,6 +33,7 @@ const createEntity = (
   _isUpdated: false,
   _updatedAt: { nanoseconds: 0, seconds: 1234567890 } as any,
   _updatedBy: "updater@example.com",
+  editionId: "ed-1",
   name: `Entity ${id}`,
   references: references as any,
   status: "active",

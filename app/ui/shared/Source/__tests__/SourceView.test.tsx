@@ -104,6 +104,7 @@ describe("SourceView", () => {
     _updatedBy: "user-123",
     authors: "John Doe, Jane Smith",
     description: "A comprehensive test source for unit testing",
+    editionId: "ed-1",
     name: "Test Source",
     references: {
       "ref-1": { name: "PROFILES" } as any,
@@ -380,6 +381,7 @@ describe("SourceView", () => {
         _isUpdated: false,
         _updatedAt: { nanoseconds: 0, seconds: Date.now() / 1000 } as any,
         _updatedBy: "user-123",
+        editionId: "ed-1",
         name: "Minimal Source",
         status: "active",
         systemId: "system-123",

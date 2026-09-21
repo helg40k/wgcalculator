@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Spin } from "antd";
 
 import { useCollectionInvalidation } from "@/app/lib/collectionInvalidation";
@@ -6,6 +6,7 @@ import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { MentionsProvider } from "@/app/lib/contexts/MentionsContext";
 import { CollectionRegistry, Keyword } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
+import { getPlayableScopeFilters } from "@/app/lib/playableScope";
 import CrudMultiLineView from "@/app/ui/CrudMultiLineView";
 import ReferenceCounter from "@/app/ui/shared/CrudReferenceCounter";
 import CrudTableCell from "@/app/ui/shared/CrudTableCell";
@@ -13,16 +14,29 @@ import CrudTableCell from "@/app/ui/shared/CrudTableCell";
 const collectionName = CollectionRegistry.Keyword;
 
 const CosAdminKeywords = () => {
-  const [gameSystem] = useContext(GameSystemContext);
+  const [gameSystem, selectedEdition] = useContext(GameSystemContext);
   const { deleteEntity, loadEntities, loading, saveEntity } = useEntities();
   const [keywords, setKeywords] = useState<Keyword[]>([]);
+  const filters = useMemo(
+    () => getPlayableScopeFilters(gameSystem, selectedEdition),
+    [gameSystem, selectedEdition],
+  );
 
-  useEffect(() => {
+  const onReload = useCallback(() => {
+    if (!filters) {
+      setKeywords([]);
+      return;
+    }
+
     loadEntities<Keyword>(collectionName, {
-      filters: [["systemId", "==", gameSystem?._id || ""]],
+      filters,
       sort: ["name", "asc"],
     }).then((value) => setKeywords(value));
-  }, []);
+  }, [filters, loadEntities]);
+
+  useEffect(() => {
+    onReload();
+  }, [onReload]);
 
   const onSave = async (keyword: Keyword): Promise<Keyword | null> => {
     if (
@@ -38,13 +52,6 @@ const CosAdminKeywords = () => {
   const onDelete = async (id: string): Promise<void> => {
     await deleteEntity(collectionName, id);
   };
-
-  const onReload = useCallback(() => {
-    loadEntities<Keyword>(collectionName, {
-      filters: [["systemId", "==", gameSystem?._id || ""]],
-      sort: ["name", "asc"],
-    }).then((value) => setKeywords(value));
-  }, [loadEntities, gameSystem?._id]);
 
   useCollectionInvalidation(collectionName, onReload);
 

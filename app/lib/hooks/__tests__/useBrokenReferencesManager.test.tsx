@@ -54,6 +54,11 @@ const mockGameSystem = {
   systemId: "sys1",
 } as unknown as GameSystem;
 
+const mockEdition = {
+  _id: "ed-1",
+  name: "First Edition",
+};
+
 const COLLECTIONS = [
   CollectionRegistry.Source,
   CollectionRegistry.Keyword,
@@ -69,6 +74,7 @@ const createEntity = (
   _isUpdated: false,
   _updatedAt: { nanoseconds: 0, seconds: 1234567890 } as any,
   _updatedBy: "updater@example.com",
+  editionId: "ed-1",
   name: `Entity ${id}`,
   references: references as any,
   status: "active",
@@ -93,7 +99,7 @@ describe("useBrokenReferencesManager", () => {
     <GameSystemContext.Provider
       value={[
         mockGameSystem,
-        undefined,
+        mockEdition as never,
         {
           canBeMentionedBy: () => [],
           getActiveEditions: () => [],
@@ -133,6 +139,15 @@ describe("useBrokenReferencesManager", () => {
     expect(manager.setBrokenIds).toHaveBeenCalledWith(
       CollectionRegistry.Keyword,
       expect.any(Set),
+    );
+    expect(mockGetCollectionData).toHaveBeenCalledWith(
+      CollectionRegistry.Source,
+      expect.objectContaining({
+        filters: [
+          ["systemId", "==", "sys1"],
+          ["editionId", "==", "ed-1"],
+        ],
+      }),
     );
   });
 
@@ -180,6 +195,35 @@ describe("useBrokenReferencesManager", () => {
 
     renderHook(() => useBrokenReferencesManager(COLLECTIONS, manager), {
       wrapper: noSystemWrapper,
+    });
+
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+
+    expect(manager.setBrokenIds).not.toHaveBeenCalled();
+  });
+
+  it("should not validate when edition is not available", async () => {
+    const noEditionWrapper = ({ children }: { children: ReactNode }) => (
+      <GameSystemContext.Provider
+        value={[
+          mockGameSystem,
+          undefined,
+          {
+            canBeMentionedBy: () => [],
+            getActiveEditions: () => [],
+            getAllowedToRefer: () => [],
+            setSelectedEdition: () => {},
+          },
+        ]}
+      >
+        {children}
+      </GameSystemContext.Provider>
+    );
+
+    renderHook(() => useBrokenReferencesManager(COLLECTIONS, manager), {
+      wrapper: noEditionWrapper,
     });
 
     await act(async () => {

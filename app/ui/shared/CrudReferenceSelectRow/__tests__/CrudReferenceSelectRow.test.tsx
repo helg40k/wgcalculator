@@ -156,6 +156,7 @@ const makeEntity = (
   _isUpdated: false,
   _updatedAt: timestamp,
   _updatedBy: "test",
+  editionId: "ed-1",
   systemId: "sys",
   ...overrides,
 });

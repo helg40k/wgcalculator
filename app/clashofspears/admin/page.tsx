@@ -20,10 +20,10 @@ import CosAdminStart from "@/app/clashofspears/admin/ui/CosAdminStart";
 import CosAdminTraits from "@/app/clashofspears/admin/ui/CosAdminTraits";
 import CosAdminWeapons from "@/app/clashofspears/admin/ui/CosAdminWeapons";
 import {
+  BrokenReferencesManagerValue,
   BrokenReferencesProvider,
   useBrokenReferencesState,
 } from "@/app/lib/contexts/BrokenReferencesContext";
-import { GameSystemProvider } from "@/app/lib/contexts/GameSystemContext";
 import { CollectionName, CollectionRegistry } from "@/app/lib/definitions";
 import useBrokenReferencesManager from "@/app/lib/hooks/useBrokenReferencesManager";
 import { getMenuItems, MenuItem, MenuItemConst } from "@/app/ui/shared";
@@ -88,13 +88,23 @@ const MONITORED_COLLECTIONS: readonly CollectionName[] = [
   CollectionRegistry.Keyword,
 ] as const;
 
+const BrokenReferencesLoader = ({
+  collections,
+  manager,
+}: {
+  collections: readonly CollectionName[];
+  manager: BrokenReferencesManagerValue;
+}) => {
+  useBrokenReferencesManager(collections, manager);
+  return null;
+};
+
 const PageContent = () => {
   const [activeTabContent, setActiveTabContent] = useState<string>(
     MENU_ITEMS.START.key,
   );
 
   const brokenState = useBrokenReferencesState();
-  useBrokenReferencesManager(MONITORED_COLLECTIONS, brokenState);
 
   const counts = brokenState.getCounts();
 
@@ -176,6 +186,10 @@ const PageContent = () => {
         onClickSiderMenu={onClickSiderMenu}
         contentHeader={contentHeader}
       >
+        <BrokenReferencesLoader
+          collections={MONITORED_COLLECTIONS}
+          manager={brokenState}
+        />
         <Tabs
           tabPosition="top"
           animated={false}
@@ -189,11 +203,7 @@ const PageContent = () => {
 };
 
 const Page = () => {
-  return (
-    <GameSystemProvider>
-      <PageContent />
-    </GameSystemProvider>
-  );
+  return <PageContent />;
 };
 
 export default Page;

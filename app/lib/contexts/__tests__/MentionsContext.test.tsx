@@ -40,7 +40,7 @@ const mockGetAllowedToRefer = jest.fn().mockReturnValue([]);
 jest.mock("@/app/lib/contexts/GameSystemContext", () => ({
   GameSystemContext: React.createContext([
     { _id: "system-1" },
-    undefined,
+    { _id: "ed-1" },
     {
       canBeMentionedBy: (...args: unknown[]) => mockCanBeMentionedBy(...args),
       getActiveEditions: () => [],
@@ -57,6 +57,7 @@ const makeMockPlayable = (
 ): Playable =>
   ({
     _id: id,
+    editionId: "ed-1",
     name,
     references,
     status: "active",
@@ -135,6 +136,15 @@ describe("MentionsContext", () => {
 
       expect(screen.getByTestId("loaded").textContent).toBe("yes");
       expect(screen.getByTestId("total").textContent).toBe("2");
+      expect(mockLoadEntities).toHaveBeenCalledWith(
+        "keywords",
+        expect.objectContaining({
+          filters: [
+            ["systemId", "==", "system-1"],
+            ["editionId", "==", "ed-1"],
+          ],
+        }),
+      );
     });
 
     it("should return empty mentions for entity with no mentioners", async () => {

@@ -141,7 +141,10 @@ jest.mock("@/app/lib/contexts/GameSystemContext", () => ({
       _id: "game-system-123",
       name: "Test Game System",
     },
-    undefined,
+    {
+      _id: "ed-1",
+      name: "First Edition",
+    },
     jest.fn(),
   ]),
 }));
@@ -209,6 +212,7 @@ describe("SourceEdit", () => {
     _updatedBy: "user-123",
     authors: "John Doe",
     description: "Test description",
+    editionId: "ed-1",
     name: "Test Source",
     references: {},
     status: "active",
@@ -258,6 +262,7 @@ describe("SourceEdit", () => {
       render(<SourceEdit {...defaultProps} />);
 
       expect(screen.getByTestId("form-item-systemId")).toBeInTheDocument();
+      expect(screen.getByTestId("form-item-editionId")).toBeInTheDocument();
       expect(screen.getByTestId("form-item-name")).toBeInTheDocument();
       expect(screen.getByTestId("form-item-authors")).toBeInTheDocument();
       expect(screen.getByTestId("form-item-type")).toBeInTheDocument();
@@ -300,6 +305,15 @@ describe("SourceEdit", () => {
       render(<SourceEdit {...defaultProps} />);
 
       expect(screen.getByTestId("form-item-systemId")).toHaveAttribute(
+        "data-hidden",
+        "true",
+      );
+    });
+
+    it("should hide editionId field", () => {
+      render(<SourceEdit {...defaultProps} />);
+
+      expect(screen.getByTestId("form-item-editionId")).toHaveAttribute(
         "data-hidden",
         "true",
       );
@@ -517,6 +531,7 @@ describe("SourceEdit", () => {
         _isUpdated: false,
         _updatedAt: { nanoseconds: 0, seconds: Date.now() / 1000 } as any,
         _updatedBy: "user-123",
+        editionId: "ed-1",
         name: "Minimal Source",
         status: "active",
         systemId: "system-123",

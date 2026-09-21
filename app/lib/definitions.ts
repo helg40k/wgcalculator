@@ -82,6 +82,7 @@ export interface GameSystem extends Entity {
 
 export interface Playable extends Entity {
   systemId: string;
+  editionId: string;
   references?: References;
   description?: string;
 }

@@ -32,7 +32,7 @@ const SourceEdit = ({
   setValid,
   setIsNew,
 }: SourceEditProps) => {
-  const [gameSystem] = useContext(GameSystemContext);
+  const [gameSystem, selectedEdition] = useContext(GameSystemContext);
   const [urls, setUrls] = useState<string[]>(entity.urls || []);
   const [areUrlsValid, setAreUrlsValid] = useState<boolean>(true);
   const [form] = Form.useForm();
@@ -44,10 +44,11 @@ const SourceEdit = ({
     if (form) {
       form.setFieldsValue({
         ...entity,
+        editionId: selectedEdition?._id || entity.editionId,
         systemId: gameSystem?._id || entity.systemId,
       });
     }
-  }, [form, entity, gameSystem?._id]);
+  }, [form, entity, gameSystem?._id, selectedEdition?._id]);
 
   const formName = useMemo(() => {
     return `sourceEdit-${entity._id}`;
@@ -92,6 +93,9 @@ const SourceEdit = ({
       onChange={onChange}
     >
       <Form.Item name="systemId" hidden>
+        <Input />
+      </Form.Item>
+      <Form.Item name="editionId" hidden>
         <Input />
       </Form.Item>
       <Flex justify="left" className="w-full items-start">

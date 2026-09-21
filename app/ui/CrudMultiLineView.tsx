@@ -255,6 +255,7 @@ const useMultiLineViewLogic = <T extends Playable>({
 }: BaseMultiLineViewProps<T> & {
   sortableFields?: SortableField<T>[];
 }) => {
+  const [gameSystem, selectedEdition] = useContext(GameSystemContext);
   const [values, setValues] = useState<Partial<T>>({});
   const [edit, setEdit] = useState<string | null>(null);
   const [isValid, setIsValid] = useState<boolean>(true);
@@ -415,12 +416,20 @@ const useMultiLineViewLogic = <T extends Playable>({
 
   const saveItem = (entityToSave: T) => {
     const id = entityToSave._id;
+    const isNewItem = NEW_ENTITY_TEMP_ID === id || !id;
+    if (isNewItem) {
+      if (!gameSystem?._id || !selectedEdition?._id) {
+        return;
+      }
+      entityToSave.systemId = gameSystem._id;
+      entityToSave.editionId = selectedEdition._id;
+    }
+
     if (onSave) {
       onSave(entityToSave)
         .then((saved) => {
           if (saved) {
             message.success(`The ${singleName} has been saved`);
-            const isNewItem = NEW_ENTITY_TEMP_ID === id || !id;
             const index = entities.findIndex((item) =>
               isNewItem
                 ? NEW_ENTITY_TEMP_ID === item._id || !item._id
@@ -564,13 +573,15 @@ const useMultiLineViewLogic = <T extends Playable>({
           resetEditingState();
         } else if (
           NEW_ENTITY_TEMP_ID !== id &&
-          oldEntity.systemId !== newEntity.systemId
+          (oldEntity.systemId !== newEntity.systemId ||
+            oldEntity.editionId !== newEntity.editionId)
         ) {
           Modal.confirm({
             cancelText: "Ignore",
             content: (
               <>
-                Invalid data in &#34;systemId&#34; was found!
+                Invalid data in &#34;systemId&#34; / &#34;editionId&#34; was
+                found!
                 <br />
                 Would you like to save corrected data?
               </>
@@ -1062,8 +1073,8 @@ const CrudMultiLineViewTable = <T extends Playable>({
       ? brokenRefsCtx.getBrokenIds(collectionName)
       : localBrokenIds;
 
-  // Game system context for setting systemId
-  const [gameSystem] = useContext(GameSystemContext);
+  // Game system context for setting systemId and editionId
+  const [gameSystem, selectedEdition] = useContext(GameSystemContext);
 
   // Form instance for table editing
   const [form] = Form.useForm();
@@ -1153,10 +1164,11 @@ const CrudMultiLineViewTable = <T extends Playable>({
         form.resetFields();
         // Clear form for new items, set values for existing items
         if (edit === NEW_ENTITY_TEMP_ID) {
-          // For new items, set systemId from gameSystem context if available
-          // This mimics the behavior in SourceEdit.tsx
-          if (gameSystem?._id) {
-            form.setFieldsValue({ systemId: gameSystem._id });
+          if (gameSystem?._id && selectedEdition?._id) {
+            form.setFieldsValue({
+              editionId: selectedEdition._id,
+              systemId: gameSystem._id,
+            });
           }
           // Validate after a short delay to ensure form is ready
           setTimeout(() => validateRequiredFields(), 0);
@@ -1168,7 +1180,7 @@ const CrudMultiLineViewTable = <T extends Playable>({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [edit, gameSystem?._id]); // Depend on edit state and gameSystem changes
+  }, [edit, gameSystem?._id, selectedEdition?._id]); // Depend on edit state and scope pair
 
   // Custom row component for editing
   const EditableRow = useCallback(
@@ -1187,9 +1199,13 @@ const CrudMultiLineViewTable = <T extends Playable>({
             style={style}
             validateTrigger={["onChange", "onBlur"]}
             onValuesChange={(_, allValues) => {
-              // Ensure systemId is always set for new items
-              if (edit === NEW_ENTITY_TEMP_ID && gameSystem?._id) {
+              if (
+                edit === NEW_ENTITY_TEMP_ID &&
+                gameSystem?._id &&
+                selectedEdition?._id
+              ) {
                 allValues.systemId = gameSystem._id;
+                allValues.editionId = selectedEdition._id;
               }
               setValues(allValues);
               // Validate required fields on each change
@@ -1202,7 +1218,15 @@ const CrudMultiLineViewTable = <T extends Playable>({
 
       return <tr className={className} style={style} {...restProps} />;
     },
-    [edit, entities, form, setValues, validateRequiredFields, gameSystem?._id],
+    [
+      edit,
+      entities,
+      form,
+      setValues,
+      validateRequiredFields,
+      gameSystem?._id,
+      selectedEdition?._id,
+    ],
   );
 
   const isEditable = useMemo(() => {

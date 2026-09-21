@@ -21,8 +21,8 @@ import "@testing-library/jest-dom";
 
 jest.mock("@/app/lib/contexts/GameSystemContext", () => ({
   GameSystemContext: createContext([
-    undefined,
-    undefined,
+    { _id: "sys-1" },
+    { _id: "ed-1" },
     {
       canBeMentionedBy: () => [],
       getActiveEditions: () => [],
@@ -82,6 +82,7 @@ const makePlayable = (overrides: Partial<Playable> = {}): Playable => ({
   _isUpdated: false,
   _updatedAt: ts,
   _updatedBy: "u1",
+  editionId: "ed-1",
   name: "Alpha",
   status: EntityStatusRegistry.ACTIVE,
   systemId: "sys-1",
@@ -885,6 +886,76 @@ describe("CrudMultiLineView", () => {
       });
       expect(screen.getByTestId("cell-p1")).toBeInTheDocument();
       expect(screen.queryByTestId("cell-p2")).not.toBeInTheDocument();
+    });
+
+    it("stamps systemId and editionId when saving a new table row", async () => {
+      const user = userEvent.setup();
+      const entities: Playable[] = [];
+      const onSave = jest
+        .fn()
+        .mockImplementation((entity: Playable) =>
+          Promise.resolve({ ...entity, _id: "saved-1" }),
+        );
+      const setEntities = jest.fn((update: any) => {
+        const next = typeof update === "function" ? update(entities) : update;
+        entities.splice(0, entities.length, ...next);
+      });
+
+      const table = [
+        {
+          edit: NameEditCell,
+          field: "name",
+          header: "Name",
+          view: CellView,
+        },
+      ];
+
+      const { rerender } = render(
+        <CrudMultiLineView.Table
+          entities={entities}
+          filterableFields={[]}
+          onSave={onSave}
+          pluralNames="rows"
+          setEntities={setEntities}
+          singleName="row"
+          table={table}
+        />,
+      );
+
+      await user.click(screen.getByRole("button", { name: /add new/i }));
+
+      rerender(
+        <CrudMultiLineView.Table
+          entities={[...entities]}
+          filterableFields={[]}
+          onSave={onSave}
+          pluralNames="rows"
+          setEntities={setEntities}
+          singleName="row"
+          table={table}
+        />,
+      );
+
+      fireEvent.change(screen.getByTestId(`name-edit-${NEW_ENTITY_TEMP_ID}`), {
+        target: { value: "New KW" },
+      });
+
+      const saveBtn = screen
+        .getAllByRole("button")
+        .filter((b) => b.querySelector("svg"))[0];
+      await act(async () => {
+        await user.click(saveBtn);
+      });
+
+      await waitFor(() =>
+        expect(onSave).toHaveBeenCalledWith(
+          expect.objectContaining({
+            editionId: "ed-1",
+            name: "New KW",
+            systemId: "sys-1",
+          }),
+        ),
+      );
     });
   });
 });

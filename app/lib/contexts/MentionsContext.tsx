@@ -14,6 +14,7 @@ import { useMultiCollectionInvalidation } from "@/app/lib/collectionInvalidation
 import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { CollectionName, Mentions, Playable } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
+import { getPlayableScopeFilters } from "@/app/lib/playableScope";
 
 interface MentionsContextType {
   getMentions: (entityId: string) => Mentions;
@@ -32,7 +33,7 @@ export const MentionsProvider = ({
   children,
   collectionName,
 }: MentionsProviderProps) => {
-  const [gameSystem, , utils] = useContext(GameSystemContext);
+  const [gameSystem, selectedEdition, utils] = useContext(GameSystemContext);
   const { loadEntities } = useEntities();
   const [mentionsMap, setMentionsMap] = useState<Record<string, Mentions>>({});
   const [mentionsLoaded, setMentionsLoaded] = useState(false);
@@ -43,8 +44,13 @@ export const MentionsProvider = ({
     [utils, collectionName],
   );
 
+  const filters = useMemo(
+    () => getPlayableScopeFilters(gameSystem, selectedEdition),
+    [gameSystem, selectedEdition],
+  );
+
   useEffect(() => {
-    if (mentioningCollections.length === 0 || !gameSystem?._id) {
+    if (mentioningCollections.length === 0 || !filters) {
       setMentionsMap({});
       setMentionsLoaded(true);
       return;
@@ -57,7 +63,7 @@ export const MentionsProvider = ({
 
       for (const mentionCollName of mentioningCollections) {
         const allEntities = await loadEntities<Playable>(mentionCollName, {
-          filters: [["systemId", "==", gameSystem._id]],
+          filters,
           withoutSort: true,
         });
 
@@ -88,13 +94,7 @@ export const MentionsProvider = ({
     return () => {
       cancelled = true;
     };
-  }, [
-    mentioningCollections,
-    loadEntities,
-    gameSystem?._id,
-    collectionName,
-    version,
-  ]);
+  }, [mentioningCollections, loadEntities, filters, collectionName, version]);
 
   const getMentions = useCallback(
     (entityId: string): Mentions => mentionsMap[entityId] ?? {},

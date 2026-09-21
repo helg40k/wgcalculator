@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Spin } from "antd";
 
 import { useCollectionInvalidation } from "@/app/lib/collectionInvalidation";
@@ -6,22 +6,36 @@ import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { MentionsProvider } from "@/app/lib/contexts/MentionsContext";
 import { CollectionRegistry, Source } from "@/app/lib/definitions";
 import useEntities from "@/app/lib/hooks/useEntities";
+import { getPlayableScopeFilters } from "@/app/lib/playableScope";
 import CrudMultiLineView from "@/app/ui/CrudMultiLineView";
 import SourceUI from "@/app/ui/shared/Source";
 
 const collectionName = CollectionRegistry.Source;
 
 const CosAdminSources = () => {
-  const [gameSystem] = useContext(GameSystemContext);
+  const [gameSystem, selectedEdition] = useContext(GameSystemContext);
   const { deleteEntity, loadEntities, loading, saveEntity } = useEntities();
   const [sources, setSources] = useState<Source[]>([]);
+  const filters = useMemo(
+    () => getPlayableScopeFilters(gameSystem, selectedEdition),
+    [gameSystem, selectedEdition],
+  );
 
-  useEffect(() => {
+  const onReload = useCallback(() => {
+    if (!filters) {
+      setSources([]);
+      return;
+    }
+
     loadEntities<Source>(collectionName, {
-      filters: [["systemId", "==", gameSystem?._id || ""]],
+      filters,
       sort: ["year", "desc"],
     }).then((value) => setSources(value));
-  }, []);
+  }, [filters, loadEntities]);
+
+  useEffect(() => {
+    onReload();
+  }, [onReload]);
 
   const onSave = async (source: Source): Promise<Source | null> => {
     if (!source.version) {
@@ -33,13 +47,6 @@ const CosAdminSources = () => {
   const onDelete = async (id: string): Promise<void> => {
     await deleteEntity(collectionName, id);
   };
-
-  const onReload = useCallback(() => {
-    loadEntities<Source>(collectionName, {
-      filters: [["systemId", "==", gameSystem?._id || ""]],
-      sort: ["year", "desc"],
-    }).then((value) => setSources(value));
-  }, [loadEntities, gameSystem?._id]);
 
   useCollectionInvalidation(collectionName, onReload);
 
