@@ -54,7 +54,8 @@ const ReferenceCounter = ({
       colorTextDisabled,
     },
   } = theme.useToken();
-  const [, , utils] = useContext(GameSystemContext);
+  const gameSystemContext = useContext(GameSystemContext);
+  const [, , utils] = gameSystemContext;
   const mentionsCtx = useContext(MentionsContext);
   const { data: session } = useSession();
   const { loadEntities } = useEntities();
@@ -229,17 +230,19 @@ const ReferenceCounter = ({
 
     root.render(
       <SessionProvider session={session}>
-        <CrudReferenceModal
-          showModal={true}
-          entityId={entity._id}
-          entityName={entity.name}
-          onOk={handleSaved}
-          onCancel={closeModal}
-          references={currentReferences}
-          mentions={mentions}
-          collectionName={collectionName}
-          allowedToRefer={allowedToRefer}
-        />
+        <GameSystemContext.Provider value={gameSystemContext}>
+          <CrudReferenceModal
+            showModal={true}
+            entityId={entity._id}
+            entityName={entity.name}
+            onOk={handleSaved}
+            onCancel={closeModal}
+            references={currentReferences}
+            mentions={mentions}
+            collectionName={collectionName}
+            allowedToRefer={allowedToRefer}
+          />
+        </GameSystemContext.Provider>
       </SessionProvider>,
     );
   };

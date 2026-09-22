@@ -1,4 +1,5 @@
 import React, {
+  useContext,
   useEffect,
   useInsertionEffect,
   useMemo,
@@ -23,6 +24,7 @@ import {
 } from "antd";
 
 import { invalidateCollections } from "@/app/lib/collectionInvalidation";
+import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import {
   CollectionName,
   CollectionRegistry,
@@ -33,6 +35,7 @@ import {
   References,
 } from "@/app/lib/definitions";
 import usePlayableReferences from "@/app/lib/hooks/usePlayableReferences";
+import { getPlayableScopeFilters } from "@/app/lib/playableScope";
 import CrudReferenceLink from "@/app/ui/shared/CrudReferenceCounter/CrudReferenceLink";
 import CrudReferenceSelectRow from "@/app/ui/shared/CrudReferenceSelectRow";
 import EntityStatusUI from "@/app/ui/shared/EntityStatusUI";
@@ -205,6 +208,7 @@ const CrudReferenceModal = ({
   const {
     token: { colorError, colorText, colorTextSecondary },
   } = theme.useToken();
+  const [gameSystem, selectedEdition] = useContext(GameSystemContext);
 
   const isKnownCollection = (colName: string): boolean =>
     (Object.values(CollectionRegistry) as string[]).includes(colName) ||
@@ -283,8 +287,13 @@ const CrudReferenceModal = ({
     colName: CollectionName,
     excludeIds: string[],
   ): Promise<Playable[]> => {
-    const entToRefs = await loadEntitiesForReferences(colName, excludeIds);
-    return entToRefs.filter((ent) => !references[ent._id]);
+    const excluded = excludeIds.includes(entityId)
+      ? excludeIds
+      : [...excludeIds, entityId];
+    const entToRefs = await loadEntitiesForReferences(colName, excluded);
+    return entToRefs.filter(
+      (ent) => ent._id !== entityId && !references[ent._id],
+    );
   };
 
   const markCollectionExhaustedIfEmpty = (
@@ -292,6 +301,7 @@ const CrudReferenceModal = ({
     entities: Playable[],
   ) => {
     if (entities.length > 0) return false;
+    if (!getPlayableScopeFilters(gameSystem, selectedEdition)) return true;
     setExhaustedCollections((prev) => new Set(prev).add(colName));
     return true;
   };

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { deleteField } from "firebase/firestore";
 
+import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import {
   CollectionName,
   Playable,
@@ -9,6 +10,7 @@ import {
 } from "@/app/lib/definitions";
 import errorMessage from "@/app/lib/errorMessage";
 import useUser from "@/app/lib/hooks/useUser";
+import { getPlayableScopeFilters } from "@/app/lib/playableScope";
 import getDocumentsByExcludedIds from "@/app/lib/services/firebase/helpers/getDocumentsByExcludedIds";
 import getDocumentsByIds from "@/app/lib/services/firebase/helpers/getDocumentsByIds";
 import updateDocument from "@/app/lib/services/firebase/helpers/updateDocument";
@@ -18,6 +20,7 @@ const usePlayableReferences = () => {
   const [error, setError] = useState<Error>();
 
   const { email } = useUser();
+  const [gameSystem, selectedEdition] = useContext(GameSystemContext);
 
   useEffect(() => {
     if (error) {
@@ -63,11 +66,21 @@ const usePlayableReferences = () => {
       if (!dbRef) {
         return [];
       }
+
+      const filters = getPlayableScopeFilters(gameSystem, selectedEdition);
+      if (!filters) {
+        return [];
+      }
+
       const type = dbRef as string;
 
       try {
         setLoading(true);
-        return (await getDocumentsByExcludedIds(type, excludedIds)) as T[];
+        return (await getDocumentsByExcludedIds(
+          type,
+          excludedIds,
+          filters,
+        )) as T[];
       } catch (err: any) {
         console.error(err);
         setError(err);
@@ -76,7 +89,7 @@ const usePlayableReferences = () => {
       }
       return [];
     },
-    [],
+    [gameSystem, selectedEdition],
   );
 
   const saveReferences = useCallback(

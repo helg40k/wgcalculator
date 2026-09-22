@@ -113,6 +113,9 @@ describe("CrudReferenceCounter Real Component", () => {
   let mockRender: jest.Mock;
   let mockUnmount: jest.Mock;
 
+  const getRenderedModal = (callIndex = 0) =>
+    mockRender.mock.calls[callIndex][0].props.children.props.children;
+
   // Mock all dependencies
   beforeAll(() => {
     // Mock definitions
@@ -410,8 +413,7 @@ describe("CrudReferenceCounter Real Component", () => {
       expect(createRoot).toHaveBeenCalled();
       expect(mockRender).toHaveBeenCalled();
 
-      const renderedElement = mockRender.mock.calls[0][0];
-      const modalElement = renderedElement.props.children;
+      const modalElement = getRenderedModal();
       expect(modalElement.props.entityId).toBe("test-id");
       expect(modalElement.props.entityName).toBe("Test Entity");
       expect(modalElement.props.showModal).toBe(true);
@@ -452,6 +454,50 @@ describe("CrudReferenceCounter Real Component", () => {
       expect(renderedElement.type).toBe(nextAuthReact.SessionProvider);
     });
 
+    it("should wrap modal with GameSystemContext.Provider using parent value", () => {
+      const { GameSystemContext } = jest.requireMock(
+        "../../../../lib/contexts/GameSystemContext",
+      ) as { GameSystemContext: React.Context<unknown> };
+
+      const contextValue = [
+        { _id: "sys-1" },
+        { _id: "ed-1" },
+        {
+          canBeMentionedBy: () => [],
+          getAllowedToRefer: () => ["PROFILES"],
+        },
+      ];
+
+      const mockEntity = {
+        _id: "test-id",
+        name: "Test Entity",
+        references: {},
+      };
+
+      render(
+        React.createElement(
+          GameSystemContext.Provider,
+          { value: contextValue },
+          React.createElement(ReferenceCounter, {
+            collectionName: mockCollectionName.PROFILES,
+            entity: mockEntity,
+            viewOnly: false,
+          }),
+        ),
+      );
+
+      const component = screen
+        .getByText("0 references")
+        .closest('div[class*="cursor-"]');
+      fireEvent.click(component!);
+
+      const sessionTree = mockRender.mock.calls[0][0];
+      const providerElement = sessionTree.props.children;
+      expect(providerElement.type).toBe(GameSystemContext.Provider);
+      expect(providerElement.props.value).toBe(contextValue);
+      expect(providerElement.props.children.props.entityId).toBe("test-id");
+    });
+
     it("should pass currentReferences to modal", () => {
       const TestReferenceCounter = () => {
         const mockEntity = {
@@ -474,8 +520,7 @@ describe("CrudReferenceCounter Real Component", () => {
         .closest('div[class*="cursor-"]');
       fireEvent.click(component!);
 
-      const renderedElement = mockRender.mock.calls[0][0];
-      const modalElement = renderedElement.props.children;
+      const modalElement = getRenderedModal();
       expect(modalElement.props.references).toEqual({
         ref1: { name: "PROFILES" },
         ref2: { name: "WEAPONS" },
@@ -514,8 +559,7 @@ describe("CrudReferenceCounter Real Component", () => {
       fireEvent.click(component!);
 
       // Get the onOk (handleSaved) callback passed to the modal
-      const renderedElement = mockRender.mock.calls[0][0];
-      const modalElement = renderedElement.props.children;
+      const modalElement = getRenderedModal();
       const handleSaved = modalElement.props.onOk;
 
       // Simulate saving with new references
@@ -553,8 +597,7 @@ describe("CrudReferenceCounter Real Component", () => {
         .closest('div[class*="cursor-"]');
       fireEvent.click(component!);
 
-      const renderedElement = mockRender.mock.calls[0][0];
-      const modalElement = renderedElement.props.children;
+      const modalElement = getRenderedModal();
       const handleSaved = modalElement.props.onOk;
 
       act(() => {
@@ -588,8 +631,7 @@ describe("CrudReferenceCounter Real Component", () => {
       fireEvent.click(component!);
 
       // Save with new references
-      const renderedElement1 = mockRender.mock.calls[0][0];
-      const modalElement1 = renderedElement1.props.children;
+      const modalElement1 = getRenderedModal();
       const handleSaved = modalElement1.props.onOk;
 
       const newRefs = { ref1: { name: "PROFILES" }, ref2: { name: "WEAPONS" } };
@@ -604,8 +646,7 @@ describe("CrudReferenceCounter Real Component", () => {
       fireEvent.click(updatedComponent!);
 
       // Check that second render passes the updated references
-      const renderedElement2 = mockRender.mock.calls[1][0];
-      const modalElement2 = renderedElement2.props.children;
+      const modalElement2 = getRenderedModal(1);
       expect(modalElement2.props.references).toEqual(newRefs);
     });
 
@@ -633,8 +674,7 @@ describe("CrudReferenceCounter Real Component", () => {
         .closest('div[class*="cursor-"]');
       fireEvent.click(component!);
 
-      const renderedElement = mockRender.mock.calls[0][0];
-      const modalElement = renderedElement.props.children;
+      const modalElement = getRenderedModal();
       const handleSaved = modalElement.props.onOk;
 
       act(() => {
@@ -672,8 +712,7 @@ describe("CrudReferenceCounter Real Component", () => {
         .closest('div[class*="cursor-"]');
       fireEvent.click(component!);
 
-      const renderedElement = mockRender.mock.calls[0][0];
-      const modalElement = renderedElement.props.children;
+      const modalElement = getRenderedModal();
       const onCancel = modalElement.props.onCancel;
 
       act(() => {
@@ -725,8 +764,7 @@ describe("CrudReferenceCounter Real Component", () => {
         .closest('div[class*="cursor-"]');
       fireEvent.click(component!);
 
-      const renderedElement = mockRender.mock.calls[0][0];
-      const modalElement = renderedElement.props.children;
+      const modalElement = getRenderedModal();
       const handleSaved = modalElement.props.onOk;
 
       const newRefs = { ref1: { name: "PROFILES" }, ref2: { name: "WEAPONS" } };
@@ -762,8 +800,7 @@ describe("CrudReferenceCounter Real Component", () => {
         .closest('div[class*="cursor-"]');
       fireEvent.click(component!);
 
-      const renderedElement = mockRender.mock.calls[0][0];
-      const modalElement = renderedElement.props.children;
+      const modalElement = getRenderedModal();
       const handleSaved = modalElement.props.onOk;
 
       expect(() => {
@@ -1285,8 +1322,7 @@ describe("CrudReferenceCounter Real Component", () => {
         .closest('div[class*="cursor-"]');
       fireEvent.click(component!);
 
-      const renderedElement = mockRender.mock.calls[0][0];
-      const modalElement = renderedElement.props.children;
+      const modalElement = getRenderedModal();
       const handleSaved = modalElement.props.onOk;
 
       act(() => {
@@ -1328,8 +1364,7 @@ describe("CrudReferenceCounter Real Component", () => {
         .closest('div[class*="cursor-"]');
       fireEvent.click(component!);
 
-      const renderedElement = mockRender.mock.calls[0][0];
-      const modalElement = renderedElement.props.children;
+      const modalElement = getRenderedModal();
       const handleSaved = modalElement.props.onOk;
 
       act(() => {
@@ -1365,8 +1400,7 @@ describe("CrudReferenceCounter Real Component", () => {
         .closest('div[class*="cursor-"]');
       fireEvent.click(component!);
 
-      const renderedElement = mockRender.mock.calls[0][0];
-      const modalElement = renderedElement.props.children;
+      const modalElement = getRenderedModal();
       const handleSaved = modalElement.props.onOk;
 
       act(() => {
@@ -1404,8 +1438,7 @@ describe("CrudReferenceCounter Real Component", () => {
         .closest('div[class*="cursor-"]');
       fireEvent.click(component!);
 
-      const renderedElement = mockRender.mock.calls[0][0];
-      const modalElement = renderedElement.props.children;
+      const modalElement = getRenderedModal();
       const handleSaved = modalElement.props.onOk;
 
       act(() => {
@@ -1466,8 +1499,7 @@ describe("CrudReferenceCounter Real Component", () => {
         .closest('div[class*="cursor-"]');
       fireEvent.click(component!);
 
-      const renderedElement = mockRender.mock.calls[0][0];
-      const modalElement = renderedElement.props.children;
+      const modalElement = getRenderedModal();
       const handleSaved = modalElement.props.onOk;
 
       act(() => {

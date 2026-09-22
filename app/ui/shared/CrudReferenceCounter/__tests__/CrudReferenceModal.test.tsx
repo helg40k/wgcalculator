@@ -267,6 +267,14 @@ jest.mock("../../../../lib/hooks/usePlayableReferences", () => ({
   }),
 }));
 
+jest.mock("@/app/lib/contexts/GameSystemContext", () => ({
+  GameSystemContext: React.createContext([
+    { _id: "sys-1" },
+    { _id: "ed-1" },
+    {},
+  ]),
+}));
+
 // Mock collectionInvalidation
 const mockInvalidateCollections = jest.fn();
 jest.mock("../../../../lib/collectionInvalidation", () => ({
@@ -290,6 +298,7 @@ jest.mock("../../EntityStatusUI", () => ({
 // Import the component after all mocks are set up
 import { Modal as AntModal } from "antd";
 
+import { GameSystemContext } from "@/app/lib/contexts/GameSystemContext";
 import { CollectionName } from "@/app/lib/definitions";
 
 import CrudReferenceModal from "../CrudReferenceModal";
@@ -615,6 +624,53 @@ describe("CrudReferenceModal", () => {
       await waitFor(() => {
         expect(mockLoadEntitiesForReferences).toHaveBeenCalled();
       });
+    });
+
+    it("should exclude the current entity from the selector on Add more", async () => {
+      mockLoadEntitiesForReferences.mockResolvedValue([
+        {
+          _id: "entity-123",
+          description: "Self",
+          name: "Current Entity",
+          status: "active",
+        },
+        {
+          _id: "available1",
+          description: "Available 1",
+          name: "Available Entity 1",
+          status: "active",
+        },
+      ]);
+
+      await act(async () => {
+        render(<CrudReferenceModal {...defaultProps} />);
+      });
+
+      const profilesPanel = screen.getByTestId(
+        "collapse-item-reference-PROFILES",
+      );
+      await act(async () => {
+        fireEvent.click(within(profilesPanel).getByText("Add more"));
+      });
+
+      await waitFor(() => {
+        expect(mockLoadEntitiesForReferences).toHaveBeenCalled();
+      });
+
+      const profilesCall = mockLoadEntitiesForReferences.mock.calls.find(
+        (call) => call[0] === mockCollectionName.PROFILES,
+      );
+      expect(profilesCall?.[1]).toContain("entity-123");
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ant-select")).toBeInTheDocument();
+      });
+
+      const optionValues = Array.from(
+        screen.getByTestId("ant-select").querySelectorAll("option"),
+      ).map((option) => (option as HTMLOptionElement).value);
+      expect(optionValues).not.toContain("entity-123");
+      expect(optionValues).toContain("available1");
     });
   });
 
@@ -1088,6 +1144,36 @@ describe("CrudReferenceModal", () => {
         const addButtons = screen.queryAllByText("Add more");
         expect(addButtons.length).toBe(1);
       });
+    });
+
+    it("should keep Add more when load is empty and scope pair is missing", async () => {
+      mockLoadEntitiesForReferences.mockResolvedValue([]);
+
+      await act(async () => {
+        render(
+          <GameSystemContext.Provider
+            value={[undefined, undefined, {}] as never}
+          >
+            <CrudReferenceModal {...defaultProps} />
+          </GameSystemContext.Provider>,
+        );
+      });
+
+      await waitFor(() => {
+        const addButtons = screen.getAllByText("Add more");
+        expect(addButtons.length).toBeGreaterThan(0);
+      });
+
+      const addButtonCount = screen.getAllByText("Add more").length;
+
+      await act(async () => {
+        fireEvent.click(screen.getAllByText("Add more")[0]);
+      });
+
+      await waitFor(() => {
+        expect(screen.getAllByText("Add more").length).toBe(addButtonCount);
+      });
+      expect(screen.queryByTestId("ant-select")).not.toBeInTheDocument();
     });
 
     it("should hide 'Add more' after adding the last available entity", async () => {
@@ -3480,7 +3566,7 @@ describe("CrudReferenceModal", () => {
       const profilesCall = mockLoadEntitiesForReferences.mock.calls.find(
         (call) => call[0] === mockCollectionName.PROFILES,
       );
-      expect(profilesCall?.[1]).toEqual(["ref1"]);
+      expect(profilesCall?.[1]).toEqual(["ref1", "entity-123"]);
       expect(profilesCall?.[1]).not.toContain("broken-ref");
     });
   });

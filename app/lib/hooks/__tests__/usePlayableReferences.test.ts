@@ -1,8 +1,15 @@
+import { createElement, ReactNode } from "react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { deleteField } from "firebase/firestore";
 import { useSession } from "next-auth/react";
 
-import { CollectionName, Playable } from "../../definitions";
+import { GameSystemContext } from "../../contexts/GameSystemContext";
+import {
+  CollectionName,
+  Edition,
+  GameSystem,
+  Playable,
+} from "../../definitions";
 import getDocumentsByExcludedIds from "../../services/firebase/helpers/getDocumentsByExcludedIds";
 import getDocumentsByIds from "../../services/firebase/helpers/getDocumentsByIds";
 import updateDocument from "../../services/firebase/helpers/updateDocument";
@@ -85,6 +92,30 @@ const mockPlayableEntities: Playable[] = [
   },
 ];
 
+const noopUtils = {
+  canBeMentionedBy: () => [],
+  getActiveEditions: () => [],
+  getAllowedToRefer: () => [],
+  setSelectedEdition: () => {},
+};
+
+const mockGameSystem = { _id: "sys-1" } as GameSystem;
+const mockEdition = { _id: "ed-1" } as Edition;
+const playableScopeFilters = [
+  ["systemId", "==", "sys-1"],
+  ["editionId", "==", "ed-1"],
+];
+
+const scopedWrapper = ({ children }: { children: ReactNode }) =>
+  createElement(
+    GameSystemContext.Provider,
+    { value: [mockGameSystem, mockEdition, noopUtils] },
+    children,
+  );
+
+const renderScopedHook = () =>
+  renderHook(() => usePlayableReferences(), { wrapper: scopedWrapper });
+
 describe("usePlayableReferences", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -92,7 +123,7 @@ describe("usePlayableReferences", () => {
 
   describe("initial state", () => {
     it("should return correct initial state", () => {
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       expect(result.current.loading).toBe(false);
       expect(typeof result.current.loadReferences).toBe("function");
@@ -107,7 +138,7 @@ describe("usePlayableReferences", () => {
     it("should load references successfully", async () => {
       mockGetDocumentsByIds.mockResolvedValueOnce(mockPlayableEntities);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let loadedEntities: Playable[] = [];
       await act(async () => {
@@ -126,7 +157,7 @@ describe("usePlayableReferences", () => {
     });
 
     it("should return empty array when dbRef is null", async () => {
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let loadedEntities: Playable[] = [];
       await act(async () => {
@@ -141,7 +172,7 @@ describe("usePlayableReferences", () => {
     });
 
     it("should return empty array when dbRef is undefined", async () => {
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let loadedEntities: Playable[] = [];
       await act(async () => {
@@ -156,7 +187,7 @@ describe("usePlayableReferences", () => {
     });
 
     it("should return empty array when dbRef is empty string", async () => {
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let loadedEntities: Playable[] = [];
       await act(async () => {
@@ -175,7 +206,7 @@ describe("usePlayableReferences", () => {
       });
       mockGetDocumentsByIds.mockReturnValue(promise as any);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       expect(result.current.loading).toBe(false);
 
@@ -197,7 +228,7 @@ describe("usePlayableReferences", () => {
       const error = new Error("Failed to load references");
       mockGetDocumentsByIds.mockRejectedValueOnce(error);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let loadedEntities: Playable[] = [];
       await act(async () => {
@@ -219,7 +250,7 @@ describe("usePlayableReferences", () => {
       const error = new Error("");
       mockGetDocumentsByIds.mockRejectedValueOnce(error);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       await act(async () => {
         await result.current.loadReferences("error-collection", ["entity123"]);
@@ -237,7 +268,7 @@ describe("usePlayableReferences", () => {
       const error = new Error("Network error");
       mockGetDocumentsByIds.mockRejectedValueOnce(error);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       await act(async () => {
         await result.current.loadReferences("error-collection", ["entity123"]);
@@ -250,7 +281,7 @@ describe("usePlayableReferences", () => {
     it("should work with empty ids array", async () => {
       mockGetDocumentsByIds.mockResolvedValueOnce([]);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let loadedEntities: Playable[] = [];
       await act(async () => {
@@ -269,7 +300,7 @@ describe("usePlayableReferences", () => {
     it("should load entities for references successfully", async () => {
       mockGetDocumentsByExcludedIds.mockResolvedValueOnce(mockPlayableEntities);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let loadedEntities: Playable[] = [];
       await act(async () => {
@@ -282,13 +313,14 @@ describe("usePlayableReferences", () => {
       expect(mockGetDocumentsByExcludedIds).toHaveBeenCalledWith(
         "test-collection",
         ["entity123", "entity456"],
+        playableScopeFilters,
       );
       expect(loadedEntities).toEqual(mockPlayableEntities);
       expect(result.current.loading).toBe(false);
     });
 
     it("should return empty array when dbRef is null", async () => {
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let loadedEntities: Playable[] = [];
       await act(async () => {
@@ -303,7 +335,7 @@ describe("usePlayableReferences", () => {
     });
 
     it("should return empty array when dbRef is undefined", async () => {
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let loadedEntities: Playable[] = [];
       await act(async () => {
@@ -319,7 +351,7 @@ describe("usePlayableReferences", () => {
     });
 
     it("should return empty array when dbRef is empty string", async () => {
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let loadedEntities: Playable[] = [];
       await act(async () => {
@@ -340,7 +372,7 @@ describe("usePlayableReferences", () => {
       });
       mockGetDocumentsByExcludedIds.mockReturnValue(promise as any);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       expect(result.current.loading).toBe(false);
 
@@ -364,7 +396,7 @@ describe("usePlayableReferences", () => {
       const error = new Error("Failed to load entities for references");
       mockGetDocumentsByExcludedIds.mockRejectedValueOnce(error);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let loadedEntities: Playable[] = [];
       await act(async () => {
@@ -386,7 +418,7 @@ describe("usePlayableReferences", () => {
       const error = new Error("");
       mockGetDocumentsByExcludedIds.mockRejectedValueOnce(error);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       await act(async () => {
         await result.current.loadEntitiesForReferences("error-collection", [
@@ -406,7 +438,7 @@ describe("usePlayableReferences", () => {
       const error = new Error("Network error");
       mockGetDocumentsByExcludedIds.mockRejectedValueOnce(error);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       await act(async () => {
         await result.current.loadEntitiesForReferences("error-collection", [
@@ -421,7 +453,7 @@ describe("usePlayableReferences", () => {
     it("should work with empty excludedIds array", async () => {
       mockGetDocumentsByExcludedIds.mockResolvedValueOnce(mockPlayableEntities);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let loadedEntities: Playable[] = [];
       await act(async () => {
@@ -434,8 +466,53 @@ describe("usePlayableReferences", () => {
       expect(mockGetDocumentsByExcludedIds).toHaveBeenCalledWith(
         "test-collection",
         [],
+        playableScopeFilters,
       );
       expect(loadedEntities).toEqual(mockPlayableEntities);
+    });
+
+    it("should return empty array when game system is missing", async () => {
+      const wrapper = ({ children }: { children: ReactNode }) =>
+        createElement(
+          GameSystemContext.Provider,
+          { value: [undefined, mockEdition, noopUtils] },
+          children,
+        );
+
+      const { result } = renderHook(() => usePlayableReferences(), { wrapper });
+
+      let loadedEntities: Playable[] = [];
+      await act(async () => {
+        loadedEntities = await result.current.loadEntitiesForReferences(
+          "test-collection",
+          ["entity123"],
+        );
+      });
+
+      expect(mockGetDocumentsByExcludedIds).not.toHaveBeenCalled();
+      expect(loadedEntities).toEqual([]);
+    });
+
+    it("should return empty array when edition is missing", async () => {
+      const wrapper = ({ children }: { children: ReactNode }) =>
+        createElement(
+          GameSystemContext.Provider,
+          { value: [mockGameSystem, undefined, noopUtils] },
+          children,
+        );
+
+      const { result } = renderHook(() => usePlayableReferences(), { wrapper });
+
+      let loadedEntities: Playable[] = [];
+      await act(async () => {
+        loadedEntities = await result.current.loadEntitiesForReferences(
+          "test-collection",
+          ["entity123"],
+        );
+      });
+
+      expect(mockGetDocumentsByExcludedIds).not.toHaveBeenCalled();
+      expect(loadedEntities).toEqual([]);
     });
   });
 
@@ -447,7 +524,7 @@ describe("usePlayableReferences", () => {
       };
       mockUpdateDocument.mockResolvedValueOnce(updatedEntity);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let savedEntity: Playable | null = null;
       await act(async () => {
@@ -471,7 +548,7 @@ describe("usePlayableReferences", () => {
     });
 
     it("should return null and set error when dbRef is null", async () => {
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let savedEntity: Playable | null = null;
       await act(async () => {
@@ -491,7 +568,7 @@ describe("usePlayableReferences", () => {
     });
 
     it("should return null and set error when dbRef is undefined", async () => {
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let savedEntity: Playable | null = null;
       await act(async () => {
@@ -513,7 +590,7 @@ describe("usePlayableReferences", () => {
     });
 
     it("should return null and set error when id is empty", async () => {
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let savedEntity: Playable | null = null;
       await act(async () => {
@@ -539,7 +616,7 @@ describe("usePlayableReferences", () => {
       const error = new Error("Failed to save");
       mockUpdateDocument.mockRejectedValueOnce(error);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let savedEntity: Playable | null = null;
       await act(async () => {
@@ -568,7 +645,7 @@ describe("usePlayableReferences", () => {
       });
       mockUpdateDocument.mockReturnValue(promise as any);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       expect(result.current.loading).toBe(false);
 
@@ -591,7 +668,7 @@ describe("usePlayableReferences", () => {
     it("should save with default empty references when undefined", async () => {
       mockUpdateDocument.mockResolvedValueOnce(mockPlayableEntity);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       await act(async () => {
         await result.current.saveReferences(
@@ -614,7 +691,7 @@ describe("usePlayableReferences", () => {
     it("should save empty references object", async () => {
       mockUpdateDocument.mockResolvedValueOnce(mockPlayableEntity);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       await act(async () => {
         await result.current.saveReferences("test-collection", "entity123", {});
@@ -636,7 +713,7 @@ describe("usePlayableReferences", () => {
         status: "unauthenticated",
       });
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       await expect(
         result.current.saveReferences("test-collection", "entity123", {
@@ -650,7 +727,7 @@ describe("usePlayableReferences", () => {
       const error = new Error("");
       mockUpdateDocument.mockRejectedValueOnce(error);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       await act(async () => {
         await result.current.saveReferences("test-collection", "entity123", {
@@ -670,7 +747,7 @@ describe("usePlayableReferences", () => {
 
   describe("removeIncomingReferences", () => {
     it("should return true without calling updateDocument when removals is empty", async () => {
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let ok = false;
       await act(async () => {
@@ -684,7 +761,7 @@ describe("usePlayableReferences", () => {
     it("should remove references field on each mentioner document", async () => {
       mockUpdateDocument.mockResolvedValue({});
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       const removals: Array<{
         collectionName: CollectionName;
@@ -715,7 +792,7 @@ describe("usePlayableReferences", () => {
     });
 
     it("should return false and set error when referencedEntityId is empty", async () => {
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let ok = true;
       await act(async () => {
@@ -738,7 +815,7 @@ describe("usePlayableReferences", () => {
       const error = new Error("update failed");
       mockUpdateDocument.mockRejectedValueOnce(error);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let ok = true;
       await act(async () => {
@@ -761,7 +838,7 @@ describe("usePlayableReferences", () => {
         status: "unauthenticated",
       });
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       await expect(
         result.current.removeIncomingReferences("e1", [
@@ -784,7 +861,7 @@ describe("usePlayableReferences", () => {
     };
 
     it("should return true without calling updateDocument when assignments is empty", async () => {
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let ok = false;
       await act(async () => {
@@ -798,7 +875,7 @@ describe("usePlayableReferences", () => {
     it("should replace the old reference with the new one on each mentioner document", async () => {
       mockUpdateDocument.mockResolvedValue({});
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let ok = false;
       await act(async () => {
@@ -834,7 +911,7 @@ describe("usePlayableReferences", () => {
     });
 
     it("should return false and set error when oldReferencedId is empty", async () => {
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let ok = true;
       await act(async () => {
@@ -855,7 +932,7 @@ describe("usePlayableReferences", () => {
       const error = new Error("update failed");
       mockUpdateDocument.mockRejectedValueOnce(error);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let ok = true;
       await act(async () => {
@@ -878,7 +955,7 @@ describe("usePlayableReferences", () => {
         status: "unauthenticated",
       });
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       await expect(
         result.current.reassignIncomingReferences("e1", [assignment]),
@@ -917,7 +994,7 @@ describe("usePlayableReferences", () => {
 
   describe("return structure", () => {
     it("should return consistent object structure", () => {
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       expect(result.current).toHaveProperty("loadReferences");
       expect(result.current).toHaveProperty("loadEntitiesForReferences");
@@ -946,7 +1023,7 @@ describe("usePlayableReferences", () => {
         .mockResolvedValueOnce(entities1)
         .mockResolvedValueOnce(entities2);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let results: Playable[][] = [];
       await act(async () => {
@@ -972,7 +1049,7 @@ describe("usePlayableReferences", () => {
         .mockResolvedValueOnce(entities1)
         .mockResolvedValueOnce(entities2);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let results: Playable[][] = [];
       await act(async () => {
@@ -999,7 +1076,7 @@ describe("usePlayableReferences", () => {
       mockGetDocumentsByIds.mockResolvedValueOnce(referencesEntities);
       mockGetDocumentsByExcludedIds.mockResolvedValueOnce(excludedEntities);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let referencesResult: Playable[] = [];
       let excludedResult: Playable[] = [];
@@ -1039,7 +1116,7 @@ describe("usePlayableReferences", () => {
 
       mockGetDocumentsByIds.mockResolvedValueOnce([customEntity]);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let loadedEntities: CustomPlayable[] = [];
       await act(async () => {
@@ -1060,7 +1137,7 @@ describe("usePlayableReferences", () => {
 
       mockGetDocumentsByExcludedIds.mockResolvedValueOnce([customEntity]);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       let loadedEntities: CustomPlayable[] = [];
       await act(async () => {
@@ -1080,7 +1157,7 @@ describe("usePlayableReferences", () => {
       const largeIdsArray = Array.from({ length: 1000 }, (_, i) => `id${i}`);
       mockGetDocumentsByIds.mockResolvedValueOnce([]);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       await act(async () => {
         await result.current.loadReferences("test-collection", largeIdsArray);
@@ -1099,7 +1176,7 @@ describe("usePlayableReferences", () => {
       );
       mockGetDocumentsByExcludedIds.mockResolvedValueOnce([]);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       await act(async () => {
         await result.current.loadEntitiesForReferences(
@@ -1111,13 +1188,14 @@ describe("usePlayableReferences", () => {
       expect(mockGetDocumentsByExcludedIds).toHaveBeenCalledWith(
         "test-collection",
         largeExcludedArray,
+        playableScopeFilters,
       );
     });
 
     it("should handle special characters in collection names", async () => {
       mockGetDocumentsByIds.mockResolvedValueOnce([mockPlayableEntity]);
 
-      const { result } = renderHook(() => usePlayableReferences());
+      const { result } = renderScopedHook();
 
       await act(async () => {
         await result.current.loadReferences("special-collection_123", [

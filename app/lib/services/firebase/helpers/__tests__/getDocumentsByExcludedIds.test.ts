@@ -469,4 +469,61 @@ describe("getDocumentsByExcludedIds", () => {
 
     expect(result).toEqual(expectedFiltered);
   });
+
+  it("should query by filters then drop excluded IDs in memory", async () => {
+    const collectionPath = "scoped-collection";
+    const excludedIds = ["doc1"];
+    const filters: [string, any, any][] = [
+      ["systemId", "==", "sys-1"],
+      ["editionId", "==", "ed-1"],
+    ];
+
+    mockGetDocuments.mockResolvedValueOnce(mockDocuments);
+
+    const result = await getDocumentsByExcludedIds(
+      collectionPath,
+      excludedIds,
+      filters,
+    );
+
+    expect(mockGetDocuments).toHaveBeenCalledWith(collectionPath, filters);
+    expect(mockGetDocs).not.toHaveBeenCalled();
+    expect(result).toEqual(mockDocuments.filter((doc) => doc.id !== "doc1"));
+  });
+
+  it("should not use documentId not-in when filters are provided", async () => {
+    const collectionPath = "scoped-not-in";
+    const excludedIds = ["doc1", "doc2"];
+    const filters: [string, any, any][] = [
+      ["systemId", "==", "sys-1"],
+      ["editionId", "==", "ed-1"],
+    ];
+
+    mockGetDocuments.mockResolvedValueOnce(mockDocuments);
+
+    await getDocumentsByExcludedIds(collectionPath, excludedIds, filters);
+
+    expect(mockGetDocuments).toHaveBeenCalledWith(collectionPath, filters);
+    expect(mockDocumentId).not.toHaveBeenCalled();
+    expect(mockWhere).not.toHaveBeenCalled();
+  });
+
+  it("should exclude documents by _id when id is missing", async () => {
+    const collectionPath = "underscore-id-collection";
+    const scopedDocuments = [
+      { _id: "keep", name: "Keep" },
+      { _id: "drop", name: "Drop" },
+    ];
+    const filters: [string, any, any][] = [["systemId", "==", "sys-1"]];
+
+    mockGetDocuments.mockResolvedValueOnce(scopedDocuments);
+
+    const result = await getDocumentsByExcludedIds(
+      collectionPath,
+      ["drop"],
+      filters,
+    );
+
+    expect(result).toEqual([{ _id: "keep", name: "Keep" }]);
+  });
 });
