@@ -13,7 +13,7 @@ import CrudTableCell from "@/app/ui/shared/CrudTableCell";
 
 const collectionName = CollectionRegistry.Keyword;
 
-const CosAdminKeywords = () => {
+const CrudAdminKeywords = () => {
   const [gameSystem, selectedEdition] = useContext(GameSystemContext);
   const { deleteEntity, loadEntities, loading, saveEntity } = useEntities();
   const [keywords, setKeywords] = useState<Keyword[]>([]);
@@ -105,4 +105,4 @@ const CosAdminKeywords = () => {
   );
 };
 
-export default CosAdminKeywords;
+export default CrudAdminKeywords;

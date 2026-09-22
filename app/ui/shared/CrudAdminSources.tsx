@@ -12,7 +12,7 @@ import SourceUI from "@/app/ui/shared/Source";
 
 const collectionName = CollectionRegistry.Source;
 
-const CosAdminSources = () => {
+const CrudAdminSources = () => {
   const [gameSystem, selectedEdition] = useContext(GameSystemContext);
   const { deleteEntity, loadEntities, loading, saveEntity } = useEntities();
   const [sources, setSources] = useState<Source[]>([]);
@@ -86,4 +86,4 @@ const CosAdminSources = () => {
   );
 };
 
-export default CosAdminSources;
+export default CrudAdminSources;

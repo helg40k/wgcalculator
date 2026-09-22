@@ -13,9 +13,7 @@ import { FontAwesomeIcon as Icon } from "@fortawesome/react-fontawesome";
 import { Badge, Tabs } from "antd";
 
 import CosAdminArmors from "@/app/clashofspears/admin/ui/CosAdminArmors";
-import CosAdminKeywords from "@/app/clashofspears/admin/ui/CosAdminKeywords";
 import CosAdminProfiles from "@/app/clashofspears/admin/ui/CosAdminProfiles";
-import CosAdminSources from "@/app/clashofspears/admin/ui/CosAdminSources";
 import CosAdminStart from "@/app/clashofspears/admin/ui/CosAdminStart";
 import CosAdminTraits from "@/app/clashofspears/admin/ui/CosAdminTraits";
 import CosAdminWeapons from "@/app/clashofspears/admin/ui/CosAdminWeapons";
@@ -27,6 +25,8 @@ import {
 import { CollectionName, CollectionRegistry } from "@/app/lib/definitions";
 import useBrokenReferencesManager from "@/app/lib/hooks/useBrokenReferencesManager";
 import { getMenuItems, MenuItem, MenuItemConst } from "@/app/ui/shared";
+import CrudAdminKeywords from "@/app/ui/shared/CrudAdminKeywords";
+import CrudAdminSources from "@/app/ui/shared/CrudAdminSources";
 import TemplatePageLayout, { MenuInfo } from "@/app/ui/TemplatePageLayout";
 
 type MenuKey =
@@ -140,12 +140,12 @@ const PageContent = () => {
         label: "",
       },
       {
-        children: <CosAdminSources />,
+        children: <CrudAdminSources />,
         key: MENU_ITEMS.SOURCES.key,
         label: MENU_ITEMS.SOURCES.label,
       },
       {
-        children: <CosAdminKeywords />,
+        children: <CrudAdminKeywords />,
         key: MENU_ITEMS.KEYWORDS.key,
         label: MENU_ITEMS.KEYWORDS.label,
       },
